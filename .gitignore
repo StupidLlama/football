@@ -1,0 +1,6 @@
+# 隊員個資：不要上傳到公開的 GitHub
+data/*.xlsx
+data/*.db
+.streamlit/secrets.toml
+__pycache__/
+.venv/
