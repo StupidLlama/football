@@ -55,7 +55,20 @@ class GoogleSheetSource:
         client = gspread.service_account_from_dict(self.service_account)
         book = client.open_by_url(self.url)
         sheet = book.worksheet(self.worksheet) if self.worksheet else book.sheet1
-        return pd.DataFrame(sheet.get_all_records())
+        rows = sheet.get_all_values()
+        if not rows:
+            return pd.DataFrame()
+        return pd.DataFrame(rows[1:], columns=dedupe_headers(rows[0]))
+
+
+def dedupe_headers(headers: list[str]) -> list[str]:
+    """重複的欄位標題加上編號（跟 Excel 匯出一樣）：Weak Foot, Weak Foot → Weak Foot, Weak Foot 2"""
+    seen: dict[str, int] = {}
+    out = []
+    for h in (str(x).strip() for x in headers):
+        seen[h] = seen.get(h, 0) + 1
+        out.append(h if seen[h] == 1 else f"{h} {seen[h]}")
+    return out
 
 
 def get_source(secrets=None) -> Source:

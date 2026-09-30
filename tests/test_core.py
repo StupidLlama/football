@@ -123,3 +123,33 @@ def test_charts_render():
     for fig in (charts.radar(p), charts.radar([p, p], labels=["A", "B"]), charts.pitch(p)):
         assert fig.axes
         charts.plt.close(fig)
+
+
+def test_dedupe_headers():
+    from core.sources import dedupe_headers
+    assert dedupe_headers(["A", "Weak Foot", "Weak Foot", " B "]) == ["A", "Weak Foot", "Weak Foot 2", "B"]
+
+
+def test_parse_google_sheet_timestamps():
+    from core.ingest import parse_timestamps
+    s = parse_timestamps(pd.Series(["2026/9/29 下午 2:33:09", "2026/9/29 上午 9:05:00", "2026-09-30 10:00:00"]))
+    assert list(s.dt.hour) == [14, 9, 10]
+
+
+def test_google_sheet_source_with_duplicate_headers(monkeypatch):
+    import sys, types
+    cfg = settings()
+    raw = make_raw()
+    raw.insert(0, "Weak Foot", "Left")  # 真實表單：第一個 Weak Foot 是左右腳，第二個是分數
+    headers = [("Weak Foot" if c == "Weak Foot 2" else c) for c in raw.columns]
+    values = [headers, [str(v) for v in raw.iloc[0]]]
+
+    class Sheet:
+        def get_all_values(self): return values
+    class Book:
+        sheet1 = Sheet()
+        def worksheet(self, name): return Sheet()
+    fake = types.SimpleNamespace(service_account_from_dict=lambda d: types.SimpleNamespace(open_by_url=lambda u: Book()))
+    monkeypatch.setitem(sys.modules, "gspread", fake)
+    df = normalize(GoogleSheetSource("u", {}, "表單回覆 1").load())
+    assert df.loc[0, "name"] == "測試員" and df.loc[0, "weak_foot"] == 3

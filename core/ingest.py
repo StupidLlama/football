@@ -6,6 +6,14 @@ from .config import Settings, settings as default_settings
 INFO_FIELDS = ["name", "nickname", "good_positions", "bad_positions"]
 
 
+def parse_timestamps(series: pd.Series) -> pd.Series:
+    """支援 Excel 的日期，以及 Google 試算表的「2026/9/29 下午 2:33:09」格式。"""
+    parsed = pd.to_datetime(series, errors="coerce")
+    text = series.astype(str).str.replace("上午", "AM").str.replace("下午", "PM")
+    zh = pd.to_datetime(text, format="%Y/%m/%d %p %I:%M:%S", errors="coerce")
+    return parsed.fillna(zh)
+
+
 def _clean_text(series: pd.Series) -> pd.Series:
     return series.fillna("").astype(str).str.strip().replace({"nan": ""})
 
@@ -24,7 +32,7 @@ def normalize(raw: pd.DataFrame, cfg: Settings | None = None) -> pd.DataFrame:
 
     df = pd.DataFrame(index=raw.index)
     ts = form.get("timestamp")
-    df["submitted_at"] = pd.to_datetime(raw[ts], errors="coerce") if ts in raw.columns else pd.NaT
+    df["submitted_at"] = parse_timestamps(raw[ts]) if ts in raw.columns else pd.NaT
     for f in INFO_FIELDS:
         df[f] = _clean_text(raw[form[f]])
     msg_col = next((c for c in raw.columns if c.startswith(form["message_prefix"])), None)
