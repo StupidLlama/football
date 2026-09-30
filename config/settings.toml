@@ -1,0 +1,162 @@
+# ============================================================
+# 網站設定檔：調整能力、權重、表單欄位都改這裡，不用動程式碼
+# ============================================================
+
+# ---------- 表單欄位對應 ----------
+# 左邊 = 程式內部名稱，右邊 = Google 表單（試算表）的欄位標題
+[form]
+timestamp = "時間戳記"
+name = "姓名"
+nickname = "希望別人怎麼叫你 (ex:暱稱)"
+good_positions = "擅長的位子"
+bad_positions = "不擅長的位子"
+# 這一題標題很長又有換行，所以用「開頭文字」比對
+message_prefix = "有什麼是你希望球隊上的人知道的"
+
+# ---------- 手動覆寫「給球隊的話」 ----------
+# 重新匯出表單或改接試算表都會保留
+[message_overrides]
+"蕭杰騰" = "無"
+
+# ---------- 能力分類 ----------
+# 每個能力：key = 程式內部名稱，column = 表單欄位標題，label = 網站顯示名稱
+# 要新增能力：在表單加題目 → 在對應類別加一行 → 在下面 [positions] 決定要不要算進權重
+[[categories]]
+name = "技術"
+color = "#3B82F6"
+abilities = [
+  { key = "ball_control", column = "Ball Control",         label = "控球" },
+  { key = "passing",      column = "Passing",              label = "傳球" },
+  { key = "crossing",     column = "Crossing / Long Ball", label = "傳中/長傳" },
+  { key = "dribbling",    column = "Dribbling",            label = "盤帶" },
+  { key = "ball_keeping", column = "Ball Keeping",         label = "護球" },
+  { key = "weak_foot",    column = "Weak Foot 2",          label = "弱腳能力" },
+]
+
+[[categories]]
+name = "進攻"
+color = "#EF4444"
+abilities = [
+  { key = "finishing", column = "Finishing",        label = "射門" },
+  { key = "heading",   column = "Heading",          label = "頭球" },
+  { key = "set_piece", column = "Set Piece Taking", label = "定位球" },
+]
+
+[[categories]]
+name = "心智"
+color = "#A855F7"
+abilities = [
+  { key = "pressure",     column = "Pressure Handling", label = "抗壓" },
+  { key = "space",        column = "Space Awareness",   label = "空間感" },
+  { key = "play_reading", column = "Play Reading",      label = "閱讀比賽" },
+  { key = "football_iq",  column = "Football IQ",       label = "球商" },
+]
+
+[[categories]]
+name = "防守"
+color = "#10B981"
+abilities = [
+  { key = "duel",         column = "1v1 Duel",        label = "1v1 對抗" },
+  { key = "aerial",       column = "1v1 Aerial Duel", label = "空中對抗" },
+  { key = "intercepting", column = "Intercepting",    label = "攔截" },
+  { key = "goalkeeping",  column = "Goal Keeping",    label = "守門" },
+]
+
+[[categories]]
+name = "身體"
+color = "#F59E0B"
+abilities = [
+  { key = "speed",     column = "Speed",            label = "速度" },
+  { key = "stamina",   column = "Stamina",          label = "體能" },
+  { key = "physical",  column = "Physical Contact", label = "身體對抗" },
+  { key = "explosive", column = "Explosive Power",  label = "爆發力" },
+]
+
+# ---------- 位置適合度 ----------
+# 適合度 = 相關能力的加權平均 × 20（滿分 100），每個位置的權重加起來應該是 1
+[recommend]
+top_n = 3   # 數據推薦取前幾名
+
+[positions.GK]
+goalkeeping = 0.85
+explosive = 0.05
+pressure = 0.05
+play_reading = 0.05
+
+[positions.CB]
+heading = 0.15
+aerial = 0.15
+duel = 0.15
+intercepting = 0.15
+play_reading = 0.15
+physical = 0.15
+passing = 0.10
+
+[positions."LB/RB"]
+duel = 0.20
+intercepting = 0.15
+speed = 0.15
+stamina = 0.15
+crossing = 0.10
+play_reading = 0.10
+space = 0.15
+
+[positions."LWB/RWB"]
+stamina = 0.20
+speed = 0.15
+crossing = 0.15
+dribbling = 0.10
+duel = 0.15
+intercepting = 0.10
+ball_control = 0.15
+
+[positions.CDM]
+intercepting = 0.20
+play_reading = 0.20
+passing = 0.15
+duel = 0.15
+pressure = 0.10
+stamina = 0.10
+physical = 0.10
+
+[positions.CM]
+passing = 0.20
+ball_keeping = 0.15
+football_iq = 0.15
+stamina = 0.15
+space = 0.15
+pressure = 0.10
+ball_control = 0.10
+
+[positions.CAM]
+passing = 0.15
+football_iq = 0.15
+space = 0.15
+dribbling = 0.15
+ball_control = 0.15
+finishing = 0.15
+set_piece = 0.10
+
+[positions."LM/RM"]
+crossing = 0.20
+stamina = 0.20
+speed = 0.15
+dribbling = 0.15
+passing = 0.15
+ball_control = 0.15
+
+[positions."LW/RW"]
+dribbling = 0.25
+speed = 0.20
+explosive = 0.15
+finishing = 0.15
+crossing = 0.10
+ball_control = 0.15
+
+[positions.ST]
+finishing = 0.30
+heading = 0.15
+ball_keeping = 0.15
+explosive = 0.15
+physical = 0.10
+space = 0.15

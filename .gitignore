@@ -1,6 +1,13 @@
-# 隊員個資：不要上傳到公開的 GitHub
+# 隊員個資：絕對不要上傳到 GitHub
 data/*.xlsx
+data/*.csv
 data/*.db
+*.db
 .streamlit/secrets.toml
+*service_account*.json
+*-credentials*.json
+
+# Python
 __pycache__/
+.pytest_cache/
 .venv/

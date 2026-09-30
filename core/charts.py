@@ -1,4 +1,4 @@
-"""圖表：能力雷達圖、球場位置圖。回傳 matplotlib Figure，網站和其他程式都能用。"""
+"""圖表：能力雷達圖、球場位置圖。回傳 matplotlib Figure，網站、報告、影片分析都能共用。"""
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.patheffects as pe
@@ -8,7 +8,8 @@ from matplotlib import font_manager
 from matplotlib.colors import to_rgba
 from matplotlib.patches import Arc, Circle, Rectangle
 
-from .data import ABILITIES, CATEGORIES, POSITIONS, bad_positions, good_positions, recommended
+from .analysis import bad_positions, good_positions, recommended
+from .config import settings
 
 
 # ---------- 中文字型：Windows / Mac / Linux 都找得到 ----------
@@ -39,7 +40,8 @@ def radar(players, labels=None, size=7.5):
     """players：一位或多位球員（pd.Series）。多位時疊在一起比較。"""
     if not isinstance(players, (list, tuple)):
         players = [players]
-    n = len(ABILITIES)
+    abilities = settings().abilities
+    n = len(abilities)
     ang = np.pi / 2 - np.arange(n) * 2 * np.pi / n  # 從正上方順時針
     ux, uy = np.cos(ang), np.sin(ang)
 
@@ -53,21 +55,21 @@ def radar(players, labels=None, size=7.5):
 
     single = len(players) == 1
     for k, p in enumerate(players):
-        v = np.array([p[key] for key, *_ in ABILITIES], dtype=float)
+        v = np.array([p[a.key] for a in abilities], dtype=float)
         px, py = ux * v, uy * v
         c = COMPARE_COLORS[k % len(COMPARE_COLORS)]
         lab = labels[k] if labels else None
         ax.fill(np.append(px, px[0]), np.append(py, py[0]), color=c, alpha=0.33 if single else 0.2, zorder=3)
         ax.plot(np.append(px, px[0]), np.append(py, py[0]), color=c, lw=2.3, zorder=4, label=lab)
-        for i, (_, _, _, _, color) in enumerate(ABILITIES):
-            ax.scatter(px[i], py[i], s=55, color=color if single else c, edgecolor="white", linewidth=1, zorder=5)
+        for i, a in enumerate(abilities):
+            ax.scatter(px[i], py[i], s=55, color=a.color if single else c, edgecolor="white", linewidth=1, zorder=5)
 
-    for i, (key, _, zh, _, color) in enumerate(ABILITIES):
+    for i, a in enumerate(abilities):
         ha = "center" if abs(ux[i]) < 0.2 else ("left" if ux[i] > 0 else "right")
-        txt = f"{zh} {int(players[0][key])}" if single else zh
-        ax.text(5.55 * ux[i], 5.55 * uy[i], txt, ha=ha, va="center", fontsize=11.5, color=color, weight="bold")
-    for cat, color, items in CATEGORIES:  # 外圈類別弧線
-        idx = [i for i, a in enumerate(ABILITIES) if a[3] == cat]
+        txt = f"{a.label} {int(players[0][a.key])}" if single else a.label
+        ax.text(5.55 * ux[i], 5.55 * uy[i], txt, ha=ha, va="center", fontsize=11.5, color=a.color, weight="bold")
+    for cat, color, items in settings().categories:  # 外圈類別弧線
+        idx = [i for i, a in enumerate(abilities) if a.category == cat]
         t = np.linspace(ang[idx[0]] + np.pi / n * 0.8, ang[idx[-1]] - np.pi / n * 0.8, 40)
         ax.plot(5.2 * np.cos(t), 5.2 * np.sin(t), color=color, lw=5, solid_capstyle="round", alpha=0.85)
     ax.set_xlim(-7.8, 7.8); ax.set_ylim(-6.6, 6.6)
@@ -110,7 +112,7 @@ def pitch(player, size=(10, 7.2)):
     fig, ax = plt.subplots(figsize=size)
     _draw_pitch(ax)
     BW, BH = 7.5, 12  # 直的方框
-    for pos in POSITIONS:
+    for pos in COORDS:
         base = BLUE if pos in good else RED if pos in bad else YEL if pos in rec else None
         fc = to_rgba(base, 0.28) if base else (1, 1, 1, 0)
         ring = pos in rec and base not in (None, YEL)

@@ -1,47 +1,73 @@
 # ⚽ 球隊球員卡網站
 
-用 Streamlit 做的球員資料網站：全隊列表、個人能力雷達圖、適合位置球場圖、兩人比較。
-之後會和影片分析專案合併（「比賽數據」頁先預留好了）。
+用 Streamlit 做的球隊網站：全隊列表、個人能力雷達圖、適合位置球場圖、球員比較，
+並預留「比賽數據」頁給之後的影片分析專案。
 
 ## 本機執行（Windows）
 
 第一次先安裝套件：
-
 ```
-pip install -r requirements.txt
+py -m pip install -r requirements.txt
 ```
-
-之後每次執行：
-
+之後每次執行（或直接雙擊 `run.bat`）：
 ```
-python -m streamlit run app.py
+py -m streamlit run app.py
 ```
-
-或直接雙擊 `run.bat`。瀏覽器會自動打開 http://localhost:8501
 
 ## 資料夾結構
 
 ```
-app.py              網站主程式（頁面）
-core/data.py        資料層：xlsx → SQLite、能力分類、位置適合度權重
-core/charts.py      圖表：雷達圖、球場位置圖
-data/team.xlsx      Google 表單匯出的球員資料
-data/team.db        自動產生的 SQLite 資料庫（不用手動改）
+app.py                  入口：頁面導覽、隊伍密碼
+views/                  每一頁一個檔案
+  team.py                 全隊
+  player.py               球員（雷達圖 + 球場位置圖）
+  compare.py              比較
+  matches.py              比賽數據
+  common.py               各頁共用（載入資料、畫圖）
+core/                   核心邏輯（跟網站無關，影片分析也能用）
+  config.py               讀取設定檔
+  sources.py              資料來源：本機 xlsx / Google 試算表
+  ingest.py               整理表單資料（重複填表只留最新、手動覆寫）
+  db.py                   SQLite 資料庫（球員、比賽、比賽數據）＋自動升級
+  analysis.py             位置適合度、推薦位置
+  charts.py               雷達圖、球場位置圖
+config/settings.toml    ★ 所有可調整的設定都在這
+analysis/               影片分析（之後）＋匯入比賽數據的工具
+tests/                  自動測試
+data/                   球員資料（不會上傳 GitHub）
 ```
 
-## 更新資料
+## 資料怎麼來
 
-把新的表單回覆匯出成 xlsx，覆蓋 `data/team.xlsx` 就好，網站會自動重建資料庫。
+程式會自動選資料來源：
+- 有設定 Google 試算表（`.streamlit/secrets.toml`）→ **直接讀表單的回覆試算表**，隊員填完表單，網站最多 5 分鐘內更新（側邊欄按「重新載入資料」可立即更新）
+- 沒設定 → 讀本機的 `data/team.xlsx`
 
-## 調整
+設定方式請看 `.streamlit/secrets.toml.example`。
 
-- 能力分類與顏色：`core/data.py` 的 `CATEGORIES`
-- 位置適合度的權重：`core/data.py` 的 `POSITION_WEIGHTS`
-- 推薦位置取前幾名：`core/data.py` 的 `recommended(top=3)`
+## 常見修改
 
-## 隊伍密碼（部署前再設定）
+| 想做的事 | 改哪裡 |
+|---|---|
+| 調整位置適合度的權重 | `config/settings.toml` 的 `[positions.XX]` |
+| 推薦位置取前幾名 | `config/settings.toml` 的 `[recommend] top_n` |
+| 表單新增一題能力 | `config/settings.toml` 對應類別加一行 |
+| 表單題目改名 | `config/settings.toml` 的 `[form]` 或能力的 `column` |
+| 手動改某人「給球隊的話」 | `config/settings.toml` 的 `[message_overrides]` |
+| 新增一個頁面 | 在 `views/` 新增 `.py` 檔，再加進 `app.py` 的 `PAGES` |
+| 資料庫加欄位 / 資料表 | `core/db.py` 的 `MIGRATIONS` 最後面**新增**一段 SQL |
+| 匯入比賽數據 | 見 `analysis/README.md` |
 
-把 `.streamlit/secrets.toml.example` 複製成 `.streamlit/secrets.toml` 並改密碼，網站就會要求輸入密碼。
-沒有這個檔案時不需要密碼（方便本機測試）。
+## 測試
 
-⚠️ `.gitignore` 已經排除 `data/team.xlsx` 和 `secrets.toml`，隊員個資不會被上傳到 GitHub。
+改完程式跑一次，確認沒改壞：
+```
+py -m pip install -r requirements-dev.txt
+py -m pytest
+```
+
+## 隊伍密碼
+
+在 `.streamlit/secrets.toml` 設定 `team_password`，網站就會要求密碼；沒設定就不需要（方便本機測試）。
+
+⚠️ `.gitignore` 已排除 `data/` 裡的資料檔、`secrets.toml` 和金鑰檔，隊員個資不會被上傳到 GitHub。

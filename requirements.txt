@@ -1,5 +1,6 @@
-streamlit>=1.35
+streamlit>=1.40
 pandas
 openpyxl
 matplotlib
 numpy
+gspread>=6
