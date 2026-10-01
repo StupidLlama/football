@@ -37,6 +37,7 @@ def load_form_spec(path: Path = SETTINGS_PATH) -> FormSpec:
         message_prefix=form["message_prefix"],
         timestamp=form.get("timestamp"),
         message_overrides=raw.get("message_overrides", {}),
+        weak_side=form.get("weak_side"),
     )
 
 

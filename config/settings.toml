@@ -10,6 +10,8 @@ name = "姓名"
 nickname = "希望別人怎麼叫你 (ex:暱稱)"
 good_positions = "擅長的位子"
 bad_positions = "不擅長的位子"
+# 「哪一腳是弱腳」（自由填寫，程式會整理成左 / 右）。表單有兩題都叫 Weak Foot，這是第一題
+weak_side = "Weak Foot"
 # 這一題標題很長又有換行，所以用「開頭文字」比對
 message_prefix = "有什麼是你希望球隊上的人知道的"
 

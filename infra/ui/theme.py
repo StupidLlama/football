@@ -14,7 +14,7 @@ _CSS = f"""
 html, body, p, li, label, h1, h2, h3, h4, input, textarea, [data-testid="stMarkdownContainer"] {{
   font-family: 'Noto Sans TC', 'Microsoft JhengHei', sans-serif;
 }}
-.block-container {{ padding-top: 2.2rem; padding-bottom: 3rem; max-width: 1400px; }}
+.block-container {{ padding-top: 3.6rem; padding-bottom: 3rem; max-width: 1400px; }}
 h1, h2, h3 {{ letter-spacing: 0.01em; }}
 /* 數字用等寬字型，上下對齊比較 */
 [data-testid="stMetricValue"] {{ font-family: 'JetBrains Mono', monospace; font-weight: 700; }}
@@ -32,9 +32,19 @@ h1, h2, h3 {{ letter-spacing: 0.01em; }}
 .potato-kpi .up {{ color: {UP}; }}
 .potato-kpi .down {{ color: {DOWN}; }}
 .potato-legend {{ display:flex; flex-wrap:wrap; gap: 6px 16px; align-items:center; justify-content:center;
-                  color: {MUTED}; font-size: 0.85rem; margin: 0.2rem 0 -0.4rem; }}
+                  color: {MUTED}; font-size: 0.85rem; margin: -0.6rem 0 0.8rem; }}
 .potato-legend span {{ display:inline-flex; align-items:center; gap:6px; white-space:nowrap; }}
 .potato-legend i {{ display:inline-block; }}
+.potato-head {{ display:flex; align-items:flex-start; gap: 18px; margin: 0.1rem 0 0.6rem; }}
+.potato-head h1 {{ margin: 0; padding: 0; font-size: 2.75rem; line-height: 1.15; font-weight: 700; }}
+.potato-head .info {{ margin-top: 0.35rem; line-height: 1.5; }}
+.potato-number {{ color: {MUTED}; font-weight: 700; margin-right: 0.15em; }}
+.potato-head img {{ flex: none; margin-top: 4px; }}
+.potato-nick {{ color: {MUTED}; font-size: 0.95rem; font-weight: 400; }}
+.potato-steps {{ background: {PANEL}; border: 1px solid {GRID}; border-radius: 10px; padding: 12px 16px;
+                 margin: 0.4rem 0 1rem; }}
+.potato-steps ol {{ margin: 0.2rem 0 0 1.2rem; padding: 0; }}
+.potato-steps li {{ margin: 0.15rem 0; }}
 .potato-chip {{ display:inline-block; padding: 2px 10px; margin: 2px 4px 2px 0; border-radius: 999px;
                border: 1px solid {GRID}; background: {PANEL}; font-size: 0.85rem; }}
 </style>
@@ -46,7 +56,7 @@ def inject_css() -> None:
 
 
 def kpi(label: str, value, sub: str = "", delta: float | None = None, delta_suffix: str = "") -> None:
-    """數據卡。sub = 灰色補充說明（不帶箭頭）；delta = 有正負意義的差值（綠 / 紅）。"""
+    """數據卡。sub = 灰色補充說明（不帶箭頭，可以含簡單 HTML）；delta = 有正負意義的差值（綠 / 紅）。"""
     extra = ""
     if delta is not None:
         cls = "up" if delta > 0 else "down" if delta < 0 else ""
@@ -80,3 +90,14 @@ def legend(items) -> None:
             mark = f'<i style="width:18px;height:0;border-top:3px {style} {it.color}"></i>'
         parts.append(f"<span>{mark}{html.escape(it.label)}</span>")
     st.markdown(f'<div class="potato-legend">{"".join(parts)}</div>', unsafe_allow_html=True)
+
+
+def nick_html(nick: str) -> str:
+    """暱稱的灰色小字（HTML）。"""
+    return f'<span class="potato-nick">{html.escape(nick)}</span>' if nick else ""
+
+
+def steps(title: str, items: list[str]) -> None:
+    """操作步驟說明框。"""
+    lis = "".join(f"<li>{i}</li>" for i in items)
+    st.markdown(f'<div class="potato-steps"><b>{html.escape(title)}</b><ol>{lis}</ol></div>', unsafe_allow_html=True)

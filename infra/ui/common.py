@@ -50,13 +50,31 @@ def data_source_label() -> str:
     return get_source(st.secrets).label
 
 
-def display_name(player) -> str:
-    nick = player["nickname"]
-    return f"{player['name']}（{nick}）" if nick and nick != player["name"] else player["name"]
+def nickname(player) -> str:
+    """暱稱；沒填或跟名字一樣就回傳空字串（畫面上用灰色小字另外顯示，不跟名字擠在一起）。"""
+    nick = str(player.get("nickname", "") or "")
+    return "" if nick == player["name"] else nick
 
 
 def player_options(players: pd.DataFrame) -> dict[str, int]:
-    return {display_name(p): i for i, p in players.iterrows()}
+    """選單用：名字 → 列號（選單裡只放名字）。"""
+    return {p["name"]: i for i, p in players.iterrows()}
+
+
+def jersey_numbers() -> dict[str, str]:
+    """背號：寫在 secrets 的 [jersey_numbers]（"名字" = 7），還沒決定就不寫。"""
+    return {str(k): str(v) for k, v in secret_table("jersey_numbers").items()}
+
+
+def jersey(name: str) -> str:
+    return jersey_numbers().get(name, "")
+
+
+def grey_column(df: pd.DataFrame, column: str = "暱稱"):
+    """表格裡的暱稱欄用灰色字（回傳 pandas Styler，st.dataframe 可以直接顯示）。"""
+    from infra.charts.style import MUTED
+    styler = df.style if isinstance(df, pd.DataFrame) else df
+    return styler.set_properties(subset=[column], **{"color": MUTED})
 
 
 def show_plotly(fig: dict) -> None:
@@ -70,12 +88,12 @@ def show_pitch(player, rules: RatingRules) -> None:
 
 
 def show_radar(series: list[Series], rules: RatingRules, **kwargs) -> None:
-    """雷達圖＋上方的圖例列。"""
+    """雷達圖＋圖下方的圖例列。"""
     from infra.ui.theme import legend
-    legend(legend_items(series, rules))
     show_plotly(radar(series, rules, **kwargs))
+    legend(legend_items(series, rules))
 
 
-def name_to_display(players: list[dict]) -> dict[str, str]:
-    """名字 → 顯示名稱（名字＋暱稱）。"""
-    return {p["name"]: display_name(p) for p in players}
+def nicknames(players: list[dict]) -> dict[str, str]:
+    """名字 → 暱稱（沒有就空字串）。"""
+    return {p["name"]: nickname(p) for p in players}

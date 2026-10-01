@@ -1,15 +1,20 @@
 """球員報告：能力分析、位置、比賽數據。"""
+import html
+
 import pandas as pd
 import streamlit as st
 
 from domain.positions import split_positions
 from domain.rating import average, category_scores, fitness, recommended
 from infra.charts.bars import hbar
+from domain.foot import feet
+from infra.charts.feet import feet_img_html
 from infra.charts.radar import Series
 from infra.charts.style import ACCENT, MUTED
 from infra.pipeline import load_match_rows
-from infra.ui.common import get_players, player_options, records, rules, show_pitch, show_plotly, show_radar
-from infra.ui.theme import chips, kicker, kpi
+from infra.ui.common import (get_players, jersey, nickname, player_options, records, rules, show_pitch, show_plotly,
+                             show_radar)
+from infra.ui.theme import chips, kicker, kpi, nick_html
 from stats.match import matches_played, player_totals
 from stats.player import overall_rank, strengths, weaknesses
 from stats.ranking import category_ranks
@@ -30,9 +35,15 @@ with top_r:
     choice = st.selectbox("選擇球員", keys, key="player_choice")
 p = recs[options[choice]]
 team_avg = team_average(recs, R)
+foot = feet(p, R)
 with top_l:
-    st.title(p["name"])
-    st.markdown(f'<span class="potato-note">暱稱：{p["nickname"]}</span>', unsafe_allow_html=True)
+    number = jersey(p["name"])
+    lines = [nick_html(nickname(p)), f'<span class="potato-note">{foot.strong_label}</span>',
+             f'<span class="potato-note">{foot.weak_label}</span>']
+    info = "".join(f"<div>{x}</div>" for x in lines if x)
+    title = f'<span class="potato-number">{"#" + html.escape(number) if number else "-"}</span> {html.escape(p["name"])}'
+    st.markdown(f'<div class="potato-head"><div><h1>{title}</h1><div class="info">{info}</div></div>'
+                f'{feet_img_html(foot, height=118)}</div>', unsafe_allow_html=True)
 
 # ---------- KPI ----------
 avg = average(p, R)

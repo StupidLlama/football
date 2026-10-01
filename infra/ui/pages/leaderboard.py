@@ -2,13 +2,13 @@
 import pandas as pd
 import streamlit as st
 
-from infra.ui.common import PLAYER_PAGE, get_players, name_to_display, records, rules
-from infra.ui.theme import kicker, kpi
+from infra.ui.common import PLAYER_PAGE, get_players, grey_column, nicknames, records, rules
+from infra.ui.theme import kicker, kpi, nick_html
 from stats.ranking import AVERAGE, category_ranks, leaderboard, metric_label
 
 R = rules()
 recs = records(get_players())
-shown = name_to_display(recs)
+nicks = nicknames(recs)
 
 kicker("排行榜")
 st.title("排行榜")
@@ -27,10 +27,10 @@ board = leaderboard(recs, metric, R)
 cols = st.columns(3)
 for col, e in zip(cols, board[:3]):
     with col:
-        kpi(f"第 {e.rank} 名", shown[e.name], f"{e.score:.2f} 分")
+        kpi(f"第 {e.rank} 名", e.name, f"{e.score:.2f} 分 {nick_html(nicks[e.name])}")
 
-table = pd.DataFrame([{"名次": e.rank, "球員": shown[e.name], "分數": e.score} for e in board])
-event = st.dataframe(table, hide_index=True, on_select="rerun", selection_mode="single-row", key="board_table",
+table = pd.DataFrame([{"名次": e.rank, "球員": e.name, "暱稱": nicks[e.name], "分數": e.score} for e in board])
+event = st.dataframe(grey_column(table), hide_index=True, on_select="rerun", selection_mode="single-row", key="board_table",
                      column_config={"分數": st.column_config.ProgressColumn("分數", min_value=R.min_score,
                                                                           max_value=R.max_score, format="%.2f")})
 if event.selection.rows:
@@ -43,7 +43,7 @@ st.markdown('<span class="potato-note">每個人在每個類別的隊內名次�
 rows = []
 for p in recs:
     ranks = category_ranks(p, recs, R)
-    rows.append({"球員": shown[p["name"]], **{c: ranks[c] for c in ranks}})
+    rows.append({"球員": p["name"], "暱稱": nicks[p["name"]], **{c: ranks[c] for c in ranks}})
 overview = pd.DataFrame(rows).sort_values(by=[c.name for c in R.categories]).reset_index(drop=True)
-st.dataframe(overview, hide_index=True,
+st.dataframe(grey_column(overview), hide_index=True,
              column_config={c.name: st.column_config.NumberColumn(c.name, format="#%d") for c in R.categories})

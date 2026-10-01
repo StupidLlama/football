@@ -44,6 +44,8 @@ tests/                     自動測試（含分層規則檢查）
 |---|---|
 | 調整位置適合度的權重 | `config/settings.toml` 的 `[positions.XX]` |
 | 推薦位置取前幾名 | `config/settings.toml` 的 `[recommend] top_n` |
+| 設定球員背號 | `.streamlit/secrets.toml` 的 `[jersey_numbers]`（`"名字" = 7`）；網站上貼到 Streamlit Cloud 的 Secrets |
+| 慣用腳的題目改名 | `config/settings.toml` 的 `[form] weak_side` |
 | 新增或調整陣型 | `config/formations.toml`（加一段 `[[formations]]`） |
 | 組隊時自評擅長加幾分、不擅長扣幾分 | `stats/lineup.py` 的 `GOOD_BONUS`、`BAD_PENALTY` |
 | 表單新增一題能力 | `config/settings.toml` 對應類別加一行 |

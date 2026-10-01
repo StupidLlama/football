@@ -94,3 +94,44 @@ def auto_lineup(players: list[Player], formation: Formation, rules: RatingRules,
         bench.append(best)
     bench.sort(key=lambda o: (-o.score, o.name))
     return Lineup(formation, starters, [s for s in formation.slots if s.code not in picked], bench)
+
+
+def assign(picks: dict[str, str | None], slot: str, name: str | None) -> tuple[dict[str, str | None], str | None]:
+    """手動換人：把 name 放到 slot。name 原本在別的位置的話，兩個位置的人互換。
+
+    回傳（新的 picks, 被交換的位置 code 或 None）。picks = {位置 code: 名字或 None}，不會改到傳進來的 dict。
+    """
+    picks = dict(picks)
+    if slot not in picks:
+        raise KeyError(f"沒有這個位置：{slot}")
+    other = next((c for c, n in picks.items() if n == name and c != slot), None) if name else None
+    if other:
+        picks[other] = picks[slot]
+    picks[slot] = name
+    return picks, other
+
+
+def manual_lineup(players: list[Player], formation: Formation, rules: RatingRules,
+                  picks: dict[str, str | None]) -> Lineup:
+    """依手動選好的 picks 算出陣容（每個人的適合度、說明、替補），算分方式跟自動排一樣。"""
+    by_name = {p["name"]: p for p in players}
+    chosen = [n for n in picks.values() if n]
+    unknown = [n for n in chosen if n not in by_name]
+    if unknown:
+        raise ValueError(f"選的球員不在出賽名單裡：{unknown}")
+    if len(set(chosen)) != len(chosen):
+        raise ValueError("同一位球員不能放在兩個位置")
+    starters = [option(by_name[picks[s.code]], s, rules) for s in formation.slots if picks.get(s.code)]
+    bench = []
+    for p in players:
+        if p["name"] in chosen:
+            continue
+        bench.append(max((option(p, s, rules) for s in formation.slots), key=lambda o: o.score))
+    bench.sort(key=lambda o: (-o.score, o.name))
+    return Lineup(formation, starters, [s for s in formation.slots if not picks.get(s.code)], bench)
+
+
+def picks_of(lineup: Lineup) -> dict[str, str | None]:
+    """陣容 → {位置 code: 名字或 None}（給手動調整當起點）。"""
+    by_slot = {o.slot: o.name for o in lineup.starters}
+    return {s.code: by_slot.get(s.code) for s in lineup.formation.slots}

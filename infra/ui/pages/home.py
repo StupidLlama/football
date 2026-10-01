@@ -7,8 +7,8 @@ from domain.positions import split_positions
 from domain.rating import average, category_scores, recommended
 from infra.charts.bars import hbar
 from infra.charts.style import ACCENT, PANEL
-from infra.ui.common import (PLAYER_PAGE, data_source_label, display_name, get_players, records, rules,
-                             show_plotly)
+from infra.ui.common import (PLAYER_PAGE, data_source_label, get_players, grey_column, jersey_numbers, nickname,
+                             records, rules, show_plotly)
 from infra.ui.theme import kicker, kpi
 from stats.team import category_averages, good_position_counts, team_overall
 
@@ -42,12 +42,13 @@ st.write("")
 pos_filter = st.pills("篩選擅長位置", R.positions, selection_mode="multi", key="home_pos_filter")
 detailed = st.toggle("顯示全部 21 項能力", key="home_detailed")
 
+numbers = jersey_numbers()
 rows = []
 for p in recs:
     good = split_positions(p["good_positions"])
     if pos_filter and not set(pos_filter) & set(good):
         continue
-    row = {"球員": display_name(p), "平均": average(p, R)}
+    row = {"背號": numbers.get(p["name"], "—"), "球員": p["name"], "暱稱": nickname(p), "平均": average(p, R)}
     if detailed:
         row.update({a.label: int(p[a.key]) for a in R.abilities})
     else:
@@ -56,6 +57,8 @@ for p in recs:
         row["自評擅長"] = " · ".join(good)
     rows.append(row)
 table = pd.DataFrame(rows)
+if not numbers and not table.empty:   # 背號還沒決定前不顯示這一欄
+    table = table.drop(columns=["背號"])
 
 if table.empty:
     st.info("沒有符合篩選條件的球員。")
@@ -65,11 +68,11 @@ score_col = lambda label: st.column_config.ProgressColumn(label, min_value=1, ma
 if detailed:
     cmap = LinearSegmentedColormap.from_list("potato", [PANEL, ACCENT])
     ability_cols = [a.label for a in R.abilities]
-    shown = table.style.background_gradient(cmap=cmap, subset=ability_cols, vmin=1, vmax=5).format(
-        "{:.2f}", subset=["平均"])
+    shown = grey_column(table.style.background_gradient(cmap=cmap, subset=ability_cols, vmin=1, vmax=5).format(
+        "{:.2f}", subset=["平均"]))
     column_config = {"平均": score_col("平均")}
 else:
-    shown = table
+    shown = grey_column(table)
     column_config = {"平均": score_col("平均"), **{c.name: score_col(c.name) for c in R.categories}}
 
 event = st.dataframe(shown, hide_index=True, column_config=column_config,

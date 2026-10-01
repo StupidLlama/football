@@ -17,6 +17,17 @@ class FormSpec:
     message_prefix: str
     timestamp: str | None = None
     message_overrides: dict = field(default_factory=dict)
+    weak_side: str | None = None  # 「哪一腳是弱腳」的欄位（自由填寫：左、Left、左腳…）
+
+
+def parse_side(text) -> str:
+    """自由填寫的「左 / Left / 左腳 / Lesft」→ "left"；右腳同理；看不出來 → ""。"""
+    t = str(text or "").strip().lower()
+    if not t or t == "nan":
+        return ""
+    left = "左" in t or "left" in t or t.startswith("l")
+    right = "右" in t or "right" in t or t.startswith("r")
+    return "left" if left and not right else "right" if right and not left else ""
 
 
 def dedupe_headers(headers: list) -> list[str]:
@@ -58,6 +69,7 @@ def normalize(raw: pd.DataFrame, spec: FormSpec, rules: RatingRules) -> pd.DataF
     df["submitted_at"] = parse_timestamps(raw[ts]) if ts in raw.columns else pd.NaT
     for f in INFO_FIELDS:
         df[f] = _clean_text(raw[spec.columns[f]])
+    df["weak_side"] = raw[spec.weak_side].map(parse_side) if spec.weak_side in raw.columns else ""
     msg_col = next((c for c in raw.columns if c.startswith(spec.message_prefix)), None)
     df["message"] = _clean_text(raw[msg_col]) if msg_col else ""
     for k in rules.ability_keys:

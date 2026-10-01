@@ -6,7 +6,8 @@ import pytest
 
 from infra import config
 from stats.assignment import max_assignment
-from stats.lineup import BAD_PENALTY, GOOD_BONUS, auto_lineup, candidates, option
+from stats.lineup import (BAD_PENALTY, GOOD_BONUS, assign, auto_lineup, candidates, manual_lineup, option,
+                         picks_of)
 from stats.ranking import AVERAGE, category_ranks, leaderboard, metric_label, metric_value, metrics
 
 R = config.rules()
@@ -156,3 +157,38 @@ def test_category_ranks():
     team = [player("A", speed=5, stamina=5), player("B")]
     ranks = category_ranks(team[0], team, R)
     assert ranks["身體"] == 1 and set(ranks) == {c.name for c in R.categories}
+
+
+# ---------- v1.3：手動調整 ----------
+def test_assign_swaps_and_empties():
+    picks = {"GK": "A", "CB": "B", "ST": None}
+    new, swapped = assign(picks, "CB", "A")             # A 原本在 GK → 和 CB 的 B 互換
+    assert new == {"GK": "B", "CB": "A", "ST": None} and swapped == "GK"
+    assert picks == {"GK": "A", "CB": "B", "ST": None}  # 不改原本的 dict
+    new, swapped = assign(new, "ST", "C")               # 從替補放上來
+    assert new["ST"] == "C" and swapped is None
+    new, _ = assign(new, "GK", None)                    # 清空位置
+    assert new["GK"] is None
+    new, swapped = assign({"GK": "A", "ST": None}, "ST", "A")   # 換到空位置：原位置變空
+    assert new == {"GK": None, "ST": "A"} and swapped == "GK"
+    with pytest.raises(KeyError):
+        assign(picks, "XX", "A")
+
+
+def test_manual_lineup_matches_auto_and_tracks_bench():
+    team = squad(14)
+    f = formation("4-4-2")
+    auto = auto_lineup(team, f, R)
+    same = manual_lineup(team, f, R, picks_of(auto))
+    assert same.starters == auto.starters and same.bench == auto.bench
+    picks, _ = assign(picks_of(auto), "LST", auto.bench[0].name)     # 替補第一人換上 LST
+    changed = manual_lineup(team, f, R, picks)
+    assert {o.name for o in changed.starters} != {o.name for o in auto.starters}
+    assert len(changed.bench) == len(auto.bench)
+    picks["GK"] = None
+    emptied = manual_lineup(team, f, R, picks)
+    assert [s.code for s in emptied.empty] == ["GK"] and len(emptied.bench) == len(auto.bench) + 1
+    with pytest.raises(ValueError):
+        manual_lineup(team, f, R, {**picks, "GK": picks["LB"]})
+    with pytest.raises(ValueError):
+        manual_lineup(team, f, R, {**picks, "GK": "沒有這個人"})

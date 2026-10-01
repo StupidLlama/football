@@ -36,8 +36,8 @@ slots = [
   { code = "LCM", role = "CM",    x = 50, y = 42 },
   { code = "RCM", role = "CM",    x = 50, y = 26 },
   { code = "RM",  role = "LM/RM", x = 56, y = 10 },
-  { code = "LST", role = "ST",    x = 88, y = 42 },
-  { code = "RST", role = "ST",    x = 88, y = 26 },
+  { code = "LST", role = "ST",    x = 88, y = 44 },
+  { code = "RST", role = "ST",    x = 88, y = 24 },
 ]
 
 [[formations]]
@@ -62,16 +62,16 @@ name = "3-5-2"
 size = 11
 slots = [
   { code = "GK",  role = "GK",      x = 6,  y = 34 },
-  { code = "LCB", role = "CB",      x = 23, y = 48 },
-  { code = "CB",  role = "CB",      x = 20, y = 34 },
-  { code = "RCB", role = "CB",      x = 23, y = 20 },
+  { code = "LCB", role = "CB",      x = 24, y = 50 },
+  { code = "CB",  role = "CB",      x = 19, y = 34 },
+  { code = "RCB", role = "CB",      x = 24, y = 18 },
   { code = "LWB", role = "LWB/RWB", x = 46, y = 60 },
   { code = "CDM", role = "CDM",     x = 40, y = 34 },
-  { code = "LCM", role = "CM",      x = 54, y = 45 },
-  { code = "RCM", role = "CM",      x = 54, y = 23 },
+  { code = "LCM", role = "CM",      x = 56, y = 46 },
+  { code = "RCM", role = "CM",      x = 56, y = 22 },
   { code = "RWB", role = "LWB/RWB", x = 46, y = 8 },
-  { code = "LST", role = "ST",      x = 88, y = 42 },
-  { code = "RST", role = "ST",      x = 88, y = 26 },
+  { code = "LST", role = "ST",      x = 88, y = 44 },
+  { code = "RST", role = "ST",      x = 88, y = 24 },
 ]
 
 [[formations]]
@@ -79,9 +79,9 @@ name = "3-4-3"
 size = 11
 slots = [
   { code = "GK",  role = "GK",      x = 6,  y = 34 },
-  { code = "LCB", role = "CB",      x = 23, y = 48 },
-  { code = "CB",  role = "CB",      x = 20, y = 34 },
-  { code = "RCB", role = "CB",      x = 23, y = 20 },
+  { code = "LCB", role = "CB",      x = 24, y = 50 },
+  { code = "CB",  role = "CB",      x = 19, y = 34 },
+  { code = "RCB", role = "CB",      x = 24, y = 18 },
   { code = "LWB", role = "LWB/RWB", x = 48, y = 60 },
   { code = "LCM", role = "CM",      x = 48, y = 42 },
   { code = "RCM", role = "CM",      x = 48, y = 26 },
@@ -96,16 +96,16 @@ name = "5-3-2"
 size = 11
 slots = [
   { code = "GK",  role = "GK",      x = 6,  y = 34 },
-  { code = "LWB", role = "LWB/RWB", x = 32, y = 60 },
-  { code = "LCB", role = "CB",      x = 22, y = 47 },
+  { code = "LWB", role = "LWB/RWB", x = 34, y = 61 },
+  { code = "LCB", role = "CB",      x = 24, y = 49 },
   { code = "CB",  role = "CB",      x = 19, y = 34 },
-  { code = "RCB", role = "CB",      x = 22, y = 21 },
-  { code = "RWB", role = "LWB/RWB", x = 32, y = 8 },
+  { code = "RCB", role = "CB",      x = 24, y = 19 },
+  { code = "RWB", role = "LWB/RWB", x = 34, y = 7 },
   { code = "CDM", role = "CDM",     x = 42, y = 34 },
   { code = "LCM", role = "CM",      x = 52, y = 48 },
   { code = "RCM", role = "CM",      x = 52, y = 20 },
-  { code = "LST", role = "ST",      x = 88, y = 42 },
-  { code = "RST", role = "ST",      x = 88, y = 26 },
+  { code = "LST", role = "ST",      x = 88, y = 44 },
+  { code = "RST", role = "ST",      x = 88, y = 24 },
 ]
 
 # ---------- 8 人制（門將 + 7 名球員） ----------
