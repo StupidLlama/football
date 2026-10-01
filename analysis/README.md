@@ -12,7 +12,8 @@
 
 2. **在程式裡直接寫進資料庫**
    ```python
-   from core.db import connect, add_match, save_match_stats
+   from infra.db import connect
+   from adapters.repository import add_match, save_match_stats
    con = connect()
    mid = add_match(con, "2026-10-05", "電機系", goals_for=2, goals_against=1)
    save_match_stats(con, mid, {"林宥成": {"distance_m": 8200, "passes": 31}})

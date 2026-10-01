@@ -1,7 +1,7 @@
-# ⚽ 球隊球員卡網站
+# 🥔 Football Analysis Potato
 
-用 Streamlit 做的球隊網站：全隊列表、個人能力雷達圖、適合位置球場圖、球員比較，
-並預留「比賽數據」頁給之後的影片分析專案。
+專業分析風的球隊網站：球隊總覽、球員報告（互動雷達圖、隊內排名、位置適合度）、球員比較，
+並預留「比賽數據」頁給之後的影片分析（軟工專題，規劃見 `docs/PROJECT_PLAN.md`）。
 
 ## 本機執行（Windows）
 
@@ -14,28 +14,20 @@ py -m pip install -r requirements.txt
 py -m streamlit run app.py
 ```
 
-## 資料夾結構
+## 資料夾結構：照 Clean Architecture 分四層
 
 ```
-app.py                  入口：頁面導覽、隊伍密碼
-views/                  每一頁一個檔案
-  team.py                 全隊
-  player.py               球員（雷達圖 + 球場位置圖）
-  compare.py              比較
-  matches.py              比賽數據
-  common.py               各頁共用（載入資料、畫圖）
-core/                   核心邏輯（跟網站無關，影片分析也能用）
-  config.py               讀取設定檔
-  sources.py              資料來源：本機 xlsx / Google 試算表
-  ingest.py               整理表單資料（重複填表只留最新、手動覆寫）
-  db.py                   SQLite 資料庫（球員、比賽、比賽數據）＋自動升級
-  analysis.py             位置適合度、推薦位置
-  charts.py               雷達圖、球場位置圖
-config/settings.toml    ★ 所有可調整的設定都在這
-analysis/               影片分析（之後）＋匯入比賽數據的工具
-tests/                  自動測試
-data/                   球員資料（不會上傳 GitHub）
+domain/     Core           比賽規則、評分規則（純 Python）
+stats/      Inner shell    球員 / 球隊 / 比賽統計（純 Python）
+adapters/   Translate      表單翻譯、資料庫讀寫、（之後）影片翻譯
+infra/      Tools shell    Streamlit 畫面、Plotly 圖表、SQLite、Google 試算表、（之後）OpenCV/YOLO
+config/settings.toml       ★ 所有可調整的設定
+app.py                     入口
+tests/                     自動測試（含分層規則檢查）
 ```
+
+依賴只能往內：`domain/`、`stats/` 不能 import pandas、streamlit、sqlite3 這些工具，
+`tests/test_architecture.py` 會自動檢查。
 
 ## 資料怎麼來
 
@@ -54,8 +46,9 @@ data/                   球員資料（不會上傳 GitHub）
 | 表單新增一題能力 | `config/settings.toml` 對應類別加一行 |
 | 表單題目改名 | `config/settings.toml` 的 `[form]` 或能力的 `column` |
 | 手動改某人「給球隊的話」 | `config/settings.toml` 的 `[message_overrides]` |
-| 新增一個頁面 | 在 `views/` 新增 `.py` 檔，再加進 `app.py` 的 `PAGES` |
-| 資料庫加欄位 / 資料表 | `core/db.py` 的 `MIGRATIONS` 最後面**新增**一段 SQL |
+| 新增一個頁面 | 在 `infra/ui/pages/` 新增 `.py` 檔，再加進 `app.py` 的 `PAGES` |
+| 資料庫加欄位 / 資料表 | `infra/db.py` 的 `MIGRATIONS` 最後面**新增**一段 SQL |
+| 改配色 | `infra/charts/style.py` 和 `.streamlit/config.toml` |
 | 匯入比賽數據 | 見 `analysis/README.md` |
 
 ## 測試

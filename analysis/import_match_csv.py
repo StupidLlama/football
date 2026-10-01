@@ -1,7 +1,7 @@
 """把一場比賽的球員數據（CSV）匯入資料庫，網站「比賽數據」頁就會顯示。
 
 之後影片分析（OpenCV / YOLO / ByteTrack）只要輸出同樣格式的 CSV，
-或直接呼叫 core.db.add_match() + save_match_stats()，就能接上網站。
+或直接呼叫 adapters.repository 的 add_match() + save_match_stats()，就能接上網站。
 
 CSV 格式（每列一個數據）：
     player_name,stat,value
@@ -18,7 +18,8 @@ from pathlib import Path
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from core.db import add_match, connect, save_match_stats  # noqa: E402
+from adapters.repository import add_match, save_match_stats  # noqa: E402
+from infra.db import connect  # noqa: E402
 
 
 def main(argv=None):

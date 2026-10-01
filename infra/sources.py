@@ -1,4 +1,4 @@
-"""資料來源：負責「拿到表單原始資料」，回傳跟表單欄位一樣的 DataFrame。
+"""資料來源（Tools shell）：負責「拿到表單原始資料」，回傳跟表單欄位一樣的 DataFrame。
 
 目前有兩種：
 - XlsxSource：讀本機 data/team.xlsx（本機測試用）
@@ -10,6 +10,8 @@ from pathlib import Path
 from typing import Protocol
 
 import pandas as pd
+
+from adapters.form import dedupe_headers
 
 from .config import ROOT
 
@@ -59,16 +61,6 @@ class GoogleSheetSource:
         if not rows:
             return pd.DataFrame()
         return pd.DataFrame(rows[1:], columns=dedupe_headers(rows[0]))
-
-
-def dedupe_headers(headers: list[str]) -> list[str]:
-    """重複的欄位標題加上編號（跟 Excel 匯出一樣）：Weak Foot, Weak Foot → Weak Foot, Weak Foot 2"""
-    seen: dict[str, int] = {}
-    out = []
-    for h in (str(x).strip() for x in headers):
-        seen[h] = seen.get(h, 0) + 1
-        out.append(h if seen[h] == 1 else f"{h} {seen[h]}")
-    return out
 
 
 def get_source(secrets=None) -> Source:
