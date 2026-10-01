@@ -235,3 +235,32 @@ def ignored(path: str) -> bool:
                                   ".streamlit/secrets.toml"])
 def test_private_files_are_gitignored(path):
     assert ignored(path)
+
+
+def test_explain_error_messages():
+    import sys
+    import types
+    sys.modules.setdefault("streamlit", types.SimpleNamespace(cache_data=lambda *a, **k: (lambda f: f)))
+    from infra.ui.common import explain_error
+
+    class SpreadsheetNotFound(Exception):
+        pass
+
+    assert "分享給服務帳號" in explain_error(SpreadsheetNotFound())
+    assert "Excel 檔" in explain_error(Exception("APIError: [400]: The document must not be an Office file."))
+    assert explain_error(ValueError("boom")) == "ValueError: boom"
+    assert explain_error(KeyError()) == "KeyError"
+
+
+def test_dates_without_year_like_google_sheets():
+    """Google 試算表會把日期顯示成「10/2」；年份要用星期欄推算，跨年也要對。"""
+    rows = [HEADER,
+            ["", "", "10/2", "五", "19~20", "", "", ""],
+            [2, 1, "", "五", "20~21", "化學-材料", "", "工科", "", "政治-物理", TEAM],
+            [7, 2, "10/16", "五", "19~20", TEAM, "", "能源"],
+            [9, 2, "2026/10/30", "五", "19~20", "", "", ""],
+            [14, 3, "12月28日", "一", "19~20", TEAM, "", "醫學"],
+            [15, 3, "1/4", "一", "19~20", "法律", "", TEAM]]
+    fx = parse_fixtures(rows)
+    assert [f.day for f in fx] == [date(2026, 10, 2), date(2026, 10, 16), date(2026, 12, 28), date(2027, 1, 4)]
+    assert [d.fixture.day for d in duties_for(fx, TEAM)] == [date(2026, 10, 2)]

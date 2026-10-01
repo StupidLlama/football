@@ -57,6 +57,31 @@ def parse_day(value, default_year: int | None = None) -> date | None:
     return None
 
 
+def month_day(value) -> tuple[int, int] | None:
+    """沒寫年份的日期（Google 試算表常顯示成「10/2」「10月2日」）→ (月, 日)。"""
+    if value is None or isinstance(value, (date, datetime, int, float)):
+        return None
+    nums = [int(x) for x in re.findall(r"\d+", str(value))]
+    if len(nums) == 2 and 1 <= nums[0] <= 12 and 1 <= nums[1] <= 31:
+        return nums[0], nums[1]
+    return None
+
+
+def infer_year(md: tuple[int, int], weekday: int | None, hint: int) -> date | None:
+    """用「星期」欄猜年份：hint（上一列的年份或今年）、隔年、前一年，哪個星期對得上就用哪個。"""
+    for y in (hint, hint + 1, hint - 1):
+        try:
+            d = date(y, *md)
+        except ValueError:
+            continue
+        if weekday is None or d.weekday() == weekday:
+            return d
+    try:
+        return date(hint, *md)
+    except ValueError:
+        return None
+
+
 def fix_year(day: date, weekday: int | None) -> date:
     """日期跟星期對不上時，試試前後一年（賽程表常把年份打錯）。"""
     if weekday is None or day.weekday() == weekday:
@@ -102,7 +127,10 @@ def _columns(header: list) -> dict[str, list[int]]:
 
 
 def parse_fixtures(rows: list[list], season_year: int | None = None) -> list[Fixture]:
-    """rows = 整個分頁的儲存格（第一列不一定是標題）。找不到標題列就回傳空的。"""
+    """rows = 整個分頁的儲存格（第一列不一定是標題）。找不到標題列就回傳空的。
+
+    日期可以是 Excel 日期、有年份的文字，或沒有年份的「10/2」（用星期欄和上一列推算年份）。
+    """
     h = _header_row(rows)
     if h is None:
         return []
@@ -115,9 +143,15 @@ def parse_fixtures(rows: list[list], season_year: int | None = None) -> list[Fix
     out, last_day = [], None
     for row in rows[h + 1:]:
         wd = weekday_of(cell(row, "星期"))
-        raw_day = parse_day(cell(row, "日期"), season_year or (last_day.year if last_day else None))
-        if raw_day:
-            last_day = fix_year(raw_day, wd)
+        raw = cell(row, "日期")
+        hint = season_year or (last_day.year if last_day else date.today().year)
+        md = month_day(raw)
+        if md:
+            last_day = infer_year(md, wd, hint) or last_day
+        else:
+            raw_day = parse_day(raw)
+            if raw_day:
+                last_day = fix_year(raw_day, wd)
         home, away = _text(cell(row, "主場")), _text(cell(row, "客場"))
         if not (last_day and home and away):
             continue

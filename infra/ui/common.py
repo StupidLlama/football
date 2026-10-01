@@ -116,6 +116,20 @@ def _load_fixtures(_source, cache_key: str, worksheet: str):
     return load_fixtures(_source, worksheet)
 
 
+def explain_error(e: Exception) -> str:
+    """把 Google 試算表常見的錯誤翻成人話（有些錯誤本身沒有訊息，只看得到類別名稱）。"""
+    name, text = type(e).__name__, str(e)
+    if name == "SpreadsheetNotFound" or "404" in text:
+        return "找不到這份試算表：網址不對，或還沒分享給服務帳號（權限要給「編輯者」）。"
+    if name == "PermissionError" or "403" in text:
+        return "服務帳號沒有權限：請把試算表分享給服務帳號，權限給「編輯者」。"
+    if "Office file" in text:
+        return "這是 Excel 檔，不是 Google 試算表：請用「檔案 → 儲存為 Google 試算表」，再換成新檔案的網址。"
+    if name == "WorksheetNotFound":
+        return f"找不到分頁 {text}。"
+    return f"{name}: {text}" if text else name
+
+
 def get_fixtures():
     """回傳 (fixtures, 錯誤訊息)。讀不到賽程不會讓整頁當掉。"""
     from infra.schedule import XlsxScheduleSource, get_schedule_source
@@ -125,7 +139,7 @@ def get_fixtures():
     try:
         return _load_fixtures(source, f"{source.label}:{mtime}", ws), ""
     except Exception as e:
-        return [], f"讀取賽程失敗（來源：{source.label}）：{e}"
+        return [], f"讀取賽程失敗（來源：{source.label}）：{explain_error(e)}"
 
 
 def roles() -> dict[str, str]:

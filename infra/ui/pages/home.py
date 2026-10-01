@@ -9,8 +9,8 @@ from domain.positions import split_positions
 from infra import config
 from infra.coach import coach_gate
 from infra.schedule import get_duty_store
-from infra.ui.common import (PLAYER_PAGE, get_fixtures, get_players, jersey_numbers, nickname, now_taipei, records,
-                             roles)
+from infra.ui.common import (PLAYER_PAGE, explain_error, get_fixtures, get_players, jersey_numbers, nickname,
+                             now_taipei, records, roles)
 from infra.ui.theme import RESULT_COLORS, html_block, inject_home_css, kicker
 from stats.referee import FairRandomPicker
 from stats.schedule import awaiting_score, duties_for, finished, form, record, relation, upcoming
@@ -112,7 +112,7 @@ if "duty_draft" not in st.session_state:
         st.session_state["duty_saved"] = dict(st.session_state["duty_draft"])
     except Exception as e:
         st.session_state["duty_draft"], st.session_state["duty_saved"] = {}, {}
-        st.warning(f"讀取裁判負責人失敗（{store.label}）：{e}")
+        st.warning(f"讀取裁判負責人失敗（{store.label}）：{explain_error(e)}")
 draft: dict = st.session_state["duty_draft"]
 
 
@@ -195,7 +195,7 @@ if gate.enabled and duties:
                     st.toast("已儲存裁判名單")
                     st.rerun()
                 except Exception as e:
-                    st.error(f"儲存失敗（{store.label}）：{e}")
+                    st.error(f"儲存失敗（{store.label}）：{explain_error(e)}")
             options = [UNSET, *names]
             for i, d in enumerate(duties):
                 if widget_key(i) not in st.session_state:
