@@ -26,6 +26,17 @@ message_prefix = "有什麼是你希望球隊上的人知道的"
 [feedback]
 url = ""
 
+# ---------- 球隊與賽程 ----------
+# name = 系際聯賽賽程表上我們隊的名字（主場 / 客場 / 主審 / 邊審欄位會寫這個）
+[team]
+name = "資訊"
+
+# 賽程表：Google 試算表的網址寫在 secrets 的 [schedule]；沒設定就讀本機 data/schedule.xlsx
+# worksheet = 要讀的分頁；duty_worksheet = 存「裁判任務負責人」的分頁（網站會自動建立）
+[schedule]
+worksheet = "上學期賽程表"
+duty_worksheet = "裁判"
+
 # ---------- 能力分類 ----------
 # 每個能力：key = 程式內部名稱，column = 表單欄位標題，label = 網站顯示名稱
 # 要新增能力：在表單加題目 → 在對應類別加一行 → 在下面 [positions] 決定要不要算進權重

@@ -27,20 +27,22 @@
 
 ```
 app.py                     入口：頁面導覽、隊伍密碼（網站名稱 Football Analysis Potato 🥔）
-domain/                    Core：models.py、rating.py、positions.py、foot.py（慣用腳）、formations.py（陣型）、performance.py（表現評分權重）
-stats/                     Inner shell：player.py、team.py、match.py、ranking.py（排行榜）、lineup.py + assignment.py（自動排人）
-adapters/                  Translate shell：form.py（表單翻譯）、repository.py（資料庫讀寫）
+domain/                    Core：models.py、rating.py、positions.py、foot.py（慣用腳）、formations.py（陣型）、performance.py（表現評分權重）、fixture.py（聯賽比賽、裁判任務）
+stats/                     Inner shell：player.py、team.py、match.py、ranking.py（排行榜）、lineup.py + assignment.py（自動排人）、schedule.py（戰績、裁判任務）、referee.py（抽裁判，Picker 可替換）
+adapters/                  Translate shell：form.py（表單翻譯）、repository.py（資料庫讀寫）、schedule.py（系際聯賽賽程表 → Fixture，修年份、合併儲存格）
 infra/config.py            讀 config/*.toml → RatingRules、FormSpec、陣型、表現評分規則
 infra/db.py                SQLite 連線；MIGRATIONS 只能往後加
 infra/sources.py           Google 試算表（有 secrets 時）/ data/team.xlsx
 infra/pipeline.py          組裝：來源 → 翻譯 → 資料庫
+infra/schedule.py          賽程來源（Google 試算表 / data/schedule.xlsx）、裁判名單存檔（DutyStore 可替換）
+infra/coach.py             教練檢查（v1 密碼，v2 換帳號）
 infra/charts/              style.py 深色配色、radar.py（Plotly 雷達圖，圖例由網頁畫）、bars.py、pitch.py、lineup.py（陣容球場圖＋下載 PNG）、feet.py（雙腳 SVG）
-infra/ui/                  theme.py（CSS、圖例）、common.py（共用）、pages/（home、player、compare、leaderboard、lineup、matches）
+infra/ui/                  theme.py（CSS、圖例）、common.py（共用）、pages/（home 首頁、overview 能力總覽、player、compare、leaderboard、lineup、matches）
 config/settings.toml       能力分類、表單欄位、位置適合度權重、回饋網址
 config/formations.toml     11 人制、8 人制陣型（位置、座標）
 config/performance.toml    比賽表現評分的維度與各位置權重（v4 才用）
 analysis/                  影片分析腳本（之後）＋ import_match_csv.py
-tests/                     test_architecture.py（分層規則）、test_layers.py、test_lineup_ranking.py、test_v13.py
+tests/                     test_architecture.py（分層規則）、test_layers.py、test_lineup_ranking.py、test_v13.py、test_v14.py
 docs/PROJECT_PLAN.md       軟工專題規劃
 docs/SPEC.md               產品規格與版本規劃
 ```
@@ -73,6 +75,12 @@ py -m pytest                               # 跑測試，改完程式一定要�
 - 同一人重複填表只保留最新一筆。
 - 第一個 `Weak Foot` 欄位是「哪一腳是弱腳」，自由填寫（左 / Left / 左腳 / Lesft…），`adapters/form.py` 的 `parse_side` 整理成 left / right；看不出來就是空字串。
 - 畫面上暱稱一律另外用灰色小字或獨立的「暱稱」欄顯示，不要寫成「名字（暱稱）」。
+
+## 賽程表的資料細節
+
+- 系際聯賽賽程表：分頁「上學期賽程表」，標題列有 場次 / 輪次 / 日期 / 星期 / 時間 / 主場 / 比分 / 客場 / 主審 / 邊審 / 邊審 / 備註。
+- 同一天第二場的日期是空白（合併儲存格）；年份常打錯，用「星期」欄修正；星期有時寫成注音「ㄧ」。
+- 我們隊名是「資訊」（`[team] name`）；主審 / 邊審欄寫「資訊」= 我們要派人。
 
 ## 下一步（2026-10-01）
 

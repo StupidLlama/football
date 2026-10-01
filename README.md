@@ -56,6 +56,10 @@ tests/                     自動測試（含分層規則檢查）
 | 資料庫加欄位 / 資料表 | `infra/db.py` 的 `MIGRATIONS` 最後面**新增**一段 SQL |
 | 改配色 | `infra/charts/style.py` 和 `.streamlit/config.toml` |
 | 匯入比賽數據 | 見 `analysis/README.md` |
+| 我們隊在賽程表上的名字 | `config/settings.toml` 的 `[team] name` |
+| 讀賽程表的哪個分頁、裁判名單存哪個分頁 | `config/settings.toml` 的 `[schedule]` |
+| 隊長 / 副隊長 | `.streamlit/secrets.toml` 的 `[roles]`（`"名字" = "C"` / `"VC"`） |
+| 抽裁判的規則 | `stats/referee.py`（寫一個新的 Picker 或傳 `eligible`） |
 
 ## 測試
 
@@ -64,6 +68,13 @@ tests/                     自動測試（含分層規則檢查）
 py -m pip install -r requirements-dev.txt
 py -m pytest
 ```
+
+## 賽程與裁判任務（v1.4）
+
+- 賽程：secrets 有 `[schedule] url`（系際聯賽賽程表的 Google 試算表網址）就讀它，否則讀本機 `data/schedule.xlsx`。
+  服務帳號要有這份試算表的**編輯**權限（抽完的裁判名單會寫進「裁判」分頁）。
+- 首頁的比賽結果直接看賽程表的「比分」欄，填 `3:1` 這種格式就好。
+- 教練功能：secrets 設定 `coach_password`，首頁「教練：排裁判」輸入密碼後可以隨機抽、手動改、儲存。沒設定就不顯示。
 
 ## 隊伍密碼
 

@@ -21,9 +21,10 @@ st.set_page_config(page_title=APP_NAME, page_icon="🥔", layout="wide")
 inject_css()
 
 PAGES = [
-    st.Page("infra/ui/pages/home.py", title=APP_NAME, icon="🥔", default=True),
+    st.Page("infra/ui/pages/home.py", title="首頁", icon=":material/home:", default=True),
     st.Page("infra/ui/pages/player.py", title="球員報告", icon=":material/person:"),
     st.Page("infra/ui/pages/compare.py", title="球員比較", icon=":material/compare_arrows:"),
+    st.Page("infra/ui/pages/overview.py", title="能力總覽", icon=":material/table_chart:"),
     st.Page("infra/ui/pages/leaderboard.py", title="排行榜", icon=":material/leaderboard:"),
     st.Page("infra/ui/pages/lineup.py", title="組隊", icon=":material/groups:"),
     st.Page("infra/ui/pages/matches.py", title="比賽數據", icon=":material/sports_soccer:"),
@@ -62,6 +63,8 @@ with st.sidebar:
     st.caption(f"資料來源：{data_source_label()}")
     if st.button("重新載入資料", icon=":material/refresh:"):
         st.cache_data.clear()
+        for key in ("duty_draft", "duty_saved"):   # 裁判名單也重新讀
+            st.session_state.pop(key, None)
         st.rerun()
     if config.feedback_url():
         st.link_button("意見回饋", config.feedback_url(), icon=":material/feedback:")

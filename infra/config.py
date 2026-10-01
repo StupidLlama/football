@@ -1,5 +1,6 @@
 """讀取 config/settings.toml → 核心的 RatingRules ＋ 翻譯層的 FormSpec。"""
 import tomllib
+from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 
@@ -46,6 +47,21 @@ def load_feedback_url(path: Path = SETTINGS_PATH) -> str:
     return str(_read(path).get("feedback", {}).get("url", "")).strip()
 
 
+@dataclass(frozen=True)
+class ScheduleSettings:
+    team: str
+    worksheet: str
+    duty_worksheet: str
+
+
+def load_schedule_settings(path: Path = SETTINGS_PATH) -> ScheduleSettings:
+    raw = _read(path)
+    sched = raw.get("schedule", {})
+    return ScheduleSettings(team=str(raw.get("team", {}).get("name", "")).strip(),
+                            worksheet=sched.get("worksheet", "上學期賽程表"),
+                            duty_worksheet=sched.get("duty_worksheet", "裁判"))
+
+
 def load_formations(path: Path = FORMATIONS_PATH) -> tuple[Formation, ...]:
     return tuple(
         Formation(f["name"], int(f["size"]),
@@ -85,3 +101,8 @@ def formations() -> tuple[Formation, ...]:
 @lru_cache(maxsize=1)
 def performance() -> PerformanceRules:
     return load_performance()
+
+
+@lru_cache(maxsize=1)
+def schedule_settings() -> ScheduleSettings:
+    return load_schedule_settings()

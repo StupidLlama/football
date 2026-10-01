@@ -97,3 +97,37 @@ def show_radar(series: list[Series], rules: RatingRules, **kwargs) -> None:
 def nicknames(players: list[dict]) -> dict[str, str]:
     """名字 → 暱稱（沒有就空字串）。"""
     return {p["name"]: nickname(p) for p in players}
+
+
+# ---------- 賽程（v1.4）----------
+TAIPEI = "Asia/Taipei"
+
+
+def now_taipei():
+    """伺服器在國外（UTC），比賽時間以台灣時間為準。"""
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    return datetime.now(ZoneInfo(TAIPEI))
+
+
+@st.cache_data(ttl=REFRESH_SECONDS, show_spinner="載入賽程中…")
+def _load_fixtures(_source, cache_key: str, worksheet: str):
+    from infra.schedule import load_fixtures
+    return load_fixtures(_source, worksheet)
+
+
+def get_fixtures():
+    """回傳 (fixtures, 錯誤訊息)。讀不到賽程不會讓整頁當掉。"""
+    from infra.schedule import XlsxScheduleSource, get_schedule_source
+    source = get_schedule_source(st.secrets)
+    ws = config.schedule_settings().worksheet
+    mtime = source.path.stat().st_mtime if isinstance(source, XlsxScheduleSource) and source.path.exists() else 0
+    try:
+        return _load_fixtures(source, f"{source.label}:{mtime}", ws), ""
+    except Exception as e:
+        return [], f"讀取賽程失敗（來源：{source.label}）：{e}"
+
+
+def roles() -> dict[str, str]:
+    """隊長 / 副隊長：寫在 secrets 的 [roles]（"名字" = "C" / "VC"）。"""
+    return {str(k): str(v) for k, v in secret_table("roles").items()}

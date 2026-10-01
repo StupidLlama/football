@@ -101,3 +101,79 @@ def steps(title: str, items: list[str]) -> None:
     """操作步驟說明框。"""
     lis = "".join(f"<li>{i}</li>" for i in items)
     st.markdown(f'<div class="potato-steps"><b>{html.escape(title)}</b><ol>{lis}</ol></div>', unsafe_allow_html=True)
+
+
+# ---------- 首頁（v1.4）----------
+WIN_C, DRAW_C, LOSS_C = "#16A34A", "#64748B", "#DC2626"   # 綠 / 灰 / 紅（圓點裡也寫字，色弱也看得懂）
+RESULT_COLORS = {"W": WIN_C, "D": DRAW_C, "L": LOSS_C}
+
+_HOME_CSS = f"""
+<style>
+.ph-card {{ background:{PANEL}; border:1px solid {GRID}; border-radius:16px; padding:22px 24px; margin-bottom:1rem; }}
+.ph-hero {{ display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:18px; }}
+.ph-eyebrow {{ font-size:0.78rem; letter-spacing:0.14em; color:#2DD4BF; font-weight:700; }}
+.ph-opp {{ font-size:1.9rem; font-weight:800; margin:4px 0 6px; line-height:1.2; }}
+.ph-meta {{ display:flex; flex-wrap:wrap; gap:4px 18px; color:#B6C2D6; font-size:0.95rem; }}
+.ph-count {{ display:flex; gap:10px; }}
+.ph-count div {{ background:#0B1220; border-radius:12px; padding:10px 16px; text-align:center; min-width:64px; }}
+.ph-count b {{ display:block; font-family:'JetBrains Mono',monospace; font-size:1.9rem; color:#2DD4BF; line-height:1.2; }}
+.ph-count span {{ font-size:0.75rem; color:{MUTED}; }}
+.ph-form {{ display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px 20px; }}
+.ph-dots {{ display:flex; gap:8px; align-items:center; }}
+.ph-dot {{ display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:50%;
+           font-weight:800; font-size:0.85rem; color:#fff; }}
+.ph-dot.empty {{ background:transparent; border:2px dashed {GRID}; }}
+.ph-h2 {{ font-size:1.15rem; font-weight:700; margin:0 0 8px; display:flex; align-items:center; gap:8px;
+          justify-content:space-between; flex-wrap:wrap; }}
+.ph-h2 small {{ font-size:0.8rem; color:{MUTED}; font-weight:400; }}
+.ph-row {{ display:flex; align-items:center; gap:14px; padding:11px 0; border-top:1px solid #1E2A40; flex-wrap:wrap; }}
+.ph-row.soon {{ background:rgba(245,158,11,.08); margin:0 -12px; padding:11px 12px; border-radius:8px; }}
+.ph-date {{ font-family:'JetBrains Mono',monospace; font-size:0.9rem; color:#B6C2D6; width:118px; flex:none; }}
+.ph-main {{ flex:1; min-width:150px; }}
+.ph-main b {{ display:block; }}
+.ph-main span {{ font-size:0.82rem; color:{MUTED}; }}
+.ph-pill {{ font-size:0.75rem; padding:3px 10px; border-radius:999px; background:#16213A; color:#B6C2D6; white-space:nowrap; }}
+.ph-tag {{ font-size:0.75rem; font-weight:800; padding:3px 9px; border-radius:999px; background:#F59E0B; color:#1A1206; }}
+.ph-chip {{ display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:8px;
+            font-weight:800; font-size:0.8rem; color:#fff; flex:none; }}
+.ph-score {{ font-family:'JetBrains Mono',monospace; font-size:1.2rem; font-weight:700; }}
+.ph-who {{ font-size:0.82rem; padding:5px 11px; border-radius:8px; border:1px dashed #3A4A66; color:{MUTED}; }}
+.ph-who.set {{ border:1px solid #F59E0B; color:#FCD34D; font-weight:700; background:#1F2A1A; }}
+.ph-empty {{ color:{MUTED}; font-size:0.9rem; padding:10px 0; }}
+/* 球員卡：整張卡都可以點（上面蓋一顆透明按鈕）*/
+.ph-pcard {{ position:relative; overflow:hidden; min-height:150px; padding:14px 16px; border-radius:14px; background:#0E1626;
+             border:1px solid #1E2A40; border-top-width:4px; transition:transform .18s ease, border-color .18s ease, box-shadow .18s ease; }}
+.ph-pcard.c {{ border-color:#F59E0B; }}
+.ph-pcard.vc {{ border-color:#2DD4BF; }}
+.ph-pcard .ghost {{ position:absolute; right:-4px; bottom:-20px; font-family:'JetBrains Mono',monospace; font-size:104px;
+                    font-weight:700; line-height:1; color:transparent; -webkit-text-stroke:1.5px rgba(139,154,180,.16); }}
+.ph-pcard.c .ghost {{ -webkit-text-stroke-color:rgba(245,158,11,.3); }}
+.ph-pcard.vc .ghost {{ -webkit-text-stroke-color:rgba(45,212,191,.25); }}
+.ph-pcard .top {{ display:flex; justify-content:space-between; align-items:center; position:relative; }}
+.ph-pcard .num {{ font-family:'JetBrains Mono',monospace; font-size:0.8rem; font-weight:700; color:{MUTED}; }}
+.ph-pcard .badge {{ font-size:0.72rem; font-weight:800; padding:2px 9px; border-radius:999px; background:#2DD4BF; color:#062420; }}
+.ph-pcard.c .badge {{ background:#F59E0B; color:#1A1206; }}
+.ph-pcard .name {{ position:relative; margin-top:22px; font-size:1.3rem; font-weight:800; letter-spacing:0.02em;
+                   white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
+.ph-pcard .nick {{ position:relative; font-size:0.8rem; color:{MUTED}; min-height:1.2em; }}
+.ph-pcard .pos {{ position:relative; display:flex; flex-wrap:wrap; gap:5px; margin-top:10px; }}
+.ph-pcard .pos span {{ font-size:0.7rem; font-weight:700; letter-spacing:0.05em; padding:2px 7px; border-radius:6px;
+                        background:#0B1220; color:#2DD4BF; border:1px solid {GRID}; }}
+[class*="st-key-pcard_"] {{ position:relative; }}
+[class*="st-key-pcard_"] [data-testid="stMarkdownContainer"] {{ margin-bottom:0 !important; }}
+@media (max-width: 640px) {{ .ph-date {{ width:auto; }} .ph-opp {{ font-size:1.5rem; }} }}
+[class*="st-key-pcard_"]:hover .ph-pcard {{ transform:translateY(-4px); border-color:#2DD4BF; box-shadow:0 10px 24px rgba(0,0,0,.35); }}
+[class*="st-key-pbtn_"] {{ position:absolute !important; inset:0; z-index:2; margin:0 !important; }}
+/* 按鈕外面還包了好幾層 div，每一層都要撐滿，整張卡才點得到 */
+[class*="st-key-pbtn_"] *:has(button), [class*="st-key-pbtn_"] button {{ width:100% !important; height:100% !important; }}
+[class*="st-key-pbtn_"] button {{ opacity:0; cursor:pointer; }}
+</style>
+"""
+
+
+def inject_home_css() -> None:
+    st.markdown(_HOME_CSS, unsafe_allow_html=True)
+
+
+def html_block(content: str) -> None:
+    st.markdown(content, unsafe_allow_html=True)
