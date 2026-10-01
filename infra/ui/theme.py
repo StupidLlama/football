@@ -35,8 +35,8 @@ h1, h2, h3 {{ letter-spacing: 0.01em; }}
                   color: {MUTED}; font-size: 0.85rem; margin: -0.6rem 0 0.8rem; }}
 .potato-legend span {{ display:inline-flex; align-items:center; gap:6px; white-space:nowrap; }}
 .potato-legend i {{ display:inline-block; }}
-.potato-head {{ display:flex; align-items:flex-start; gap: 18px; margin: 0.1rem 0 0.6rem; }}
-.potato-head h1 {{ margin: 0; padding: 0; font-size: 2.75rem; line-height: 1.15; font-weight: 700; }}
+.potato-head {{ display:flex; flex-wrap: wrap; align-items:flex-start; gap: 6px 18px; margin: 1.1rem 0 0.6rem; }}
+.potato-head h1 {{ margin: 0; padding: 0; font-size: 2.75rem; line-height: 1.15; font-weight: 700; white-space: nowrap; }}
 .potato-head .info {{ margin-top: 0.35rem; line-height: 1.5; }}
 .potato-number {{ color: {MUTED}; font-weight: 700; margin-right: 0.15em; }}
 .potato-head img {{ flex: none; margin-top: 4px; }}
