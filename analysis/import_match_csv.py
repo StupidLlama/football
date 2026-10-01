@@ -5,8 +5,8 @@
 
 CSV 格式（每列一個數據）：
     player_name,stat,value
-    林宥成,distance_m,8200
-    林宥成,passes,31
+    王小明,distance_m,8200
+    王小明,passes,31
 
 用法：
     py analysis/import_match_csv.py 2026-10-05 電機系 stats.csv --gf 2 --ga 1

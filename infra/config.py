@@ -36,6 +36,11 @@ def load_form_spec(path: Path = SETTINGS_PATH) -> FormSpec:
     )
 
 
+def load_feedback_url(path: Path = SETTINGS_PATH) -> str:
+    """[feedback] url：意見回饋表單的網址，空白 = 不顯示回饋按鈕。"""
+    return str(_read(path).get("feedback", {}).get("url", "")).strip()
+
+
 @lru_cache(maxsize=1)
 def rules() -> RatingRules:
     return load_rules()
@@ -44,3 +49,8 @@ def rules() -> RatingRules:
 @lru_cache(maxsize=1)
 def form_spec() -> FormSpec:
     return load_form_spec()
+
+
+@lru_cache(maxsize=1)
+def feedback_url() -> str:
+    return load_feedback_url()

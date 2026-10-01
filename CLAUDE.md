@@ -14,6 +14,7 @@
    - GitHub：StupidLlama/football（push 到 main 會自動重新部署）
 2. **足球比賽影片分析**（軟工課專題，規劃中）：影片 → 辨識 → 數據 → 圖表。
    **完整規劃在 `docs/PROJECT_PLAN.md`，做影片分析相關的工作前先讀它。**
+3. **產品規格與版本規劃在 `docs/SPEC.md`**（v1.x → v4.x）。新功能先對照規格裡的版本表。
 
 ## 架構原則（課程要求：Clean Architecture）
 
@@ -58,6 +59,7 @@ py -m pytest                               # 跑測試，改完程式一定要�
 ## 絕對不要
 
 - 不要 commit `.streamlit/secrets.toml`、`data/` 裡的資料、任何 `*service_account*.json`：裡面有 Google 服務帳號金鑰和隊員個資（`.gitignore` 已排除，改 `.gitignore` 時要小心）。
+- repo 是**公開**的（AGPL-3.0）：程式碼、設定檔、測試裡不要出現隊員的真實姓名或任何個資；有名字的設定放 secrets。
 - 不要改舊的資料庫 migration，只能在 `MIGRATIONS` 最後面新增。
 - 表單欄位名稱、能力、權重寫在 `config/settings.toml`，不要寫死在程式裡。
 

@@ -45,7 +45,8 @@ tests/                     自動測試（含分層規則檢查）
 | 推薦位置取前幾名 | `config/settings.toml` 的 `[recommend] top_n` |
 | 表單新增一題能力 | `config/settings.toml` 對應類別加一行 |
 | 表單題目改名 | `config/settings.toml` 的 `[form]` 或能力的 `column` |
-| 手動改某人「給球隊的話」 | `config/settings.toml` 的 `[message_overrides]` |
+| 手動改某人「給球隊的話」 | `.streamlit/secrets.toml` 的 `[message_overrides]`（有名字，不放進 GitHub）；網站上則貼到 Streamlit Cloud 的 Secrets |
+| 側邊欄的意見回饋按鈕 | `config/settings.toml` 的 `[feedback] url`（空白就不顯示） |
 | 新增一個頁面 | 在 `infra/ui/pages/` 新增 `.py` 檔，再加進 `app.py` 的 `PAGES` |
 | 資料庫加欄位 / 資料表 | `infra/db.py` 的 `MIGRATIONS` 最後面**新增**一段 SQL |
 | 改配色 | `infra/charts/style.py` 和 `.streamlit/config.toml` |
@@ -64,3 +65,7 @@ py -m pytest
 在 `.streamlit/secrets.toml` 設定 `team_password`，網站就會要求密碼；沒設定就不需要（方便本機測試）。
 
 ⚠️ `.gitignore` 已排除 `data/` 裡的資料檔、`secrets.toml` 和金鑰檔，隊員個資不會被上傳到 GitHub。
+
+## 授權
+
+本專案採用 GNU AGPL-3.0（見 `LICENSE`）。之後影片分析會用到 Ultralytics YOLO，它是 AGPL-3.0，所以專案也用同一個授權並公開原始碼。

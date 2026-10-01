@@ -228,3 +228,29 @@ def test_pitch_renders():
     fig = pitch.pitch(player(), R)
     assert fig.axes
     pitch.close(fig)
+
+
+def test_feedback_url_defaults_to_empty(tmp_path):
+    path = tmp_path / "s.toml"
+    path.write_text("[form]\n", encoding="utf-8")
+    assert config.load_feedback_url(path) == ""
+    path.write_text('[feedback]\nurl = " https://forms.gle/x "\n', encoding="utf-8")
+    assert config.load_feedback_url(path) == "https://forms.gle/x"
+
+
+def test_settings_has_no_player_names():
+    """settings.toml 會公開在 GitHub：隊員名字的覆寫要放 secrets。"""
+    assert SPEC.message_overrides == {}
+
+
+def test_sync_players_with_secret_overrides(tmp_path):
+    path = tmp_path / "team.xlsx"
+    make_raw().to_excel(path, index=False)
+    df = sync_players(XlsxSource(path), tmp_path / "t.db", message_overrides={"測試員": "無"})
+    assert df.loc[0, "message"] == "無"
+
+
+def test_radar_legend_does_not_cover_labels():
+    fig = radar([Series("P", player(), "#2DD4BF")], R)
+    assert fig["layout"]["legend"]["y"] >= 0.95
+    assert fig["layout"]["polar"]["domain"]["y"][1] < 0.95

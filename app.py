@@ -11,6 +11,7 @@
 """
 import streamlit as st
 
+from infra import config
 from infra.ui.common import data_source_label
 from infra.ui.theme import inject_css
 
@@ -54,4 +55,6 @@ with st.sidebar:
     if st.button("重新載入資料", icon=":material/refresh:"):
         st.cache_data.clear()
         st.rerun()
+    if config.feedback_url():
+        st.link_button("意見回饋", config.feedback_url(), icon=":material/feedback:")
 nav.run()

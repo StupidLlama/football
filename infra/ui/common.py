@@ -13,15 +13,24 @@ PLAYER_PAGE = "infra/ui/pages/player.py"
 
 
 @st.cache_data(ttl=REFRESH_SECONDS, show_spinner="載入球員資料中…")
-def _load(_source, cache_key: str) -> pd.DataFrame:
-    return sync_players(_source)
+def _load(_source, cache_key: str, overrides: tuple) -> pd.DataFrame:
+    return sync_players(_source, message_overrides=dict(overrides))
+
+
+def secret_table(key: str) -> dict:
+    """讀 secrets 裡的一個表格；本機沒有 secrets.toml 或沒設定時回傳空的。"""
+    try:
+        return dict(st.secrets.get(key, {}))
+    except Exception:
+        return {}
 
 
 def get_players() -> pd.DataFrame:
     source = get_source(st.secrets)
     mtime = source.path.stat().st_mtime if isinstance(source, XlsxSource) and source.path.exists() else 0
+    overrides = tuple(sorted((str(k), str(v)) for k, v in secret_table("message_overrides").items()))
     try:
-        return _load(source, f"{source.label}:{mtime}")
+        return _load(source, f"{source.label}:{mtime}", overrides)
     except Exception as e:  # 讀不到資料時給清楚的訊息，而不是整頁當掉
         st.error(f"讀取球員資料失敗（來源：{source.label}）：{e}")
         st.stop()

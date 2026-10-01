@@ -67,9 +67,11 @@ def radar(series: list[Series], rules: RatingRules, height: int = 540, color_poi
     layout = base_layout(height)
     layout.update({
         "showlegend": True,
-        "legend": {"orientation": "h", "yanchor": "top", "y": -0.04, "xanchor": "center", "x": 0.5,
+        # 圖例放在最上方、雷達圖往下縮一點，才不會蓋到下方的能力名稱
+        "legend": {"orientation": "h", "yanchor": "top", "y": 1.0, "xanchor": "center", "x": 0.5,
                    "font": {"color": MUTED, "size": 12}},
         "polar": {
+            "domain": {"x": [0, 1], "y": [0, 0.86]},
             "bgcolor": "rgba(0,0,0,0)",
             "radialaxis": {"range": [0, rules.max_score], "tickvals": list(range(1, rules.max_score + 1)),
                            "gridcolor": GRID, "linecolor": GRID, "tickfont": {"color": MUTED, "size": 10},

@@ -30,7 +30,7 @@ def add_match(con, played_on: str, opponent: str, goals_for=None, goals_against=
 
 
 def save_match_stats(con, match_id: int, stats: dict[str, dict[str, float]]) -> None:
-    """stats = {"林宥成": {"distance_m": 8200, "passes": 31}, ...}"""
+    """stats = {"王小明": {"distance_m": 8200, "passes": 31}, ...}"""
     con.executemany(
         "INSERT OR REPLACE INTO match_stats (match_id, player_name, stat, value) VALUES (?, ?, ?, ?)",
         [(match_id, p, k, float(v)) for p, d in stats.items() for k, v in d.items()])
