@@ -1,0 +1,55 @@
+# ============================================================
+# 比賽表現評分（v4 影片分析後才會用到）：評分維度與「依位置主要任務」的權重
+# 每個位置的權重加總 = 1；位置名稱要和 settings.toml 的 [positions.X] 一樣
+# 權重是初版猜測，第一批比賽分析完後和教練的觀察對照再調
+# ============================================================
+
+dimensions = [
+  { key = "accuracy",     label = "準確度" },
+  { key = "risk",         label = "冒險程度" },
+  { key = "cleverness",   label = "聰明度" },
+  { key = "work_rate",    label = "工作量" },
+  { key = "defending",    label = "防守貢獻" },
+  { key = "involvement",  label = "參與度" },
+  { key = "goalkeeping",  label = "守門" },
+]
+
+[positions.GK]
+task = "撲救、出擊、腳下出球"
+weights = { accuracy = 0.20, involvement = 0.10, goalkeeping = 0.70 }
+
+[positions.CB]
+task = "攔截、對抗、安全出球"
+weights = { accuracy = 0.25, risk = 0.05, cleverness = 0.05, work_rate = 0.10, defending = 0.45, involvement = 0.10 }
+
+[positions."LB/RB"]
+task = "防守、套邊、傳中"
+weights = { accuracy = 0.20, risk = 0.10, cleverness = 0.10, work_rate = 0.20, defending = 0.25, involvement = 0.15 }
+
+[positions."LWB/RWB"]
+task = "整條邊路來回、傳中、回防"
+weights = { accuracy = 0.20, risk = 0.15, cleverness = 0.10, work_rate = 0.25, defending = 0.15, involvement = 0.15 }
+
+[positions.CDM]
+task = "攔截、保護後衛、穩定分球"
+weights = { accuracy = 0.25, risk = 0.05, cleverness = 0.10, work_rate = 0.15, defending = 0.30, involvement = 0.15 }
+
+[positions.CM]
+task = "推進、串聯前後場"
+weights = { accuracy = 0.25, risk = 0.15, cleverness = 0.15, work_rate = 0.15, defending = 0.10, involvement = 0.20 }
+
+[positions.CAM]
+task = "關鍵傳球、創造機會"
+weights = { accuracy = 0.20, risk = 0.20, cleverness = 0.30, work_rate = 0.10, defending = 0.05, involvement = 0.15 }
+
+[positions."LM/RM"]
+task = "邊路推進、傳中、回防"
+weights = { accuracy = 0.20, risk = 0.20, cleverness = 0.15, work_rate = 0.20, defending = 0.10, involvement = 0.15 }
+
+[positions."LW/RW"]
+task = "突破、傳中、射門"
+weights = { accuracy = 0.20, risk = 0.30, cleverness = 0.20, work_rate = 0.15, defending = 0.05, involvement = 0.10 }
+
+[positions.ST]
+task = "射門、門前搶點、做球"
+weights = { accuracy = 0.35, risk = 0.20, cleverness = 0.20, work_rate = 0.10, defending = 0.05, involvement = 0.10 }

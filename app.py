@@ -24,6 +24,8 @@ PAGES = [
     st.Page("infra/ui/pages/home.py", title=APP_NAME, icon="🥔", default=True),
     st.Page("infra/ui/pages/player.py", title="球員報告", icon=":material/person:"),
     st.Page("infra/ui/pages/compare.py", title="球員比較", icon=":material/compare_arrows:"),
+    st.Page("infra/ui/pages/leaderboard.py", title="排行榜", icon=":material/leaderboard:"),
+    st.Page("infra/ui/pages/lineup.py", title="組隊", icon=":material/groups:"),
     st.Page("infra/ui/pages/matches.py", title="比賽數據", icon=":material/sports_soccer:"),
 ]
 

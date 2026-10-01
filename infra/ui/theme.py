@@ -31,6 +31,10 @@ h1, h2, h3 {{ letter-spacing: 0.01em; }}
 .potato-kpi .sub {{ color: {MUTED}; font-size: 0.85rem; margin-top: 2px; }}
 .potato-kpi .up {{ color: {UP}; }}
 .potato-kpi .down {{ color: {DOWN}; }}
+.potato-legend {{ display:flex; flex-wrap:wrap; gap: 6px 16px; align-items:center; justify-content:center;
+                  color: {MUTED}; font-size: 0.85rem; margin: 0.2rem 0 -0.4rem; }}
+.potato-legend span {{ display:inline-flex; align-items:center; gap:6px; white-space:nowrap; }}
+.potato-legend i {{ display:inline-block; }}
 .potato-chip {{ display:inline-block; padding: 2px 10px; margin: 2px 4px 2px 0; border-radius: 999px;
                border: 1px solid {GRID}; background: {PANEL}; font-size: 0.85rem; }}
 </style>
@@ -61,3 +65,18 @@ def kicker(text: str) -> None:
 
 def chips(items: list[str]) -> str:
     return "".join(f'<span class="potato-chip">{i}</span>' for i in items) or '<span class="potato-note">—</span>'
+
+
+def legend(items) -> None:
+    """圖表上方的圖例列（items = infra.charts.radar.legend_items 的結果）。畫面窄時會自動換行，不會蓋到圖。"""
+    from infra.charts.style import rgba
+    parts = []
+    for it in items:
+        if it.kind == "area":
+            mark = f'<i style="width:12px;height:12px;border-radius:3px;background:{rgba(it.color, 0.35)};' \
+                   f'border:1px solid {rgba(it.color, 0.8)}"></i>'
+        else:
+            style = "dashed" if it.kind == "dashed" else "solid"
+            mark = f'<i style="width:18px;height:0;border-top:3px {style} {it.color}"></i>'
+        parts.append(f"<span>{mark}{html.escape(it.label)}</span>")
+    st.markdown(f'<div class="potato-legend">{"".join(parts)}</div>', unsafe_allow_html=True)

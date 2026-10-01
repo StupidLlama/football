@@ -8,7 +8,7 @@ from domain.positions import split_positions
 from domain.rating import average, category_scores, fitness, recommended
 from infra import config
 from infra.charts.bars import hbar
-from infra.charts.radar import Series, radar
+from infra.charts.radar import Series, legend_items, radar
 from infra.db import MIGRATIONS, connect, schema_version
 from infra.pipeline import sync_players
 from infra.sources import GoogleSheetSource, XlsxSource, get_source
@@ -250,7 +250,11 @@ def test_sync_players_with_secret_overrides(tmp_path):
     assert df.loc[0, "message"] == "無"
 
 
-def test_radar_legend_does_not_cover_labels():
-    fig = radar([Series("P", player(), "#2DD4BF")], R)
-    assert fig["layout"]["legend"]["y"] >= 0.95
-    assert fig["layout"]["polar"]["domain"]["y"][1] < 0.95
+def test_radar_has_no_plotly_legend():
+    """Plotly 的圖例在窄畫面會蓋到圖；改由網頁畫在圖的上方。"""
+    s = [Series("全隊平均", player(), "#888888", dashed=True), Series("P", player(), "#2DD4BF")]
+    fig = radar(s, R)
+    assert fig["layout"]["showlegend"] is False and "legend" not in fig["layout"]
+    items = legend_items(s, R)
+    assert [i.kind for i in items] == ["area"] * len(R.categories) + ["dashed", "line"]
+    assert items[-1].label == "P"

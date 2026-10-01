@@ -5,6 +5,7 @@ import streamlit as st
 from domain.models import RatingRules
 from infra import config
 from infra.charts import pitch as pitch_chart
+from infra.charts.radar import Series, legend_items, radar
 from infra.pipeline import sync_players
 from infra.sources import XlsxSource, get_source
 
@@ -66,3 +67,15 @@ def show_pitch(player, rules: RatingRules) -> None:
     fig = pitch_chart.pitch(player, rules)
     st.pyplot(fig)
     pitch_chart.close(fig)
+
+
+def show_radar(series: list[Series], rules: RatingRules, **kwargs) -> None:
+    """雷達圖＋上方的圖例列。"""
+    from infra.ui.theme import legend
+    legend(legend_items(series, rules))
+    show_plotly(radar(series, rules, **kwargs))
+
+
+def name_to_display(players: list[dict]) -> dict[str, str]:
+    """名字 → 顯示名稱（名字＋暱稱）。"""
+    return {p["name"]: display_name(p) for p in players}

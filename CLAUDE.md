@@ -27,19 +27,22 @@
 
 ```
 app.py                     入口：頁面導覽、隊伍密碼（網站名稱 Football Analysis Potato 🥔）
-domain/                    Core：models.py、rating.py、positions.py（純 Python）
-stats/                     Inner shell：player.py、team.py、match.py（純 Python）
+domain/                    Core：models.py、rating.py、positions.py、formations.py（陣型）、performance.py（表現評分權重）
+stats/                     Inner shell：player.py、team.py、match.py、ranking.py（排行榜）、lineup.py + assignment.py（自動排人）
 adapters/                  Translate shell：form.py（表單翻譯）、repository.py（資料庫讀寫）
-infra/config.py            讀 config/settings.toml → RatingRules、FormSpec
+infra/config.py            讀 config/*.toml → RatingRules、FormSpec、陣型、表現評分規則
 infra/db.py                SQLite 連線；MIGRATIONS 只能往後加
 infra/sources.py           Google 試算表（有 secrets 時）/ data/team.xlsx
 infra/pipeline.py          組裝：來源 → 翻譯 → 資料庫
-infra/charts/              style.py 深色配色、radar.py（Plotly 雷達圖）、bars.py、pitch.py（matplotlib 球場圖）
-infra/ui/                  theme.py（CSS）、common.py（共用）、pages/（home、player、compare、matches）
-config/settings.toml       能力分類、表單欄位、位置權重、手動覆寫
+infra/charts/              style.py 深色配色、radar.py（Plotly 雷達圖，圖例由網頁畫）、bars.py、pitch.py、lineup.py（陣容球場圖）
+infra/ui/                  theme.py（CSS、圖例）、common.py（共用）、pages/（home、player、compare、leaderboard、lineup、matches）
+config/settings.toml       能力分類、表單欄位、位置適合度權重、回饋網址
+config/formations.toml     11 人制、8 人制陣型（位置、座標）
+config/performance.toml    比賽表現評分的維度與各位置權重（v4 才用）
 analysis/                  影片分析腳本（之後）＋ import_match_csv.py
-tests/                     test_architecture.py（分層規則）、test_layers.py
+tests/                     test_architecture.py（分層規則）、test_layers.py、test_lineup_ranking.py
 docs/PROJECT_PLAN.md       軟工專題規劃
+docs/SPEC.md               產品規格與版本規劃
 ```
 
 ## UI 風格

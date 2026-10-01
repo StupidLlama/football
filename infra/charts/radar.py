@@ -19,6 +19,19 @@ class Series:
     dashed: bool = False          # 虛線、不填色（例如全隊平均）
 
 
+@dataclass(frozen=True)
+class LegendItem:
+    label: str
+    color: str
+    kind: str     # "area" = 能力類別的底色、"line" = 球員、"dashed" = 平均之類的虛線
+
+
+def legend_items(series: list[Series], rules: RatingRules) -> list[LegendItem]:
+    """雷達圖的圖例內容（由網頁畫在圖的上方）。"""
+    items = [LegendItem(c.name, c.color, "area") for c in rules.categories]
+    return items + [LegendItem(s.label, s.color, "dashed" if s.dashed else "line") for s in series]
+
+
 def radar(series: list[Series], rules: RatingRules, height: int = 540, color_points_by_category: bool = False) -> dict:
     abilities = rules.abilities
     n = len(abilities)
@@ -38,8 +51,7 @@ def radar(series: list[Series], rules: RatingRules, height: int = 540, color_poi
             "width": [step] * len(idx),
             "marker": {"color": rgba(cat.color, 0.16), "line": {"color": rgba(cat.color, 0.0), "width": 0}},
             "name": cat.name,
-            "legendgroup": "categories",
-            "hoverinfo": "skip",
+                        "hoverinfo": "skip",
         })
 
     for s in series:
@@ -50,8 +62,7 @@ def radar(series: list[Series], rules: RatingRules, height: int = 540, color_poi
             "theta": angles + angles[:1],
             "text": labels + labels[:1],
             "name": s.label,
-            "legendgroup": "players",
-            "mode": "lines" if s.dashed else "lines+markers",
+                        "mode": "lines" if s.dashed else "lines+markers",
             "line": {"color": s.color, "width": 2 if s.dashed else 2.5, "dash": "dash" if s.dashed else "solid"},
             "marker": {"size": 7, "color": s.color},
             "hovertemplate": "%{text}：%{r}<extra>" + s.label + "</extra>",
@@ -66,12 +77,9 @@ def radar(series: list[Series], rules: RatingRules, height: int = 540, color_poi
 
     layout = base_layout(height)
     layout.update({
-        "showlegend": True,
-        # 圖例放在最上方、雷達圖往下縮一點，才不會蓋到下方的能力名稱
-        "legend": {"orientation": "h", "yanchor": "top", "y": 1.0, "xanchor": "center", "x": 0.5,
-                   "font": {"color": MUTED, "size": 12}},
+        # 不用 Plotly 的圖例：畫面窄時它會換成好幾排、蓋到圖上。圖例改由網頁畫在圖的上方（legend_items）
+        "showlegend": False,
         "polar": {
-            "domain": {"x": [0, 1], "y": [0, 0.86]},
             "bgcolor": "rgba(0,0,0,0)",
             "radialaxis": {"range": [0, rules.max_score], "tickvals": list(range(1, rules.max_score + 1)),
                            "gridcolor": GRID, "linecolor": GRID, "tickfont": {"color": MUTED, "size": 10},

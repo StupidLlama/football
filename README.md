@@ -21,7 +21,8 @@ domain/     Core           比賽規則、評分規則（純 Python）
 stats/      Inner shell    球員 / 球隊 / 比賽統計（純 Python）
 adapters/   Translate      表單翻譯、資料庫讀寫、（之後）影片翻譯
 infra/      Tools shell    Streamlit 畫面、Plotly 圖表、SQLite、Google 試算表、（之後）OpenCV/YOLO
-config/settings.toml       ★ 所有可調整的設定
+config/settings.toml       ★ 能力、表單欄位、位置權重等設定
+config/formations.toml     陣型（組隊頁用）
 app.py                     入口
 tests/                     自動測試（含分層規則檢查）
 ```
@@ -43,6 +44,8 @@ tests/                     自動測試（含分層規則檢查）
 |---|---|
 | 調整位置適合度的權重 | `config/settings.toml` 的 `[positions.XX]` |
 | 推薦位置取前幾名 | `config/settings.toml` 的 `[recommend] top_n` |
+| 新增或調整陣型 | `config/formations.toml`（加一段 `[[formations]]`） |
+| 組隊時自評擅長加幾分、不擅長扣幾分 | `stats/lineup.py` 的 `GOOD_BONUS`、`BAD_PENALTY` |
 | 表單新增一題能力 | `config/settings.toml` 對應類別加一行 |
 | 表單題目改名 | `config/settings.toml` 的 `[form]` 或能力的 `column` |
 | 手動改某人「給球隊的話」 | `.streamlit/secrets.toml` 的 `[message_overrides]`（有名字，不放進 GitHub）；網站上則貼到 Streamlit Cloud 的 Secrets |

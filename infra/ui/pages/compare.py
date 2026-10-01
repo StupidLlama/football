@@ -3,9 +3,9 @@ import pandas as pd
 import streamlit as st
 
 from domain.rating import average, category_scores
-from infra.charts.radar import Series, radar
+from infra.charts.radar import Series
 from infra.charts.style import ACCENT, MUTED, SECOND
-from infra.ui.common import display_name, get_players, player_options, records, rules, show_plotly
+from infra.ui.common import get_players, player_options, records, rules, show_radar
 from infra.ui.theme import kicker, kpi
 from stats.player import biggest_differences
 from stats.team import team_average
@@ -35,7 +35,7 @@ left, right = st.columns([3, 2], gap="large")
 with left:
     series = [Series(a["name"], a, ACCENT)]
     series.append(Series(b_label, b, MUTED, dashed=True) if vs_team else Series(b_label, b, SECOND))
-    show_plotly(radar(series, R))
+    show_radar(series, R)
 with right:
     m1, m2 = st.columns(2)
     with m1:

@@ -4,10 +4,14 @@ from functools import lru_cache
 from pathlib import Path
 
 from adapters.form import FormSpec
+from domain.formations import Formation, Slot
 from domain.models import Ability, Category, RatingRules
+from domain.performance import Dimension, PerformanceRules
 
 ROOT = Path(__file__).resolve().parent.parent
 SETTINGS_PATH = ROOT / "config" / "settings.toml"
+FORMATIONS_PATH = ROOT / "config" / "formations.toml"
+PERFORMANCE_PATH = ROOT / "config" / "performance.toml"
 
 
 def _read(path: Path) -> dict:
@@ -41,6 +45,22 @@ def load_feedback_url(path: Path = SETTINGS_PATH) -> str:
     return str(_read(path).get("feedback", {}).get("url", "")).strip()
 
 
+def load_formations(path: Path = FORMATIONS_PATH) -> tuple[Formation, ...]:
+    return tuple(
+        Formation(f["name"], int(f["size"]),
+                  tuple(Slot(s["code"], s["role"], float(s["x"]), float(s["y"])) for s in f["slots"]))
+        for f in _read(path)["formations"])
+
+
+def load_performance(path: Path = PERFORMANCE_PATH) -> PerformanceRules:
+    raw = _read(path)
+    return PerformanceRules(
+        dimensions=tuple(Dimension(d["key"], d["label"]) for d in raw["dimensions"]),
+        tasks={role: p["task"] for role, p in raw["positions"].items()},
+        weights={role: p["weights"] for role, p in raw["positions"].items()},
+    )
+
+
 @lru_cache(maxsize=1)
 def rules() -> RatingRules:
     return load_rules()
@@ -54,3 +74,13 @@ def form_spec() -> FormSpec:
 @lru_cache(maxsize=1)
 def feedback_url() -> str:
     return load_feedback_url()
+
+
+@lru_cache(maxsize=1)
+def formations() -> tuple[Formation, ...]:
+    return load_formations()
+
+
+@lru_cache(maxsize=1)
+def performance() -> PerformanceRules:
+    return load_performance()
