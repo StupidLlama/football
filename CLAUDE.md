@@ -38,13 +38,16 @@ infra/schedule.py          賽程來源（Google 試算表 / data/schedule.xlsx�
 infra/coach.py             教練檢查（v1 密碼，v2 換帳號）
 infra/charts/              style.py 深色配色、radar.py（Plotly 雷達圖，圖例由網頁畫）、bars.py、pitch.py、lineup.py（陣容球場圖＋下載 PNG）、feet.py（雙腳 SVG）
 infra/ui/                  theme.py（CSS、圖例）、common.py（共用）、pages/（home 首頁、overview 能力總覽、player、compare、leaderboard、lineup、matches、coach 教練專區）
+backend/                   v2 後端（Tools shell）：main.py（FastAPI）、db.py（as_user = 用使用者身分查詢，RLS 生效）、auth.py（驗證 Supabase JWT）、importer.py（v1 資料匯入）、scripts/（migrate、rls_check）
+supabase/migrations/       v2 資料表與 RLS 的 SQL，編號只能往後加；supabase/tests/ 是權限測試
 config/settings.toml       能力分類、表單欄位、位置適合度權重、回饋網址
 config/formations.toml     11 人制、8 人制陣型（位置、座標）
 config/performance.toml    比賽表現評分的維度與各位置權重（v4 才用）
 analysis/                  影片分析腳本（之後）＋ import_match_csv.py
-tests/                     test_architecture.py（分層規則）、test_layers.py、test_lineup_ranking.py、test_v13.py、test_v14.py
+tests/                     test_architecture.py（分層規則）、test_layers.py、test_lineup_ranking.py、test_v13.py、test_v14.py、test_v20.py
 docs/PROJECT_PLAN.md       軟工專題規劃
 docs/SPEC.md               產品規格與版本規劃
+docs/V2_SETUP.md           v2 上線步驟（建表、權限測試、匯入、啟動後端）
 ```
 
 ## UI 風格
@@ -63,7 +66,7 @@ py -m pytest                               # 跑測試，改完程式一定要�
 
 ## 絕對不要
 
-- 不要 commit `.streamlit/secrets.toml`、`data/` 裡的資料、任何 `*service_account*.json`：裡面有 Google 服務帳號金鑰和隊員個資（`.gitignore` 已排除，改 `.gitignore` 時要小心）。
+- 不要 commit `.env`（Supabase 金鑰）、`.streamlit/secrets.toml`、`data/` 裡的資料、任何 `*service_account*.json`：裡面有 Google 服務帳號金鑰和隊員個資（`.gitignore` 已排除，改 `.gitignore` 時要小心）。
 - repo 是**公開**的（AGPL-3.0）：程式碼、設定檔、測試裡不要出現隊員的真實姓名或任何個資；有名字的設定放 secrets。
 - 不要改舊的資料庫 migration，只能在 `MIGRATIONS` 最後面新增。
 - 表單欄位名稱、能力、權重寫在 `config/settings.toml`，不要寫死在程式裡。
@@ -81,6 +84,12 @@ py -m pytest                               # 跑測試，改完程式一定要�
 - 系際聯賽賽程表：分頁「上學期賽程表」，標題列有 場次 / 輪次 / 日期 / 星期 / 時間 / 主場 / 比分 / 客場 / 主審 / 邊審 / 邊審 / 備註。
 - 同一天第二場的日期是空白（合併儲存格）；年份常打錯，用「星期」欄修正；星期有時寫成注音「ㄧ」。
 - 我們隊名是「資訊」（`[team] name`）；主審 / 邊審欄寫「資訊」= 我們要派人。
+
+## v2 的規則
+
+- 每張資料表都要開 RLS（`tests/test_v20.py` 會檢查）；權限規則改了要跑 `py -m backend.scripts.rls_check`。
+- API 一律用 `db.as_user(conn, user_id)` 查詢，讓資料庫的 RLS 把關；`db.admin()` 只給匯入和建表用。
+- 已執行過的 migration 不要改，新增下一號檔案（`0003_xxx.sql`）。
 
 ## 下一步（2026-10-01）
 

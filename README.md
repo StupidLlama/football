@@ -76,6 +76,11 @@ py -m pytest
 - 首頁的比賽結果直接看賽程表的「比分」欄，填 `3:1` 這種格式就好。
 - 教練功能：secrets 設定 `coach_password`，側邊欄「教練」頁輸入密碼後可以排裁判（隨機抽、手動改、儲存），首頁會顯示負責人。之後的教練功能也放在這一頁。
 
+## v2（開發中）
+
+新的後端在 `backend/`（FastAPI），資料庫是 Supabase（PostgreSQL），資料表在 `supabase/migrations/`。
+上線步驟見 `docs/V2_SETUP.md`。v1 網站不受影響。
+
 ## 隊伍密碼
 
 在 `.streamlit/secrets.toml` 設定 `team_password`，網站就會要求密碼；沒設定就不需要（方便本機測試）。
