@@ -145,3 +145,22 @@ def get_fixtures():
 def roles() -> dict[str, str]:
     """隊長 / 副隊長：寫在 secrets 的 [roles]（"名字" = "C" / "VC"）。"""
     return {str(k): str(v) for k, v in secret_table("roles").items()}
+
+
+WEEK = "一二三四五六日"
+
+
+def day_label(f) -> str:
+    """10/16（五）"""
+    return f"{f.day:%m/%d}（{WEEK[f.day.weekday()]}）"
+
+
+def load_duty_assignments(store) -> dict[str, str]:
+    """裁判負責人：每次連線讀一次（側邊欄「重新載入資料」會清掉重讀）；首頁和教練頁共用。"""
+    if "duty_saved" not in st.session_state:
+        try:
+            st.session_state["duty_saved"] = store.load()
+        except Exception as e:
+            st.session_state["duty_saved"] = {}
+            st.warning(f"讀取裁判負責人失敗（{store.label}）：{explain_error(e)}")
+    return st.session_state["duty_saved"]

@@ -28,6 +28,7 @@ PAGES = [
     st.Page("infra/ui/pages/leaderboard.py", title="排行榜", icon=":material/leaderboard:"),
     st.Page("infra/ui/pages/lineup.py", title="組隊", icon=":material/groups:"),
     st.Page("infra/ui/pages/matches.py", title="比賽數據", icon=":material/sports_soccer:"),
+    st.Page("infra/ui/pages/coach.py", title="教練", icon=":material/sports:"),
 ]
 
 

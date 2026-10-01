@@ -7,16 +7,13 @@ import streamlit as st
 from domain.fixture import RESULT_LABEL, Fixture
 from domain.positions import split_positions
 from infra import config
-from infra.coach import coach_gate
 from infra.schedule import get_duty_store
-from infra.ui.common import (PLAYER_PAGE, explain_error, get_fixtures, get_players, jersey_numbers, nickname,
-                             now_taipei, records, roles)
+from infra.ui.common import (PLAYER_PAGE, day_label, get_fixtures, get_players, jersey_numbers, load_duty_assignments,
+                             nickname, now_taipei, records, roles)
 from infra.ui.theme import RESULT_COLORS, html_block, inject_home_css, kicker
-from stats.referee import FairRandomPicker
 from stats.schedule import awaiting_score, duties_for, finished, form, record, relation, upcoming
 
 WEEK = "一二三四五六日"
-UNSET = "（未排）"
 
 inject_home_css()
 S = config.schedule_settings()
@@ -25,12 +22,7 @@ now = now_taipei()
 today = now.date()
 fixtures, schedule_error = get_fixtures()
 players = records(get_players())
-names = [p["name"] for p in players]
 esc = html.escape
-
-
-def day_label(f: Fixture) -> str:
-    return f"{f.day:%m/%d}（{WEEK[f.day.weekday()]}）"
 
 
 def round_label(f: Fixture) -> str:
@@ -100,55 +92,9 @@ with right_col:
     html_block(f'''<div class="ph-card"><div class="ph-h2">比賽結果<small>在賽程表填比分就會更新</small></div>
         {rows or '<div class="ph-empty">還沒有比賽結果</div>'}</div>''')
 
-# ---------- 裁判任務 ----------
+# ---------- 裁判任務（只顯示；排人在「教練」頁）----------
 duties = [d for d in duties_for(fixtures, TEAM) if d.fixture.day >= today]
-gate = coach_gate(st.secrets, st.session_state)
-store = get_duty_store(st.secrets, S.duty_worksheet)
-picker = FairRandomPicker()
-
-if "duty_draft" not in st.session_state:
-    try:
-        st.session_state["duty_draft"] = store.load()
-        st.session_state["duty_saved"] = dict(st.session_state["duty_draft"])
-    except Exception as e:
-        st.session_state["duty_draft"], st.session_state["duty_saved"] = {}, {}
-        st.warning(f"讀取裁判負責人失敗（{store.label}）：{explain_error(e)}")
-draft: dict = st.session_state["duty_draft"]
-
-
-def widget_key(i: int) -> str:
-    return f"duty_pick_{i}"
-
-
-def sync_widgets() -> None:
-    for i, d in enumerate(duties):
-        st.session_state[widget_key(i)] = draft.get(d.key) or UNSET
-
-
-def on_select(i: int) -> None:
-    who = st.session_state[widget_key(i)]
-    if who == UNSET:
-        draft.pop(duties[i].key, None)
-    else:
-        draft[duties[i].key] = who
-
-
-def pick_one(i: int) -> None:
-    who = picker.pick_one(duties[i], names, draft)
-    if who:
-        draft[duties[i].key] = who
-    sync_widgets()
-
-
-def pick_all(only_empty: bool) -> None:
-    draft.update(picker.pick_all(duties, names, draft, only_empty=only_empty))
-    sync_widgets()
-
-
-def clear_all() -> None:
-    for d in duties:
-        draft.pop(d.key, None)
-    sync_widgets()
+saved = load_duty_assignments(get_duty_store(st.secrets, S.duty_worksheet))
 
 
 def tag(d) -> str:
@@ -157,7 +103,6 @@ def tag(d) -> str:
     return f'<span class="ph-tag">{text}</span>' if text else ""
 
 
-saved = st.session_state.get("duty_saved", {})
 rows = ""
 for d in duties:
     f, who = d.fixture, saved.get(d.key, "")
@@ -170,47 +115,6 @@ flag = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F59
 html_block(f'''<div class="ph-card"><div class="ph-h2"><span style="display:flex;gap:8px;align-items:center">{flag}裁判任務</span>
     <small>我們隊要派人的場次 · 共 {len(duties)} 場</small></div>
     {rows or '<div class="ph-empty">接下來沒有裁判任務</div>'}</div>''')
-
-if gate.enabled and duties:
-    with st.expander("教練：排裁判", icon=":material/sports:", expanded=gate.is_coach()):
-        if not gate.is_coach():
-            with st.form("coach_login", border=False):
-                pw = st.text_input("教練密碼", type="password")
-                if st.form_submit_button("登入"):
-                    if gate.login(pw):
-                        sync_widgets()
-                        st.rerun()
-                    st.error("密碼錯誤")
-        else:
-            st.caption(f"規則：當過最少次的人優先，次數一樣才隨機；同一天避免重複。存檔位置：{store.label}")
-            b1, b2, b3, b4 = st.columns(4)
-            b1.button("全部隨機抽", icon=":material/casino:", on_click=pick_all, args=(False,), type="primary",
-                      use_container_width=True)
-            b2.button("只補空的", on_click=pick_all, args=(True,), use_container_width=True)
-            b3.button("清除", on_click=clear_all, use_container_width=True)
-            if b4.button("儲存", icon=":material/save:", use_container_width=True):
-                try:
-                    store.save(draft, duties_for(fixtures, TEAM))
-                    st.session_state["duty_saved"] = dict(draft)
-                    st.toast("已儲存裁判名單")
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"儲存失敗（{store.label}）：{explain_error(e)}")
-            options = [UNSET, *names]
-            for i, d in enumerate(duties):
-                if widget_key(i) not in st.session_state:
-                    st.session_state[widget_key(i)] = draft.get(d.key) or UNSET
-                c1, c2, c3 = st.columns([3, 3, 1], vertical_alignment="bottom")
-                c1.markdown(f"**{day_label(d.fixture)} {d.fixture.start}**  \n{d.fixture.home} vs {d.fixture.away} · {d.role}")
-                c2.selectbox("負責人", options, key=widget_key(i), on_change=on_select, args=(i,),
-                             label_visibility="collapsed")
-                c3.button("重抽", key=f"duty_re_{i}", icon=":material/casino:", on_click=pick_one, args=(i,),
-                          use_container_width=True)
-            if draft != saved:
-                st.warning("有變更還沒儲存")
-            if st.button("登出教練", icon=":material/logout:"):
-                gate.logout()
-                st.rerun()
 
 # ---------- 球員名單 ----------
 role_of = roles()
