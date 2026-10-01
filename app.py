@@ -30,13 +30,16 @@ PAGES = [
 ]
 
 
-def check_password() -> bool:
+def team_password() -> str | None:
     """secrets 有設定 team_password 才要求密碼；本機沒設定就直接進入。"""
     try:
-        pw = st.secrets["team_password"]
+        return st.secrets["team_password"]
     except Exception:
-        return True
-    if st.session_state.get("authed"):
+        return None
+
+
+def check_password(pw: str | None) -> bool:
+    if pw is None or st.session_state.get("authed"):
         return True
     st.title(f"🥔 {APP_NAME}")
     entered = st.text_input("請輸入隊伍密碼", type="password")
@@ -48,10 +51,13 @@ def check_password() -> bool:
     return False
 
 
-if not check_password():
+# 先註冊頁面（還沒登入時把導覽藏起來），這樣登入後會留在原本打開的頁面，不會跳回首頁
+pw = team_password()
+logged_in = pw is None or bool(st.session_state.get("authed"))
+nav = st.navigation(PAGES, position="sidebar" if logged_in else "hidden")
+if not check_password(pw):
     st.stop()
 
-nav = st.navigation(PAGES)
 with st.sidebar:
     st.caption(f"資料來源：{data_source_label()}")
     if st.button("重新載入資料", icon=":material/refresh:"):

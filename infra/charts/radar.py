@@ -76,6 +76,7 @@ def radar(series: list[Series], rules: RatingRules, height: int = 540, color_poi
         data.append(trace)
 
     layout = base_layout(height)
+    layout["margin"] = {"l": 80, "r": 80, "t": 40, "b": 30}   # 左右留白給能力名稱，長的（弱腳能力）才不會被切掉
     layout.update({
         # 不用 Plotly 的圖例：畫面窄時它會換成好幾排、蓋到圖上。圖例改由網頁畫在圖的上方（legend_items）
         "showlegend": False,

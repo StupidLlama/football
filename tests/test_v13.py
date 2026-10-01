@@ -68,3 +68,10 @@ def test_feet_labels_split():
     f = feet(player("left", 2), R)
     assert (f.strong_label, f.weak_label) == ("慣用右腳", "弱腳 2 分")
     assert feet(player("", 3), R).strong_label == "慣用腳未填"
+
+
+def test_cloud_installs_chinese_font():
+    """Streamlit Cloud 沒有中文字型，球場圖上的中文會變方框；packages.txt 讓它部署時自動安裝。"""
+    from pathlib import Path
+    packages = (Path(__file__).resolve().parent.parent / "packages.txt").read_text(encoding="utf-8").split()
+    assert "fonts-noto-cjk" in packages

@@ -89,8 +89,8 @@ def pitch(player: Player, rules: RatingRules, size=(10, 7.2)):
     items = [(to_rgba(BLUE, .25), BLUE, "擅長"), (to_rgba(RED, .25), RED, "不擅長"),
              (to_rgba(YELLOW, .25), YELLOW, "數據推薦"), ((1, 1, 1, 0), YELLOW, "外圈黃框 = 也被推薦")]
     handles = [Rectangle((0, 0), 1, 1, fc=fc, ec=ec, lw=2) for fc, ec, _ in items]
-    leg = ax.legend(handles, [t for *_, t in items], loc="upper center", bbox_to_anchor=(0.5, 1.09),
-                    ncol=4, frameon=False, fontsize=11, handlelength=1.2, handleheight=1.6)
+    leg = ax.legend(handles, [t for *_, t in items], loc="upper center", bbox_to_anchor=(0.5, 1.11),
+                    ncol=4, frameon=False, fontsize=14, handlelength=1.3, handleheight=1.7)
     for t in leg.get_texts():
         t.set_color(TEXT)
     fig.tight_layout()
