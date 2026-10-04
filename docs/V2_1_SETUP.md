@@ -124,7 +124,12 @@ update public.profiles set is_admin = true
 
 ## 9. 打標籤
 
-程式和 `v2.1` 標籤已經由 Claude push 到 GitHub。你跑完上面的步驟、確認都沒問題就完成了；有問題的話修好後用 `v2.1.1` 之後的版本號。
+程式已經由 Claude push 到 GitHub 的 `main`；雲端那邊不能 push 標籤，所以標籤由你打。上面的步驟都確認沒問題後：
+
+```
+git tag v2.1
+git push origin v2.1
+```
 
 ## v2.1 的規則整理
 
