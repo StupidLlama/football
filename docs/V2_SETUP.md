@@ -51,6 +51,8 @@ py -m backend.scripts.rls_check
 
 ## 5. 匯入 v1 的資料
 
+> **v2.1 起改了**：Team ID 由系統隨機產生，不能自己取。已經套用 `0003_accounts.sql` 的話，建立新隊伍時**不要加 `--code`**；要更新已有的隊伍，用 `--code` 指定它現在的 Team ID（見 `V2_1_SETUP.md`）。
+
 Team ID 可以自己取（英文、數字、`-`、`_`，3–40 字），之後隊友用它加入。先試跑：
 
 ```

@@ -38,16 +38,17 @@ infra/schedule.py          賽程來源（Google 試算表 / data/schedule.xlsx�
 infra/coach.py             教練檢查（v1 密碼，v2 換帳號）
 infra/charts/              style.py 深色配色、radar.py（Plotly 雷達圖，圖例由網頁畫）、bars.py、pitch.py、lineup.py（陣容球場圖＋下載 PNG）、feet.py（雙腳 SVG）
 infra/ui/                  theme.py（CSS、圖例）、common.py（共用）、pages/（home 首頁、overview 能力總覽、player、compare、leaderboard、lineup、matches、coach 教練專區）
-backend/                   v2 後端（Tools shell）：main.py（FastAPI）、db.py（as_user = 用使用者身分查詢，RLS 生效）、auth.py（驗證 Supabase JWT）、importer.py（v1 資料匯入）、scripts/（migrate、rls_check）
+backend/                   v2 後端（Tools shell）：main.py（FastAPI）、accounts.py（v2.1 帳號 API：加入、教練碼、認領、教練管理）、db.py（as_user = 用使用者身分查詢，RLS 生效）、auth.py（驗證 Supabase JWT）、importer.py（v1 資料匯入）、dev_page.html（v2.1 本機測試頁，v2.2 刪掉）、scripts/（migrate、rls_check）
 supabase/migrations/       v2 資料表與 RLS 的 SQL，編號只能往後加；supabase/tests/ 是權限測試
 config/settings.toml       能力分類、表單欄位、位置適合度權重、回饋網址
 config/formations.toml     11 人制、8 人制陣型（位置、座標）
 config/performance.toml    比賽表現評分的維度與各位置權重（v4 才用）
 analysis/                  影片分析腳本（之後）＋ import_match_csv.py
-tests/                     test_architecture.py（分層規則）、test_layers.py、test_lineup_ranking.py、test_v13.py、test_v14.py、test_v20.py
+tests/                     test_architecture.py（分層規則）、test_layers.py、test_lineup_ranking.py、test_v13.py、test_v14.py、test_v20.py、test_v21.py
 docs/PROJECT_PLAN.md       軟工專題規劃
 docs/SPEC.md               產品規格與版本規劃
 docs/V2_SETUP.md           v2 上線步驟（建表、權限測試、匯入、啟動後端）
+docs/V2_1_SETUP.md         v2.1 上線步驟（帳號系統、Google 登入設定、設定系統管理者、試用流程）
 ```
 
 ## UI 風格
@@ -89,9 +90,16 @@ py -m pytest                               # 跑測試，改完程式一定要�
 
 - 每張資料表都要開 RLS（`tests/test_v20.py` 會檢查）；權限規則改了要跑 `py -m backend.scripts.rls_check`。
 - API 一律用 `db.as_user(conn, user_id)` 查詢，讓資料庫的 RLS 把關；`db.admin()` 只給匯入和建表用。
-- 已執行過的 migration 不要改，新增下一號檔案（`0003_xxx.sql`）。
+- 已執行過的 migration 不要改，新增下一號檔案（`0004_xxx.sql`）。
+- 加入、兌換教練碼、認領這類「動作」寫成資料庫函式（`security definer` + `set search_path = public`），回傳 `{"status": ...}`，不要 `raise`（輸錯的紀錄才不會被 ROLLBACK）；後端在 `backend/accounts.py` 的 `STATUS` 把 status 翻成 HTTP 狀態碼。
+- 新函式要從 `public, anon` 收回執行權限、只給 `authenticated`（`tests/test_v21.py` 會檢查）。
+- 只給資料庫函式讀寫、沒有任何 RLS 規則的表（例如 `join_attempts`）要加進 `tests/test_v20.py` 的 `SECRET_TABLES`。
+- Team ID 和教練碼的字母表去掉 0 / O、1 / I / L；Team ID 8 碼、教練碼 10 碼。
 
-## 下一步（2026-10-01）
+## 下一步（2026-10-04）
+
+- v2.1.1：隱私權政策（個資法告知事項）、服務條款、刪除帳號、頁尾 GitHub 原始碼連結（AGPL）；第一次登入要按同意並記錄版本。Google OAuth 同意畫面改成正式版需要隱私權政策網址。
+- v2.2：Next.js 網站、內建能力表單；做好後刪掉 `backend/dev_page.html` 和 `/dev` 路由。
 
 - 使用者之後會裝插畫風格的外掛，再加入手繪 / 人性化的視覺元素。
 - 之後：依 `docs/PROJECT_PLAN.md` 的開發順序做影片分析（Video translate 放 `adapters/video.py`，OpenCV/YOLO 放 `infra/video/`）。

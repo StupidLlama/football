@@ -1,8 +1,11 @@
 """把 v1 的資料搬進 v2 資料庫（Google 表單回覆 + 系際聯賽賽程表）。
 
 用法（在專案資料夾）：
-    py -m backend.importer --code CSIE-2026 --name 資訊系足 --season 2026-27 --dry-run   # 先試跑，不寫入
-    py -m backend.importer --code CSIE-2026 --name 資訊系足 --season 2026-27             # 真的寫入
+    py -m backend.importer --name 資訊系足 --season 2026-27 --dry-run              # 建新隊伍（試跑，不寫入）
+    py -m backend.importer --name 資訊系足 --season 2026-27                        # 建新隊伍，印出隨機的 Team ID
+    py -m backend.importer --code K7Q4-MZP9 --name 資訊系足 --season 2026-27       # 更新已經存在的隊伍
+
+- v2.1 起 Team ID 由系統隨機產生（例如 K7Q4-MZP9），不能自己取；要更新已有的隊伍就用 --code 指定。
 
 - 資料來源跟 v1 網站一樣：.streamlit/secrets.toml 有 Google 試算表設定就讀試算表，否則讀 data/ 裡的檔案。
 - 可以重複執行：已經存在的隊伍、球員、賽程會更新，不會重複新增；能力自評依填表時間只加新的。
@@ -85,11 +88,17 @@ def load_v1(secrets_path: Path = SECRETS):
 # ---------- 寫入 ----------
 def write(conn, team: dict, players: list[dict], fixtures, league_name: str) -> dict:
     from psycopg.types.json import Jsonb
-    team_id = conn.execute(
-        """insert into public.teams (code, name, season, league_name) values (%(code)s, %(name)s, %(season)s, %(league)s)
-           on conflict (code) do update set name = excluded.name, season = excluded.season,
-                                            league_name = excluded.league_name
-           returning id""", team).fetchone()["id"]
+    if team.get("code"):
+        row = conn.execute(
+            """update public.teams set name = %(name)s, season = %(season)s, league_name = %(league)s
+               where public.normalize_code(code) = public.normalize_code(%(code)s) returning id, code""", team).fetchone()
+        if row is None:
+            raise SystemExit(f"找不到 Team ID {team['code']}；要建立新隊伍就不要加 --code")
+    else:
+        row = conn.execute(
+            """insert into public.teams (name, season, league_name) values (%(name)s, %(season)s, %(league)s)
+               returning id, code""", team).fetchone()
+    team_id = row["id"]
     stats = {"players": 0, "ratings": 0, "fixtures": 0, "duties": 0}
     for p in players:
         pid = conn.execute(
@@ -129,12 +138,13 @@ def write(conn, team: dict, players: list[dict], fixtures, league_name: str) -> 
                on conflict (fixture_id, role, slot) do nothing""", (team_id, ids[key], d.role, d.index))
         stats["duties"] += cur.rowcount
     stats["team_id"] = str(team_id)
+    stats["code"] = row["code"]
     return stats
 
 
 def main(argv=None) -> None:
     ap = argparse.ArgumentParser(description="把 v1 的球員、自評、賽程匯入 v2 資料庫")
-    ap.add_argument("--code", required=True, help="Team ID，例如 CSIE-2026")
+    ap.add_argument("--code", default=None, help="已經存在的 Team ID（例如 K7Q4-MZP9）；不加就建立新隊伍")
     ap.add_argument("--name", required=True, help="隊伍名稱，例如 資訊系足")
     ap.add_argument("--season", default=None, help="賽季，例如 2026-27")
     ap.add_argument("--dry-run", action="store_true", help="只試跑，最後不寫入")

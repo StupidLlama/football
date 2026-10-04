@@ -32,10 +32,14 @@ def test_every_table_has_rls():
         assert re.search(rf"alter table public\.{t}\s+enable row level security", SQL), f"{t} 沒有打開 RLS"
 
 
+# 只有資料庫函式能讀寫的表：故意不給任何 RLS 規則（team_secrets 在 v2.1 已刪除）
+SECRET_TABLES = {"team_secrets", "join_attempts"}
+
+
 def test_every_table_except_secrets_has_select_policy():
     for t in tables():
         has = re.search(rf"create policy \w+ on public\.{t}\s+for (select|all)", SQL)
-        assert bool(has) == (t != "team_secrets"), t
+        assert bool(has) == (t not in SECRET_TABLES), t
 
 
 def test_no_policy_for_anon():

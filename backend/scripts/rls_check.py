@@ -23,7 +23,8 @@ def main() -> None:
         except Exception as e:
             print("RLS 測試失敗：", getattr(getattr(e, "diag", None), "message_primary", None) or e)
             raise SystemExit(1)
-    print("RLS OK：A 隊讀不到 B 隊、球員不能改賽程、沒登入看不到任何資料（測試資料已全部還原）")
+    print("RLS OK：A 隊讀不到 B 隊、球員不能改賽程、沒登入看不到任何資料；"
+          "同一個帳號在兩隊身分不同、Team ID 鎖定、教練碼封鎖、認領要教練確認（測試資料已全部還原）")
 
 
 if __name__ == "__main__":
