@@ -247,8 +247,8 @@ PR = \frac{\#\{\text{分數} < x\} + 0.5 \times \#\{\text{分數} = x\}}{N} \tim
 flowchart TB
   subgraph TOOLS["Tools shell（infra/）：工具，隨時可換"]
     direction LR
-    NX["Next.js 網站<br/>球員、教練的畫面"]
-    API["FastAPI<br/>對外 API、登入與權限"]
+    NX["Next.js 網站（Vercel）<br/>球員、教練的畫面，直接連 Supabase"]
+    API["FastAPI<br/>匯入工具、之後的影片分析工作"]
     SB["Supabase<br/>PostgreSQL、登入、檔案、即時聊天"]
     GPU["GPU 影片工作程式<br/>OpenCV、YOLO、ByteTrack"]
   end
@@ -274,6 +274,9 @@ flowchart TB
 ```
 
 > 箭頭是依賴方向：外層可以用內層，內層不知道外層存在（`tests/test_architecture.py` 自動檢查）。
+
+> **v2.2 的決定：網站直接連 Supabase。** 網站在瀏覽器裡用 supabase-js 讀資料，加入球隊、認領、送出能力表這類動作呼叫資料庫函式（`security definer`，回傳 `{"status": ...}`）；誰能看、能改什麼全部由資料庫的 RLS 和函式把關，所以不用另外部署 FastAPI。FastAPI 先只用在匯入工具和本機測試，等影片分析、Discord 通知這類需要秘密金鑰的工作再部署。
+> 網站的評分計算（`web/lib/rating.ts`）是 `domain/rating.py`、`stats/ranking.py` 的 TypeScript 版本，能力和權重由 `config/settings.toml` 產生（`web/scripts/sync_config.py`），測試會比對兩邊一致。
 
 每一層只用得到比它更內層的東西：例如「球員統計」用「評分規則」算分數，但不知道資料來自 PostgreSQL 還是影片。
 
@@ -307,8 +310,8 @@ YouTube 條款不允許把影片抓下來處理，所以分析一定用原始影
 | 影片播放 | YouTube（教練自己的頻道） | 免費儲存和播放、手機上播放順；片段用開始 / 結束秒數就好 | API 審核前只能私人（見下方） |
 | 即時聊天 | Supabase Realtime | 新訊息自動推到畫面，不用自己架伺服器 | 綁定在 Supabase |
 | 通知 | Discord Webhook | 意見回饋發到管理者的私人頻道，不用寫機器人 | Webhook 網址等於密碼，要放在伺服器設定 |
-| 後端 API | FastAPI（Python） | 和影片分析同一種語言，`domain/`、`stats/` 直接 import；自動產生 API 文件 | 多一個要部署的服務 |
-| 前端 | Next.js（React + TypeScript） | 拖曳排陣容、聊天室、手機版面都能做細；分享連結可產生預覽圖 | 要學 JavaScript / TypeScript |
+| 後端 API | FastAPI（Python） | 和影片分析同一種語言，`domain/`、`stats/` 直接 import；自動產生 API 文件。v2.2 起網站不經過它，等影片分析時再部署 | 多一個要部署的服務 |
+| 前端 | Next.js（React + TypeScript），部署在 Vercel（免費方案） | 拖曳排陣容、聊天室、手機版面都能做細；分享連結可產生預覽圖；push 到 GitHub 自動部署 | 要學 JavaScript / TypeScript |
 | 影片分析 | 工作佇列 + GPU 工作程式（開發期用 Google Colab） | 一場比賽要跑很久，不能讓網站等；上傳後排隊，跑完寫回資料庫 | GPU 按時數付費 |
 | 辨識與追蹤 | Ultralytics YOLO + ByteTrack / BoT-SORT | 現成模型，追蹤器一個參數就能換 | 授權是 AGPL-3.0（見下方） |
 
@@ -467,9 +470,10 @@ flowchart LR
 | --- | --- | --- | --- |
 | v2.0 | Supabase 資料庫和權限規則、FastAPI 後端、匯入 Google 表單舊資料 | 自動測試證明 A 隊讀不到 B 隊 | L |
 | v2.1 | 帳號系統：登入、用 Team ID 加入、一個帳號加入多隊、教練碼升級身分、認領名單上的自己 | 同一個帳號在兩隊身分不同 | M |
-| v2.1.1 | 隱私權政策（個資法）、服務條款、刪除帳號、頁尾原始碼連結（AGPL） | 隊友第一次登入看得到並同意政策 | S |
-| v2.2 | Next.js 網站第一版、內建能力表單（F9） | 手機 3 分鐘內填完 | M |
-| v2.3 | 球員數據（F1）、球員比較（F2） | 功能和 v1.0 一樣，手機順暢 | M |
+| v2.1.1 | 介面重新設計（設計稿：深色、霞鶩文楷、側邊欄、手機版），v2.2 網站照它做 | 設計稿可以在電腦和手機點完整個流程 | S |
+| v2.2 | Next.js 網站第一版（Vercel、直接連 Supabase）、內建能力表單（F9）；球員列表（排行榜合併）、球員報告、比較提前到這版；頁尾原始碼連結（AGPL） | 手機 3 分鐘內填完 | M |
+| v2.2.1 | 隱私權政策（個資法告知事項）、服務條款、刪除帳號、第一次登入同意並記錄版本 | 隊友第一次登入看得到並同意政策；Google 登入改成正式版 | S |
+| v2.3 | 球員數據（F1）、球員比較（F2）剩下的部分：表現評分疊圖、跨賽季比較 | 功能和 v1.0 一樣，手機順暢 | M |
 | v2.4 | 組隊（F3）：拖曳、鎖定、分享連結和陣容圖片 | 分享的陣容只能看 | M |
 | v2.5 | 比賽列表（即將進行、已結束）、出賽登記（F7） | 出席名單直接帶進組隊 | M |
 | v2.6 | 隊伍聊天室（F6） | 新訊息 2 秒內出現 | M |

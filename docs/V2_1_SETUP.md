@@ -65,7 +65,7 @@ py -m backend.scripts.rls_check
    - 使用者類型選「外部」，填應用程式名稱（Football Analysis Potato）和你的 Email。
    - 範圍用預設的 email、profile、openid 就好。
    - 先維持「測試」狀態：只有加進「測試使用者」的 Google 帳號能登入。**把自己加進去**，要找隊友一起試也把他們加進去（最多 100 個）。
-   - 改成「正式版」要先有隱私權政策網址，這是 v2.1.1 的工作。
+   - 改成「正式版」要先有隱私權政策網址，這是 v2.2.1 的工作。
 3. 「憑證」→「建立憑證」→「OAuth 用戶端 ID」→ 類型選「網頁應用程式」：
    - 「已授權的重新導向 URI」填 `https://你的專案代號.supabase.co/auth/v1/callback`
      （專案代號就是 `.env` 裡 `SUPABASE_URL` 中間那一段）

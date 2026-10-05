@@ -215,7 +215,7 @@ export function LegendLine({ color, dashed = false, children }: { color: string;
 export function Feet({ weakSide, label }: { weakSide: "" | "left" | "right"; label: string }) {
   const strong = weakSide === "left" ? "right" : weakSide === "right" ? "left" : "";
   return (
-    <svg width="120" height="80" viewBox="0 0 120 80" role="img" aria-label={label}>
+    <svg width="120" height="80" viewBox="0 0 120 80" role="img" aria-label={label} style={{ flex: "none" }}>
       <path d="M30 8c9 0 14 10 14 24s-3 26-6 34-14 10-17 2-5-20-5-34S21 8 30 8z" fill={strong === "left" ? "#11A595" : "#1E2A42"} stroke="#E9EDF3" strokeWidth="1.5" filter="url(#chalk)" />
       <path d="M90 8c-9 0-14 10-14 24s3 26 6 34 14 10 17 2 5-20 5-34S99 8 90 8z" fill={strong === "right" ? "#11A595" : "#1E2A42"} stroke="#E9EDF3" strokeWidth="1.5" filter="url(#chalk)" />
       <text x="30" y="78" fontSize="10" fill="#8A97AD" textAnchor="middle">左</text>

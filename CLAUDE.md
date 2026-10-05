@@ -10,6 +10,7 @@
 ## 這個專案是什麼
 
 1. **球員卡網站**（已完成、已部署）：從 Google 表單讀球隊球員的自評能力，顯示雷達圖、適合位置球場圖、球員比較。
+   - v2 新網站（Next.js，在 `web/`，部署在 Vercel）正在取代它；兩個網站並存到 v2.8。
    - 正式網站：https://football-analysis-potato.streamlit.app（有隊伍密碼）
    - GitHub：StupidLlama/football（push 到 main 會自動重新部署）
 2. **足球比賽影片分析**（軟工課專題，規劃中）：影片 → 辨識 → 數據 → 圖表。
@@ -38,23 +39,31 @@ infra/schedule.py          賽程來源（Google 試算表 / data/schedule.xlsx�
 infra/coach.py             教練檢查（v1 密碼，v2 換帳號）
 infra/charts/              style.py 深色配色、radar.py（Plotly 雷達圖，圖例由網頁畫）、bars.py、pitch.py、lineup.py（陣容球場圖＋下載 PNG）、feet.py（雙腳 SVG）
 infra/ui/                  theme.py（CSS、圖例）、common.py（共用）、pages/（home 首頁、overview 能力總覽、player、compare、leaderboard、lineup、matches、coach 教練專區）
+web/                       v2.2 Next.js 網站（Tools shell，TypeScript）：瀏覽器直接連 Supabase（supabase-js），動作呼叫資料庫函式
+  app/                     頁面：首頁、login、join、teams（選球隊）、settings、t/[teamId]/（我的、home、players、players/[playerId]、form 能力表、claim、coach、lineup/matches/practice 即將推出）
+  components/              共用元件：ui.tsx（雷達圖、標籤、KPI、提示訊息）、shell.tsx（側邊欄）、position-picker.tsx…
+  lib/                     rating.ts（= domain/rating.py 的 TS 版，純計算）、teamview.ts、todos.ts、positions.ts（純計算）；api.ts（所有 Supabase 查詢與 rpc）、status.ts（狀態訊息，跟 backend/accounts.py 一樣）、auth.tsx、team.tsx
+  lib/config.json          由 config/settings.toml 產生：py web/scripts/sync_config.py（不要手改）
+  tests/                   node --test 的計算測試（npm test）
 backend/                   v2 後端（Tools shell）：main.py（FastAPI）、accounts.py（v2.1 帳號 API：加入、教練碼、認領、教練管理）、db.py（as_user = 用使用者身分查詢，RLS 生效）、auth.py（驗證 Supabase JWT）、importer.py（v1 資料匯入）、dev_page.html（v2.1 本機測試頁，v2.2 刪掉）、scripts/（migrate、rls_check）
-supabase/migrations/       v2 資料表與 RLS 的 SQL，編號只能往後加；supabase/tests/ 是權限測試
+supabase/migrations/       v2 資料表與 RLS 的 SQL，編號只能往後加（0004_web.sql：網站用的資料表權限、submit_self_rating）；supabase/tests/ 是權限測試
 config/settings.toml       能力分類、表單欄位、位置適合度權重、回饋網址
 config/formations.toml     11 人制、8 人制陣型（位置、座標）
 config/performance.toml    比賽表現評分的維度與各位置權重（v4 才用）
 analysis/                  影片分析腳本（之後）＋ import_match_csv.py
-tests/                     test_architecture.py（分層規則）、test_layers.py、test_lineup_ranking.py、test_v13.py、test_v14.py、test_v20.py、test_v21.py
+tests/                     test_architecture.py（分層規則）、test_layers.py、test_lineup_ranking.py、test_v13.py、test_v14.py、test_v20.py、test_v21.py、test_v22.py（網站和資料庫對得起來）
 docs/PROJECT_PLAN.md       軟工專題規劃
 docs/SPEC.md               產品規格與版本規劃
 docs/V2_SETUP.md           v2 上線步驟（建表、權限測試、匯入、啟動後端）
 docs/V2_1_SETUP.md         v2.1 上線步驟（帳號系統、Google 登入設定、設定系統管理者、試用流程）
+docs/V2_2_SETUP.md         v2.2 上線步驟（0004 migration、web/.env.local、npm、Vercel 部署、手機驗收）
 ```
 
 ## UI 風格
 
 專業分析軟體風（深色、數據優先）：背景 #0B1220、卡片 #131C2E、強調色青綠 #2DD4BF、比較用橘 #F59E0B。
 配色集中在 `infra/charts/style.py` 和 `.streamlit/config.toml`，改顏色兩邊要一致。
+v2 新網站照 v2.1.1 設計稿：字體霞鶩文楷 TC、圓角 10 / 16、強調藍 #60A5FA / #3B82F6、提醒橘 #F5A524；位置三線顏色進攻紅 #F87171、中場綠 #4ADE80、防守黃 #FACC15；擅長綠、不擅長紅虛線、數據推薦藍 ★。樣式在 `web/app/globals.css`。
 
 ## 常用指令（Windows，用 `py`，不是 `python`）
 
@@ -63,6 +72,12 @@ py -m pip install -r requirements.txt      # 安裝
 py -m streamlit run app.py                 # 本機執行（或雙擊 run.bat）
 py -m pip install -r requirements-dev.txt  # 測試用套件
 py -m pytest                               # 跑測試，改完程式一定要跑
+
+cd web                                     # 新網站（第一次先 npm install，並建立 .env.local）
+npm run dev                                # 本機打開 http://localhost:3000
+npm test                                   # 計算測試
+npm run typecheck                          # 型別檢查，改完網站一定要跑
+py web/scripts/sync_config.py              # 改了 config/settings.toml 的能力或權重後執行
 ```
 
 ## 絕對不要
@@ -96,10 +111,21 @@ py -m pytest                               # 跑測試，改完程式一定要�
 - 只給資料庫函式讀寫、沒有任何 RLS 規則的表（例如 `join_attempts`）要加進 `tests/test_v20.py` 的 `SECRET_TABLES`。
 - Team ID 和教練碼的字母表去掉 0 / O、1 / I / L；Team ID 8 碼、教練碼 10 碼。
 
-## 下一步（2026-10-04）
+## v2.2 網站的規則
 
-- v2.1.1：隱私權政策（個資法告知事項）、服務條款、刪除帳號、頁尾 GitHub 原始碼連結（AGPL）；第一次登入要按同意並記錄版本。Google OAuth 同意畫面改成正式版需要隱私權政策網址。
-- v2.2：Next.js 網站、內建能力表單；做好後刪掉 `backend/dev_page.html` 和 `/dev` 路由。
+- 網站只能用 publishable key（`NEXT_PUBLIC_SUPABASE_*`），`web/` 裡不能出現 secret / service_role 金鑰（`tests/test_v22.py` 會檢查）。
+- 所有 Supabase 查詢寫在 `web/lib/api.ts`；不用 embed（`teams(*)`），每張表分開查。查的欄位、rpc 名稱和參數名稱 `test_v22.py` 會對照 migration 檢查。
+- 新資料表要在新的 migration 裡明確 grant 給 authenticated（0004 先全部收回再給），不要給 TRUNCATE。
+- 計算（評分、排序、待辦）寫在 `web/lib/` 的純 TS 檔（不 import React / Supabase），import 時加 `.ts` 副檔名，才能用 `node --test` 測。
+- `app/**/page.tsx`、`layout.tsx` 只能 export 預設元件（和 metadata），其他東西放 `lib/` 或 `components/`，不然 build 會失敗。
+- 狀態訊息改了要同時改 `web/lib/status.ts` 和 `backend/accounts.py` 的 `STATUS`。
+
+## 下一步（2026-10-05）
+
+- v2.1.1 = 介面設計稿（已完成，在 Design 畫布上），v2.2 網站照它做。
+- v2.2（進行中）：網站程式和 0004 已 push；使用者照 `docs/V2_2_SETUP.md` 在自己電腦 `npm install`、型別檢查、部署 Vercel、手機驗收。確認新網站可以用之後，刪掉 `backend/dev_page.html` 和 `/dev` 路由。
+- v2.2.1：隱私權政策（個資法告知事項）、服務條款、刪除帳號；第一次登入要按同意並記錄版本；管理者建立隊伍前先確認。Google OAuth 同意畫面改成正式版需要隱私權政策網址。
+- v2.3 之後：表現評分疊圖、跨賽季比較；v2.4 組隊（拖曳）；v2.5 比賽與出賽登記。
 
 - 使用者之後會裝插畫風格的外掛，再加入手繪 / 人性化的視覺元素。
 - 之後：依 `docs/PROJECT_PLAN.md` 的開發順序做影片分析（Video translate 放 `adapters/video.py`，OpenCV/YOLO 放 `infra/video/`）。
