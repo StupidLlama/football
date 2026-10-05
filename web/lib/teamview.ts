@@ -26,7 +26,7 @@ export type TeamView = {
   me: Membership;
   myPlayer: PlayerView | null;
   isCoach: boolean;
-  claims: Membership[];              // 等教練確認的認領
+  claims: Membership[];              // 等球隊管理員確認的認領
   nameOf: (userId: string) => string;
   matches: MatchView[];              // 我們隊的比賽（照時間）
   duties: DutyView[];                // 裁判任務（照時間）

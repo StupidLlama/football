@@ -16,7 +16,7 @@ export type Player = {
   good_positions: string[]; bad_positions: string[]; weak_side: "" | "left" | "right"; message: string;
 };
 export type Rating = { player_id: string; scores: Scores; submitted_at: string; source: string };
-export type Profile = { user_id: string; display_name: string; is_admin: boolean };
+export type Profile = { user_id: string; display_name: string; is_admin: boolean; policy_version: string | null; policy_accepted_at: string | null };
 export type Guard = { team_id: string; user_id: string; failures: number; banned_at: string | null };
 export type CoachCode = {
   id: string; hint: string; created_at: string; expires_at: string; revoked_at: string | null; uses: number;
@@ -40,11 +40,12 @@ const COLS = {
   membership: "team_id, user_id, role, player_id, joined_at, claim_player_id, claim_new_name, claim_at",
   player: "id, team_id, name, nickname, jersey_number, badge, good_positions, bad_positions, weak_side, message",
   rating: "player_id, scores, submitted_at, source",
-  profile: "user_id, display_name, is_admin",
+  profile: "user_id, display_name, is_admin, policy_version, policy_accepted_at",
   guard: "team_id, user_id, failures, banned_at",
   code: "id, hint, created_at, expires_at, revoked_at, uses, last_used_at",
   fixture: "id, day, start_time, end_time, home, away, round, match_no, home_score, away_score, referee, linesmen, note",
   duty: "id, fixture_id, role, slot, player_id",
+  contact: "id, user_id, category, body, page, status, created_at",
 };
 
 // 欄位清單是變數（COLS），supabase-js 沒辦法從字串推出型別，所以在這裡統一轉成我們自己定義的型別。
@@ -57,7 +58,7 @@ function must<T>(r: { data: unknown; error: { message: string } | null }, what: 
 export async function getProfile(userId: string): Promise<Profile> {
   const r = await supabase().from("profiles").select(COLS.profile).eq("user_id", userId).maybeSingle();
   if (r.error) throw new Error(`讀取個人資料失敗：${r.error.message}`);
-  return (r.data as Profile | null) ?? { user_id: userId, display_name: "", is_admin: false };
+  return (r.data as Profile | null) ?? { user_id: userId, display_name: "", is_admin: false, policy_version: null, policy_accepted_at: null };
 }
 
 export async function setDisplayName(userId: string, name: string): Promise<void> {
@@ -111,7 +112,7 @@ export async function getTeamData(teamId: string, userId: string): Promise<TeamD
 
 export async function getCoachCodes(teamId: string): Promise<CoachCode[]> {
   return must<CoachCode[]>(await supabase().from("coach_codes").select(COLS.code).eq("team_id", teamId)
-    .order("created_at", { ascending: false }), "教練碼");
+    .order("created_at", { ascending: false }), "管理員碼");
 }
 
 /** 球員改自己的介紹（暱稱、給球隊的話、位置、弱腳）。名字、背號、隊長標記資料庫會擋。 */
@@ -144,6 +145,10 @@ export const actions = {
   demoteCoach: (team: string, member: string) => rpc("demote_coach", { team, member }),
   createTeam: (name: string, season: string | null, leagueName: string | null) =>
     rpc("admin_create_team", { team_name: name, season, league_name: leagueName }),
+  acceptPolicies: (version: string) => rpc("accept_policies", { version }),
+  deleteMyAccount: () => rpc("delete_my_account", {}),
+  deleteUnlinkedPlayer: (player: string) => rpc("delete_unlinked_player", { player }),
+  exportMyData: () => rpc("export_my_data", {}),
   submitRating: (team: string, f: { scores: Scores; good: string[]; bad: string[]; weakSide: string; nickname: string; message: string }) =>
     rpc("submit_self_rating", { team, scores: f.scores, good: f.good, bad: f.bad, weak_side: f.weakSide,
                                 nickname: f.nickname, message: f.message }),
@@ -152,7 +157,7 @@ export const actions = {
 // ---------- 選球隊頁的通知 ----------
 export type TeamNote = { kind: "form" | "claim" | "pending" | "claims" | "match"; text: string; href: string };
 
-/** 每一隊給我的提醒：還沒填能力表、還沒認領、等教練確認、（教練）待確認的認領、下一場比賽。 */
+/** 每一隊給我的提醒：還沒填能力表、還沒認領、等球隊管理員確認、（球隊管理員）待確認的認領、下一場比賽。 */
 export async function getTeamNotes(mine: MyTeam[], today: string): Promise<Record<string, TeamNote[]>> {
   const db = supabase();
   const out: Record<string, TeamNote[]> = {};
@@ -173,7 +178,7 @@ export async function getTeamNotes(mine: MyTeam[], today: string): Promise<Recor
     const notes: TeamNote[] = [];
     const base = `/t/${team.id}`;
     if (m.player_id && !rated.has(m.player_id)) notes.push({ kind: "form", text: "還沒填這一季的能力表", href: `${base}/form` });
-    if (!m.player_id && (m.claim_player_id || m.claim_new_name)) notes.push({ kind: "pending", text: "認領申請等教練確認中", href: base });
+    if (!m.player_id && (m.claim_player_id || m.claim_new_name)) notes.push({ kind: "pending", text: "認領申請等球隊管理員確認中", href: base });
     if (!m.player_id && !m.claim_player_id && !m.claim_new_name) notes.push({ kind: "claim", text: "還沒找到名單上的自己", href: `${base}/claim` });
     const n = claimRows.filter((c) => c.team_id === team.id && (c.claim_player_id || c.claim_new_name)).length;
     if (n) notes.push({ kind: "claims", text: `${n} 個認領等你確認`, href: `${base}/coach?tab=members` });
@@ -188,9 +193,41 @@ export async function getTeamNotes(mine: MyTeam[], today: string): Promise<Recor
   return out;
 }
 
-/** 教練改球隊資料（名稱、賽季、聯賽賽程表上的隊名）。Team ID 要用 actions.resetTeamCode。 */
+/** 球隊管理員改球隊資料（名稱、賽季、聯賽賽程表上的隊名）。Team ID 要用 actions.resetTeamCode。 */
 export async function updateTeam(teamId: string, fields: { name: string; season: string | null; league_name: string | null }): Promise<void> {
   const r = await supabase().from("teams").update(fields).eq("id", teamId).select("id");
   if (r.error) throw new Error(r.error.message);
-  if (!r.data || r.data.length === 0) throw new Error("只有這一隊的教練可以改");
+  if (!r.data || r.data.length === 0) throw new Error("只有這一隊的球隊管理員可以改");
+}
+
+// ---------- 聯絡我們 ----------
+export type ContactMessage = { id: string; user_id: string | null; category: string; body: string; page: string; status: "new" | "done"; created_at: string };
+export const CONTACT_CATEGORIES: [string, string][] = [["bug", "網站壞掉了"], ["suggestion", "建議"], ["privacy", "個資、帳號"], ["other", "其他"]];
+
+/** 送出聯絡訊息：經過網站自己的伺服器（存進資料庫，再通知網站管理員的 Discord）。 */
+export async function sendContact(category: string, body: string, page: string): Promise<RpcResult> {
+  const { data } = await supabase().auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) return { status: "unauthenticated" };
+  try {
+    const r = await fetch("/api/contact", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: JSON.stringify({ category, body, page }),
+    });
+    return (await r.json()) as RpcResult;
+  } catch {
+    return { status: "error", detail: "連不到伺服器，請稍後再試" };
+  }
+}
+
+/** 網站管理員：最近的聯絡訊息。 */
+export async function getContactMessages(): Promise<ContactMessage[]> {
+  return must<ContactMessage[]>(await supabase().from("contact_messages").select(COLS.contact)
+    .order("created_at", { ascending: false }).limit(50), "聯絡訊息");
+}
+
+export async function setContactStatus(id: string, status: "new" | "done"): Promise<void> {
+  const r = await supabase().from("contact_messages").update({ status }).eq("id", id).select("id");
+  if (r.error) throw new Error(r.error.message);
 }

@@ -138,7 +138,7 @@ function EditMine({ p }: { p: PlayerView }) {
   return (
     <section aria-labelledby="me-edit" className="panel pad" style={{ marginTop: 16 }}>
       <h2 id="me-edit" style={{ margin: "0 0 4px", fontSize: 20 }}>編輯我的介紹</h2>
-      <p className="faint" style={{ margin: "0 0 12px", fontSize: 14 }}>隊友會在你的球員報告看到這些。名字、背號、隊長標記要請教練改。</p>
+      <p className="faint" style={{ margin: "0 0 12px", fontSize: 14 }}>隊友會在你的球員報告看到這些。名字、背號、隊長標記要請球隊管理員改。</p>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 12 }}>
         <label className="label">暱稱（希望別人怎麼叫你）
           <input className="field" value={nick} onChange={(e) => setNick(e.target.value)} placeholder="例如：阿成" maxLength={20} />

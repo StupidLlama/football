@@ -93,7 +93,10 @@ export default function LoginPage() {
           {busy ? "處理中…" : mode === "login" ? "用 Email 登入" : "註冊"}
         </button>
       </form>
-      <p className="faint" style={{ marginTop: 16, fontSize: 14 }}>
+      <p className="faint" style={{ marginTop: 24, fontSize: 14 }}>
+        登入後會請你看過並同意 <Link href="/privacy">隱私權政策</Link> 和 <Link href="/terms">服務條款</Link>。
+      </p>
+      <p className="faint" style={{ marginTop: 8, fontSize: 14 }}>
         {mode === "login" ? "還沒有帳號？" : "已經有帳號？"}
         <button type="button" className="btn btn-text" style={{ fontSize: 14 }}
           onClick={() => { setMode(mode === "login" ? "signup" : "login"); setError(""); setInfo(""); }}>

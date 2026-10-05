@@ -27,7 +27,7 @@ export default function FormPage() {
       <div className="panel pad" style={{ maxWidth: 640 }}>
         <h1 style={{ margin: "0 0 4px", fontSize: 26 }}>能力表</h1>
         <p className="muted" style={{ margin: "0 0 12px" }}>
-          {pending ? "你的認領還在等教練確認。確認後就可以填能力表了。" : "要先連到名單上的自己，才能填能力表。"}
+          {pending ? "你的認領還在等球隊管理員確認。確認後就可以填能力表了。" : "要先連到名單上的自己，才能填能力表。"}
         </p>
         {!pending && <Link className="btn btn-main" href={`/t/${teamId}/claim`}>找到名單上的自己</Link>}
       </div>

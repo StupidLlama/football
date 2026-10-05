@@ -12,6 +12,8 @@ export default function Home() {
   const { ready, session, teams } = useAuth();
   const router = useRouter();
   const [help, setHelp] = useState(false);
+  const [deleted, setDeleted] = useState(false);
+  useEffect(() => { setDeleted(new URLSearchParams(window.location.search).get("deleted") === "1"); }, []);
 
   useEffect(() => {
     if (session && teams) router.replace(homeFor(teams));
@@ -30,6 +32,7 @@ export default function Home() {
         <Link className="btn btn-line" href="/login">登入</Link>
       </header>
 
+      {deleted && <p className="status ok" role="status">你的帳號和資料已經刪除。謝謝你用過 Football Analysis Potato。</p>}
       <section style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "24px 40px", paddingTop: 16 }}>
         <div style={{ flex: "1 1 320px", minWidth: 0 }}>
           <h1 style={{ margin: "0 0 16px", fontSize: "clamp(34px, 6vw, 46px)", lineHeight: 1.25 }}>你的球隊，<br />一個地方全看得到</h1>
@@ -42,7 +45,7 @@ export default function Home() {
           </div>
           {help && (
             <p style={{ margin: "16px 0 0", maxWidth: "26em", padding: "12px 16px", border: "1px dashed #4A5A7A", borderRadius: 10, color: "#C9D3E3" }}>
-              問你的隊長或教練。Team ID 是 8 個英文和數字，長得像{" "}
+              問你的隊長或球隊管理員。Team ID 是 8 個英文和數字，長得像{" "}
               <b className="accent" style={{ fontSize: 19, letterSpacing: "0.06em" }}>K7Q4-MZP9</b>，大小寫都可以。
             </p>
           )}
@@ -98,7 +101,6 @@ export default function Home() {
 }
 
 function TacticsBoard() {
-  const font = "'LXGW WenKai TC', 'Kaiti TC', serif";
   return (
     <svg viewBox="0 0 560 360" role="img" aria-label="戰術板，用粉筆畫出加入的三個步驟：1 拿到 Team ID，2 登入，3 加入球隊" style={{ width: "100%", height: "auto", display: "block" }}>
       <rect x="4" y="4" width="552" height="352" rx="16" fill="#101A2C" />
@@ -114,10 +116,10 @@ function TacticsBoard() {
       <g fill="#0B1220" stroke="#2DD4BF" strokeWidth="3" filter="url(#chalk)">
         <circle cx="96" cy="268" r="16" /><circle cx="250" cy="156" r="16" /><circle cx="488" cy="182" r="16" className="chalk-late" style={{ animationDelay: "2.2s" }} />
       </g>
-      <g fontFamily={font} fontWeight="700" fontSize="19" fill="#2DD4BF" textAnchor="middle">
+      <g fontWeight="700" fontSize="19" fill="#2DD4BF" textAnchor="middle">
         <text x="96" y="275">1</text><text x="250" y="163">2</text><text x="488" y="189" className="chalk-late" style={{ animationDelay: "2.2s" }}>3</text>
       </g>
-      <g fontFamily={font} fontSize="22" fill="#E9EDF3">
+      <g fontSize="22" fill="#E9EDF3">
         <text x="122" y="306">拿到 Team ID</text><text x="200" y="118">登入</text>
         <text x="404" y="232" className="chalk-late" style={{ animationDelay: "2.4s" }} fill="#F5A524">加入球隊</text>
       </g>

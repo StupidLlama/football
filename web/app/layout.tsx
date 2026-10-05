@@ -1,7 +1,18 @@
 import type { Metadata, Viewport } from "next";
+import { LXGW_WenKai_TC } from "next/font/google";
 import type { ReactNode } from "react";
 import "./globals.css";
 import { Providers } from "./providers";
+
+// 霞鶩文楷 TC：部署時由 Next.js 下載，放在我們自己的網址提供（不會在使用者瀏覽時連到 Google）。
+// 中文字體會切成很多小塊（unicode-range），頁面用到哪些字才下載哪幾塊。
+const wenkai = LXGW_WenKai_TC({
+  weight: ["400", "700"],
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-wenkai",
+  fallback: ["Kaiti TC", "DFKai-SB", "BiauKai", "serif"],
+});
 
 export const metadata: Metadata = {
   title: { default: "Football Analysis Potato", template: "%s｜Football Analysis Potato" },
@@ -12,13 +23,7 @@ export const viewport: Viewport = { themeColor: "#0B1220", width: "device-width"
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="zh-Hant">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
-        <link href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@400;700&display=swap" rel="stylesheet" />
-      </head>
+    <html lang="zh-Hant" className={wenkai.variable}>
       <body>
         <Providers>{children}</Providers>
       </body>

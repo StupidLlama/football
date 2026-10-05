@@ -12,7 +12,7 @@ export function todosFor(v: TeamView, teamId: string, isAdmin: boolean, now = ne
   }
   if (!me.player_id && (me.claim_player_id || me.claim_new_name)) {
     const who = me.claim_player_id ? v.players.find((p) => p.id === me.claim_player_id)?.name ?? "" : me.claim_new_name ?? "";
-    out.push({ key: "pending", title: "認領等教練確認", detail: `你申請的是「${who}」。教練確認後就能填能力表。`, tone: "info" });
+    out.push({ key: "pending", title: "認領等球隊管理員確認", detail: `你申請的是「${who}」。球隊管理員確認後就能填能力表。`, tone: "info" });
   }
   if (v.myPlayer && !v.myPlayer.scores) {
     out.push({ key: "form", title: "填這一季的能力表", detail: "21 項能力 1–5 分，手機大約 3 分鐘", href: `${base}/form`, action: "開始填", tone: "main" });

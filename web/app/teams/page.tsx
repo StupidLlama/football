@@ -13,7 +13,7 @@ const NOTE_STYLE: Record<TeamNote["kind"], { icon: string; color: string; kind: 
   form: { icon: "✎", color: "#2DD4BF", kind: "能力表" },
   claim: { icon: "?", color: "#60A5FA", kind: "認領" },
   pending: { icon: "…", color: "#8A97AD", kind: "認領" },
-  claims: { icon: "!", color: "#F5A524", kind: "教練" },
+  claims: { icon: "!", color: "#F5A524", kind: "管理" },
   match: { icon: "◷", color: "#F5A524", kind: "比賽" },
 };
 

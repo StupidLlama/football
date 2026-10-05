@@ -1,5 +1,6 @@
 "use client";
 // 共用的小元件：標誌、提示訊息、位置標籤、雷達圖、KPI 卡、即將推出。
+import Link from "next/link";
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { lineOf } from "@/lib/positions";
 import { radarPoints } from "@/lib/rating";
@@ -33,7 +34,12 @@ export function Logo({ size = 32 }: { size?: number }) {
 export function Footer() {
   return (
     <footer className="footer">
-      原始碼公開在 <a href={REPO_URL} target="_blank" rel="noreferrer">GitHub</a>（AGPL-3.0）
+      <nav aria-label="網站資訊" style={{ display: "flex", flexWrap: "wrap", gap: "4px 16px" }}>
+        <Link href="/privacy">隱私權政策</Link>
+        <Link href="/terms">服務條款</Link>
+        <Link href="/contact">聯絡我們</Link>
+        <span>原始碼公開在 <a href={REPO_URL} target="_blank" rel="noreferrer">GitHub</a>（AGPL-3.0）</span>
+      </nav>
     </footer>
   );
 }
@@ -103,7 +109,7 @@ export function RoleBadge({ coach, long = false }: { coach: boolean; long?: bool
     : { background: "#1A2540", color: "#E9EDF3", border: "1px solid #4A5A7A" };
   return (
     <span style={{ padding: "1px 10px", borderRadius: 99, fontSize: 14, fontWeight: 700, whiteSpace: "nowrap", ...style }}>
-      {long ? (coach ? "你是教練" : "你是球員") : coach ? "教練" : "球員"}
+      {long ? (coach ? "你是球隊管理員" : "你是球員") : coach ? "管理員" : "球員"}
     </span>
   );
 }

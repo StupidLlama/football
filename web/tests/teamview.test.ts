@@ -59,7 +59,7 @@ test("只算我們隊的比賽，勝和負與積分", () => {
   assert.deepEqual(record(v.matches), { played: 2, w: 1, d: 1, l: 0, gf: 5, ga: 3, points: 4 });
 });
 
-test("教練的待辦：確認認領、還沒填的人、自己的裁判任務", () => {
+test("球隊管理員的待辦：確認認領、還沒填的人、自己的裁判任務", () => {
   const v = buildTeamView(data(member("u1", "coach", "p1")), rules);
   const keys = todosFor(v, "T", false, new Date("2026-10-05T12:00:00")).map((t) => t.key);
   assert.deepEqual(keys, ["claims", "progress", "duty", "refill"]);

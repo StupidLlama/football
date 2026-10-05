@@ -82,7 +82,7 @@ export default function TeamHome() {
       {upcoming[0] ? <NextMatch m={upcoming[0]} now={now} /> : (
         <section className="panel" style={{ marginTop: 24, padding: 20, border: "2px dashed #F5A52466" }}>
           <h2 className="accent" style={{ margin: "0 0 4px", fontSize: 22 }}>下一場</h2>
-          <p className="muted" style={{ margin: 0 }}>{noLeague ? "這一隊還沒設定聯賽隊名，賽程對不起來。請教練在教練專區設定。" : "目前沒有排定的比賽。"}</p>
+          <p className="muted" style={{ margin: 0 }}>{noLeague ? "這一隊還沒設定聯賽隊名，賽程對不起來。請球隊管理員在管理專區設定。" : "目前沒有排定的比賽。"}</p>
         </section>
       )}
 
@@ -146,7 +146,7 @@ export default function TeamHome() {
           <h2 id="roster-h" style={{ margin: 0, fontSize: 20 }}>球員名單（{roster.length}）</h2>
           <Link href={`/t/${teamId}/players`}>看全隊能力</Link>
         </div>
-        {roster.length === 0 && <p className="faint">名單上還沒有人。隊友加入後選「申請新增名字」，教練確認就會出現在這裡。</p>}
+        {roster.length === 0 && <p className="faint">名單上還沒有人。隊友加入後選「申請新增名字」，球隊管理員確認就會出現在這裡。</p>}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 12 }}>
           {roster.map((p) => (
             <button key={p.id} type="button" className="card-btn" onClick={() => router.push(`/t/${teamId}/players/${p.id}`)}

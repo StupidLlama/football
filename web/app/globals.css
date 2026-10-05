@@ -12,7 +12,7 @@
 * { box-sizing: border-box; }
 html, body { margin: 0; background: var(--bg); }
 body {
-  font-family: 'LXGW WenKai TC', 'Kaiti TC', 'DFKai-SB', 'BiauKai', serif;
+  font-family: var(--font-wenkai, 'LXGW WenKai TC'), 'Kaiti TC', 'DFKai-SB', 'BiauKai', serif;
   color: var(--text); font-size: var(--fs); line-height: 1.65;
   -webkit-text-size-adjust: 100%;
 }
@@ -168,3 +168,12 @@ textarea.field { padding: 10px 12px; min-height: 96px; resize: vertical; line-he
   .chalk-late { animation: none; opacity: 1; }
   .progress > span { transition: none; }
 }
+
+/* 政策文件 */
+.doc p, .doc li { line-height: 1.8; }
+.doc ul, .doc ol { padding-left: 1.4em; margin: 8px 0; }
+.doc li { margin: 4px 0; }
+.doc table { width: 100%; border-collapse: collapse; font-size: 15px; margin: 8px 0; }
+.doc th, .doc td { text-align: left; vertical-align: top; padding: 8px 10px; border-top: 1px solid #22304A; }
+.doc th { color: var(--faint); font-weight: 400; white-space: nowrap; }
+.doc .tbl-wrap { overflow-x: auto; }

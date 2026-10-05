@@ -56,7 +56,8 @@ def table_columns() -> dict[str, set[str]]:
 def test_selected_columns_exist():
     cols = table_columns()
     table_of = {"team": "teams", "membership": "memberships", "player": "players", "rating": "ability_ratings",
-                "profile": "profiles", "guard": "coach_code_guard", "code": "coach_codes", "fixture": "fixtures", "duty": "duties"}
+                "profile": "profiles", "guard": "coach_code_guard", "code": "coach_codes", "fixture": "fixtures", "duty": "duties",
+                "contact": "contact_messages"}
     block = re.search(r"const COLS = \{(.*?)\n\};", API, re.S).group(1)
     found = dict(re.findall(r'(\w+): "([^"]+)"', block))
     assert set(found) == set(table_of)
@@ -155,10 +156,15 @@ def test_rls_test_covers_v22():
 
 
 # ---------- 網站不碰秘密 ----------
+SERVER_ONLY_ENV = {"DISCORD_WEBHOOK_URL"}   # 只能出現在伺服器端的 app/api/**/route.ts
+
+
 def test_web_uses_only_public_env():
     for p in web_sources():
+        server = "api" in p.relative_to(WEB).parts and p.name == "route.ts"
         for name in re.findall(r"process\.env\.(\w+)", p.read_text(encoding="utf-8")):
-            assert name.startswith("NEXT_PUBLIC_") or name == "NODE_ENV", f"{p.name} 用了 {name}"
+            ok = name.startswith("NEXT_PUBLIC_") or name == "NODE_ENV" or (server and name in SERVER_ONLY_ENV)
+            assert ok, f"{p.relative_to(WEB)} 用了 {name}"
 
 
 def test_web_never_mentions_secret_keys_in_code():

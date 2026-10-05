@@ -36,7 +36,7 @@ function Join() {
     <div className="narrow">
       <JoinSteps step={1} />
       <h1 style={{ margin: "0 0 4px", fontSize: 28 }}>{first ? `歡迎，${displayName(auth)}` : "加入另一支球隊"}</h1>
-      <p className="muted" style={{ margin: "0 0 24px" }}>{first ? "你還沒加入任何球隊。" : ""}輸入隊長或教練給你的 Team ID：</p>
+      <p className="muted" style={{ margin: "0 0 24px" }}>{first ? "你還沒加入任何球隊。" : ""}輸入隊長或球隊管理員給你的 Team ID：</p>
       {error && <ErrorBox text={error} />}
       <form onSubmit={submit}>
         <label className="label">Team ID
@@ -48,7 +48,7 @@ function Join() {
           {busy ? "加入中…" : "加入球隊"}
         </button>
       </form>
-      <p className="faint" style={{ margin: "24px 0 0" }}>沒有 Team ID？問你的隊長或教練。大小寫、空白和「-」都不影響。</p>
+      <p className="faint" style={{ margin: "24px 0 0" }}>沒有 Team ID？問你的隊長或球隊管理員。大小寫、空白和「-」都不影響。</p>
       <p style={{ marginTop: 16, display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center" }}>
         {!first && <Link href="/teams">回到我的球隊</Link>}
         <Link href="/settings">設定</Link>

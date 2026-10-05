@@ -1,5 +1,5 @@
 "use client";
-// 找到自己：選名單上的自己，或申請新增名字。教練確認後才會連上。
+// 找到自己：選名單上的自己，或申請新增名字。球隊管理員確認後才會連上。
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
@@ -28,7 +28,7 @@ export default function ClaimPage() {
     setBusy(false);
     if (r.status === "ok") {
       await v.reload();
-      say("已送出，等教練確認");
+      say("已送出，等球隊管理員確認");
       router.push(`/t/${teamId}`);
     } else setError(message(r));
   }
@@ -38,7 +38,7 @@ export default function ClaimPage() {
       <div style={{ maxWidth: 460 }}>
         <JoinSteps step={3} />
         <h1 style={{ margin: "0 0 4px", fontSize: 28 }}>你已經連到名單了</h1>
-        <p className="muted">你在名單上是「{v.myPlayer?.name}」。要改的話請找教練。</p>
+        <p className="muted">你在名單上是「{v.myPlayer?.name}」。要改的話請找球隊管理員。</p>
         <Link className="btn btn-main" href={`/t/${teamId}`}>回到我的</Link>
       </div>
     );
@@ -48,9 +48,9 @@ export default function ClaimPage() {
     <div style={{ maxWidth: 520 }}>
       <JoinSteps step={2} />
       <h1 style={{ margin: "0 0 4px", fontSize: 28 }}>名單上哪一位是你？</h1>
-      <p className="muted" style={{ margin: "0 0 16px" }}>已加入{v.data.team.name}。選你的名字，教練確認後就會連到你的球員卡。</p>
+      <p className="muted" style={{ margin: "0 0 16px" }}>已加入{v.data.team.name}。選你的名字，球隊管理員確認後就會連到你的球員卡。</p>
       {pendingName && (
-        <p className="status" role="status">你已經申請「{pendingName}」，等教練確認中。想改的話，重新選一個就會取代原本的申請。</p>
+        <p className="status" role="status">你已經申請「{pendingName}」，等球隊管理員確認中。想改的話，重新選一個就會取代原本的申請。</p>
       )}
       {error && <ErrorBox text={error} />}
       {free.length === 0 && <p className="faint">名單上的人都已經連到帳號了。</p>}
@@ -69,7 +69,7 @@ export default function ClaimPage() {
       ) : (
         <form onSubmit={(e: FormEvent) => { e.preventDefault(); if (newName.trim()) claim(() => actions.claimNewName(teamId, newName.trim())); }}
           className="panel pad" style={{ marginTop: 16 }}>
-          <label className="label">你的名字（教練確認後會加到名單上）
+          <label className="label">你的名字（球隊管理員確認後會加到名單上）
             <input className="field" value={newName} onChange={(e) => setNewName(e.target.value)} maxLength={40} required placeholder="本名" />
           </label>
           <button type="submit" className="btn btn-main" disabled={busy} style={{ marginTop: 12 }}>送出申請</button>

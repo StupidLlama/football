@@ -385,5 +385,68 @@ select pg_temp.must_fail($q$select public.submit_self_rating('10000000-0000-0000
                          '沒登入送出能力表');
 reset role;
 
+-- ============================================================
+-- v2.2.1 隱私與帳號：同意政策、下載資料、聯絡我們、刪除名字、刪除帳號
+-- ============================================================
+insert into public.players (id, team_id, name) values
+  ('20000000-0000-0000-0000-0000000000a3', '10000000-0000-0000-0000-00000000000a', '沒有帳號的人');
+insert into public.ability_ratings (team_id, player_id, scores, submitted_at) values
+  ('10000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-0000000000a3', '{"passing": 3}', now() - interval '2 hours');
+
+set local role authenticated;
+select pg_temp.login('00000000-0000-0000-0000-00000000000a');
+-- 同意政策：只能透過函式，不能自己改欄位
+select pg_temp.st(public.accept_policies('2026-10-05'), 'ok', '同意政策');
+select pg_temp.st(public.accept_policies('隨便'), 'invalid', '政策版本格式');
+select pg_temp.expect((select count(*) from public.profiles where user_id = auth.uid() and policy_version = '2026-10-05'), 1,
+                      '記下同意的版本');
+select pg_temp.must_fail($q$update public.profiles set policy_version = '2099-01-01' where user_id = auth.uid()$q$,
+                         '自己改同意版本');
+-- 下載我的資料
+select pg_temp.st(public.export_my_data(), 'ok', '下載我的資料');
+select pg_temp.expect((select jsonb_array_length(public.export_my_data() -> 'teams')), 1, '下載的資料有自己的球隊');
+-- 聯絡我們：一小時最多 5 則；只看得到自己的；只有網站管理員能改狀態
+select pg_temp.st(public.send_contact_message('bug', '第 ' || i || ' 則'), 'ok', '聯絡我們第 ' || i) from generate_series(1, 5) i;
+select pg_temp.st(public.send_contact_message('bug', '第 6 則'), 'rate_limited', '一小時超過 5 則');
+select pg_temp.st(public.send_contact_message('spam', '內容'), 'invalid', '聯絡類型');
+select pg_temp.must_fail($q$insert into public.contact_messages (user_id, category, body)
+                          values (auth.uid(), 'bug', '繞過次數限制')$q$, '直接新增聯絡訊息');
+select pg_temp.expect((select count(*) from public.contact_messages), 5, '看得到自己的聯絡訊息');
+select pg_temp.login('00000000-0000-0000-0000-00000000000d');
+select pg_temp.expect((select count(*) from public.contact_messages), 0, '球隊管理員看得到別人的聯絡訊息');
+with u as (update public.contact_messages set status = 'done' returning 1)
+select pg_temp.expect((select count(*) from u), 0, '球隊管理員改聯絡訊息狀態');
+select pg_temp.login('00000000-0000-0000-0000-00000000000f');
+select pg_temp.expect((select count(*) from public.contact_messages), 5, '網站管理員看得到所有聯絡訊息');
+with u as (update public.contact_messages set status = 'done' returning 1)
+select pg_temp.expect((select count(*) from u), 5, '網站管理員改聯絡訊息狀態');
+-- 刪除名單上沒有連結帳號的名字
+select pg_temp.login('00000000-0000-0000-0000-00000000000a');
+select pg_temp.st(public.delete_unlinked_player('20000000-0000-0000-0000-0000000000a3'), 'forbidden', '球員刪名單上的名字');
+select pg_temp.login('00000000-0000-0000-0000-00000000000d');
+select pg_temp.st(public.delete_unlinked_player('20000000-0000-0000-0000-0000000000a1'), 'linked', '刪已經連到帳號的名字');
+select pg_temp.st(public.delete_unlinked_player('20000000-0000-0000-0000-0000000000b1'), 'forbidden', '刪別隊的名字');
+select pg_temp.st(public.delete_unlinked_player('20000000-0000-0000-0000-0000000000a3'), 'ok', '球隊管理員刪沒有帳號的名字');
+select pg_temp.expect((select count(*) from public.ability_ratings where player_id = '20000000-0000-0000-0000-0000000000a3'), 0,
+                      '刪名字時自評一起刪');
+-- 刪除帳號：G 連到 A2，有自評
+select pg_temp.login('00000000-0000-0000-0000-000000000010');
+select pg_temp.st(public.delete_my_account(), 'ok', '刪除自己的帳號');
+reset role;
+select pg_temp.expect((select count(*) from auth.users where id = '00000000-0000-0000-0000-000000000010'), 0, '帳號已刪除');
+select pg_temp.expect((select count(*) from public.profiles where user_id = '00000000-0000-0000-0000-000000000010'), 0, 'profile 已刪除');
+select pg_temp.expect((select count(*) from public.memberships where user_id = '00000000-0000-0000-0000-000000000010'), 0, '成員身分已刪除');
+select pg_temp.expect((select count(*) from public.ability_ratings where player_id = '20000000-0000-0000-0000-0000000000a2'), 0, '自評已刪除');
+select pg_temp.expect((select count(*) from public.players where id = '20000000-0000-0000-0000-0000000000a2'
+                       and name = '球員A2' and nickname = '' and message = '' and good_positions = '{}'), 1,
+                      '名單上的名字留著、自我介紹清空');
+select pg_temp.expect((select count(*) from public.memberships where player_id = '20000000-0000-0000-0000-0000000000a2'), 0,
+                      '名字變成沒有連結帳號');
+set local role anon;
+select set_config('request.jwt.claims', '', true);
+select pg_temp.must_fail('select public.delete_my_account()', '沒登入刪帳號');
+select pg_temp.must_fail('select public.export_my_data()', '沒登入下載資料');
+reset role;
+
 select 'RLS OK' as result;
 rollback;
