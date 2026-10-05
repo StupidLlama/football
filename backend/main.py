@@ -3,17 +3,18 @@
 本機啟動：  py -m uvicorn backend.main:app --reload
 API 文件：  http://127.0.0.1:8000/docs（自動產生）
 
+v2.2 起正式網站（web/，Next.js）直接連 Supabase，不經過這個 API；
+這裡留給匯入工具、之後的影片分析，以及用 /docs 手動測試資料庫函式。
+
 每個需要登入的 API 都用「那個使用者的身分」查資料庫（db.as_user），
 所以權限由資料庫的 RLS 規則把關：就算這裡寫錯，也讀不到別隊的資料。
 """
 import uuid
 from datetime import date
 from functools import lru_cache
-from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Request
-from fastapi.responses import HTMLResponse
+from fastapi import Depends, FastAPI, Header, HTTPException
 
 from domain.rating import average, recommended
 from infra import config
@@ -23,7 +24,7 @@ from .auth import AuthError, bearer_token, verify
 from .queries import FIXTURE_COLUMNS, fixture_json, row_to_fixture
 from .settings import Settings, load_settings
 
-app = FastAPI(title="Football Analysis Potato API", version="2.1.0")
+app = FastAPI(title="Football Analysis Potato API", version="2.2.0")
 TAIPEI = ZoneInfo("Asia/Taipei")
 
 
@@ -76,31 +77,6 @@ def health():
 
 # v2.1 帳號系統的 API（加入、教練碼、認領、教練管理、系統管理者）
 accounts.register(app, current_user, connection)
-
-# ---------- 本機測試頁（v2.2 的正式網站做好後刪掉）----------
-DEV_PAGE = Path(__file__).resolve().parent / "dev_page.html"
-LOCAL_HOSTS = {"127.0.0.1", "::1", "localhost", "testclient"}
-
-
-def _local_only(request: Request) -> None:
-    """測試頁只給本機用：部署到網路上時，別人打不開。"""
-    if request.client is None or request.client.host not in LOCAL_HOSTS:
-        raise HTTPException(status_code=404, detail="Not Found")
-
-
-@app.get("/dev", response_class=HTMLResponse, include_in_schema=False)
-def dev_page(request: Request):
-    _local_only(request)
-    return DEV_PAGE.read_text(encoding="utf-8")
-
-
-@app.get("/dev/config", include_in_schema=False)
-def dev_config(request: Request):
-    """測試頁要用的 Supabase 網址和 publishable key（本來就可以公開給前端）。"""
-    _local_only(request)
-    s = settings()
-    return {"supabase_url": s.supabase_url, "publishable_key": s.publishable_key}
-
 
 @app.get("/me/teams")
 def my_teams(user: str = Depends(current_user), conn=Depends(connection)):

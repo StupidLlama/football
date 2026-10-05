@@ -156,21 +156,8 @@ def test_result_maps_status_to_http():
     assert e.value.status_code == 500
 
 
-def test_dev_page_is_local_only():
-    pytest.importorskip("fastapi")
-    from types import SimpleNamespace
-
-    from fastapi import HTTPException
-
-    from backend.main import _local_only
-    for host in ("127.0.0.1", "::1", "localhost"):
-        _local_only(SimpleNamespace(client=SimpleNamespace(host=host)))
-    for req in (SimpleNamespace(client=SimpleNamespace(host="203.0.113.5")), SimpleNamespace(client=None)):
-        with pytest.raises(HTTPException):
-            _local_only(req)
-
-
-def test_dev_page_has_no_secrets():
-    html = (ROOT / "backend" / "dev_page.html").read_text(encoding="utf-8")
-    assert "SUPABASE_SECRET" not in html and "service_role" not in html and "secret_key" not in html
-    assert "/dev/config" in html
+def test_dev_page_removed_in_v22():
+    """v2.1 的本機測試頁在 v2.2 由正式網站（web/）取代，已刪除。"""
+    assert not (ROOT / "backend" / "dev_page.html").exists()
+    main = (ROOT / "backend" / "main.py").read_text(encoding="utf-8")
+    assert '"/dev"' not in main and "/dev/config" not in main

@@ -45,7 +45,7 @@ web/                       v2.2 Next.js 網站（Tools shell，TypeScript）：�
   lib/                     rating.ts（= domain/rating.py 的 TS 版，純計算）、teamview.ts、todos.ts、positions.ts（純計算）；api.ts（所有 Supabase 查詢與 rpc）、status.ts（狀態訊息，跟 backend/accounts.py 一樣）、auth.tsx、team.tsx
   lib/config.json          由 config/settings.toml 產生：py web/scripts/sync_config.py（不要手改）
   tests/                   node --test 的計算測試（npm test）
-backend/                   v2 後端（Tools shell）：main.py（FastAPI）、accounts.py（v2.1 帳號 API：加入、教練碼、認領、教練管理）、db.py（as_user = 用使用者身分查詢，RLS 生效）、auth.py（驗證 Supabase JWT）、importer.py（v1 資料匯入）、dev_page.html（v2.1 本機測試頁，v2.2 刪掉）、scripts/（migrate、rls_check）
+backend/                   v2 後端（Tools shell）：main.py（FastAPI）、accounts.py（v2.1 帳號 API：加入、教練碼、認領、教練管理）、db.py（as_user = 用使用者身分查詢，RLS 生效）、auth.py（驗證 Supabase JWT）、importer.py（v1 資料匯入）、scripts/（migrate、rls_check）；v2.2 起網站不經過這個 API
 supabase/migrations/       v2 資料表與 RLS 的 SQL，編號只能往後加（0004_web.sql：網站用的資料表權限、submit_self_rating）；supabase/tests/ 是權限測試
 config/settings.toml       能力分類、表單欄位、位置適合度權重、回饋網址
 config/formations.toml     11 人制、8 人制陣型（位置、座標）
@@ -123,7 +123,7 @@ py web/scripts/sync_config.py              # 改了 config/settings.toml 的能�
 ## 下一步（2026-10-05）
 
 - v2.1.1 = 介面設計稿（已完成，在 Design 畫布上），v2.2 網站照它做。
-- v2.2（2026-10-05 已部署）：0004 已在 Supabase 執行；本機和 Vercel 都測過；Supabase Site URL 已改成 Vercel 網址。剩：手機 3 分鐘填完驗收、打 v2.2 標籤、刪掉 `backend/dev_page.html` 和 `/dev` 路由。
+- v2.2（2026-10-05 已部署）：0004 已在 Supabase 執行；本機和 Vercel 都測過；Supabase Site URL 已改成 Vercel 網址。v2.2 標籤已打（GitHub Release）；舊測試頁 `/dev` 已刪。剩：手機 3 分鐘填完驗收。
 - v2.2.1：隱私權政策（個資法告知事項）、服務條款、刪除帳號；第一次登入要按同意並記錄版本；管理者建立隊伍前先確認。Google OAuth 同意畫面改成正式版需要隱私權政策網址。
 - v2.3 之後：表現評分疊圖、跨賽季比較；v2.4 組隊（拖曳）；v2.5 比賽與出賽登記。
 
