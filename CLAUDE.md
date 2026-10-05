@@ -129,7 +129,7 @@ py web/scripts/sync_config.py              # 改了 config/settings.toml 的能�
 
 - v2.1.1 = 介面設計稿（已完成，在 Design 畫布上），v2.2 網站照它做。
 - v2.2（2026-10-05 已部署）：0004 已在 Supabase 執行；本機和 Vercel 都測過；Supabase Site URL 已改成 Vercel 網址。v2.2 標籤已打（GitHub Release）；舊測試頁 `/dev` 已刪。剩：手機 3 分鐘填完驗收。
-- v2.2.1（程式已完成、已 push）：隱私權政策、服務條款、同意頁、下載資料、刪除帳號、聯絡我們（Discord）、安全標頭、教練→球隊管理員。剩使用者手動：Supabase 執行 0005、建 Discord Webhook 並加到 Vercel、Google 登入改正式版、打 v2.2.1 標籤（見 `docs/V2_2_1_SETUP.md`）。使用者之後會開新的聯絡信箱（`NEXT_PUBLIC_CONTACT_EMAIL`）。
+- v2.2.1（程式已完成、已 push）：隱私權政策、服務條款、同意頁、下載資料、刪除帳號、聯絡我們（Discord）、安全標頭、教練→球隊管理員。0005 已在 Supabase 執行；Discord Webhook 已加到 Vercel（Secret）。剩：Google 登入改正式版、打 v2.2.1 標籤（見 `docs/V2_2_1_SETUP.md`）。Vercel 的 `NEXT_PUBLIC_SUPABASE_URL` 值後面有換行，程式已經會自己 trim。使用者之後會開新的聯絡信箱（`NEXT_PUBLIC_CONTACT_EMAIL`）。
 - 之後：語言設定（多語系）。
 - v2.3 之後：表現評分疊圖、跨賽季比較；v2.4 組隊（拖曳）；v2.5 比賽與出賽登記。
 
