@@ -10,7 +10,7 @@
 ## 這個專案是什麼
 
 1. **球員卡網站**（已完成、已部署）：從 Google 表單讀球隊球員的自評能力，顯示雷達圖、適合位置球場圖、球員比較。
-   - v2 新網站（Next.js，在 `web/`，部署在 Vercel）正在取代它；兩個網站並存到 v2.8。
+   - v2 新網站（Next.js，在 `web/`）：https://football-analysis-potato.vercel.app（Vercel，Root Directory = `web`，push 到 main 自動重新部署）；正在取代舊網站，兩個並存到 v2.8。
    - 正式網站：https://football-analysis-potato.streamlit.app（有隊伍密碼）
    - GitHub：StupidLlama/football（push 到 main 會自動重新部署）
 2. **足球比賽影片分析**（軟工課專題，規劃中）：影片 → 辨識 → 數據 → 圖表。
@@ -123,7 +123,7 @@ py web/scripts/sync_config.py              # 改了 config/settings.toml 的能�
 ## 下一步（2026-10-05）
 
 - v2.1.1 = 介面設計稿（已完成，在 Design 畫布上），v2.2 網站照它做。
-- v2.2（進行中）：網站程式和 0004 已 push；使用者照 `docs/V2_2_SETUP.md` 在自己電腦 `npm install`、型別檢查、部署 Vercel、手機驗收。確認新網站可以用之後，刪掉 `backend/dev_page.html` 和 `/dev` 路由。
+- v2.2（2026-10-05 已部署）：0004 已在 Supabase 執行；本機和 Vercel 都測過；Supabase Site URL 已改成 Vercel 網址。剩：手機 3 分鐘填完驗收、打 v2.2 標籤、刪掉 `backend/dev_page.html` 和 `/dev` 路由。
 - v2.2.1：隱私權政策（個資法告知事項）、服務條款、刪除帳號；第一次登入要按同意並記錄版本；管理者建立隊伍前先確認。Google OAuth 同意畫面改成正式版需要隱私權政策網址。
 - v2.3 之後：表現評分疊圖、跨賽季比較；v2.4 組隊（拖曳）；v2.5 比賽與出賽登記。
 

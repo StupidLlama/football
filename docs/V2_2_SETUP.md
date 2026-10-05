@@ -111,7 +111,7 @@ npm run dev
    - **Root Directory**：按 Edit，選 **`web`**（很重要，不然會找不到網站）
    - **Framework Preset**：Next.js（會自動選好）
    - **Environment Variables**：加兩個，名稱和值跟 `.env.local` 一樣：`NEXT_PUBLIC_SUPABASE_URL`、`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
-3. 按 **Deploy**，等 1–2 分鐘。完成後記下網址（例如 `https://football-analysis-potato.vercel.app`）。
+3. 按 **Deploy**，等 1–2 分鐘。網址在專案首頁的 **Domains**（正式網址：https://football-analysis-potato.vercel.app ）。不要用很長、中間有亂碼的那種，那是單次部署的預覽網址。
 4. 回到 Supabase **Authentication → URL Configuration**：
    - **Site URL** 改成 Vercel 的網址（Email 確認信會連到這裡）
    - **Redirect URLs** 加上 `https://football-analysis-potato.vercel.app/**`（換成你的網址）
