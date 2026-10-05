@@ -36,7 +36,9 @@ export default function LoginPage() {
   async function google() {
     setError(""); setBusy(true);
     const { error } = await supabase().auth.signInWithOAuth({
-      provider: "google", options: { redirectTo: `${window.location.origin}/` },
+      provider: "google",
+      // 每次都讓使用者選要用哪個 Google 帳號（有好幾個帳號的人才不會自動登入錯的）
+      options: { redirectTo: `${window.location.origin}/`, queryParams: { prompt: "select_account" } },
     });
     if (error) { setError(authMessage(error.message)); setBusy(false); }
   }

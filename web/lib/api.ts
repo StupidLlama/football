@@ -47,9 +47,10 @@ const COLS = {
   duty: "id, fixture_id, role, slot, player_id",
 };
 
-function must<T>(r: { data: T | null; error: { message: string } | null }, what: string): T {
+// 欄位清單是變數（COLS），supabase-js 沒辦法從字串推出型別，所以在這裡統一轉成我們自己定義的型別。
+function must<T>(r: { data: unknown; error: { message: string } | null }, what: string): T {
   if (r.error) throw new Error(`讀取${what}失敗：${r.error.message}`);
-  return (r.data ?? ([] as unknown)) as T;
+  return (r.data ?? []) as T;
 }
 
 // ---------- 自己 ----------
@@ -101,7 +102,7 @@ export async function getTeamData(teamId: string, userId: string): Promise<TeamD
   const ids = ms.map((m) => m.user_id);
   const profiles = must<Profile[]>(await db.from("profiles").select(COLS.profile).in("user_id", ids), "成員名稱");
   return {
-    team: team.data as Team, me, members: ms, profiles,
+    team: team.data as unknown as Team, me, members: ms, profiles,
     players: must<Player[]>(players, "球員"), ratings: must<Rating[]>(ratings, "能力自評"),
     fixtures: must<Fixture[]>(fixtures, "賽程"), duties: must<Duty[]>(duties, "裁判任務"),
     guards: must<Guard[]>(guards, "封鎖狀態"),
