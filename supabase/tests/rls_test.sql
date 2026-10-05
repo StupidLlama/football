@@ -331,5 +331,59 @@ select pg_temp.must_fail($q$select public.create_coach_code('10000000-0000-0000-
 select pg_temp.must_fail('select * from public.profiles', '沒登入讀 profiles');
 reset role;
 
+-- ============================================================
+-- v2.2 網站：資料表權限、送出能力表
+-- ============================================================
+-- 前面直接 insert 的自評和這裡在同一個交易裡（時間一樣），先把它們移到一小時前，才不會被當成「連按兩次」
+update public.ability_ratings set submitted_at = submitted_at - interval '1 hour';
+
+set local role authenticated;
+select pg_temp.login('00000000-0000-0000-0000-00000000000a');   -- A 隊球員，已連到 A1
+select pg_temp.st(public.submit_self_rating('10000000-0000-0000-0000-00000000000a', '{"passing": 4, "speed": 5}',
+                  '{CM,ST}', '{GK}', 'left', '阿A', '多跑位'), 'ok', '球員送出自己的能力表');
+select pg_temp.expect((select count(*) from public.players where id = '20000000-0000-0000-0000-0000000000a1'
+                       and good_positions = '{CM,ST}' and bad_positions = '{GK}' and weak_side = 'left'
+                       and nickname = '阿A' and message = '多跑位'), 1, '能力表一起更新球員資料');
+select pg_temp.expect((select count(*) from public.ability_ratings where player_id = '20000000-0000-0000-0000-0000000000a1'
+                       and source = 'form' and scores = '{"passing": 4, "speed": 5}'), 1, '能力表存成一筆 form 紀錄');
+select pg_temp.st(public.submit_self_rating('10000000-0000-0000-0000-00000000000a', '{"passing": 3}'),
+                  'too_fast', '連按兩次送出');
+select pg_temp.st(public.submit_self_rating('10000000-0000-0000-0000-00000000000a', '{"passing": 6}'), 'invalid', '分數超過 5');
+select pg_temp.st(public.submit_self_rating('10000000-0000-0000-0000-00000000000a', '{"passing": 2.5}'), 'invalid', '分數不是整數');
+select pg_temp.st(public.submit_self_rating('10000000-0000-0000-0000-00000000000a', '{"passing": "5"}'), 'invalid', '分數是文字');
+select pg_temp.st(public.submit_self_rating('10000000-0000-0000-0000-00000000000a', '{"Pass; drop": 3}'), 'invalid', '能力名稱格式');
+select pg_temp.st(public.submit_self_rating('10000000-0000-0000-0000-00000000000a', '{}'), 'invalid', '沒有任何分數');
+select pg_temp.st(public.submit_self_rating('10000000-0000-0000-0000-00000000000a', '[1, 2]'), 'invalid', '分數不是物件');
+select pg_temp.st(public.submit_self_rating('10000000-0000-0000-0000-00000000000a', '{"passing": 3}', '{CM}', '{CM}'),
+                  'invalid', '同一個位置又擅長又不擅長');
+select pg_temp.st(public.submit_self_rating('10000000-0000-0000-0000-00000000000a', '{"passing": 3}', '{"<b>x</b>"}'),
+                  'invalid', '位置格式');
+select pg_temp.st(public.submit_self_rating('10000000-0000-0000-0000-00000000000a', '{"passing": 3}', '{}', '{}', 'both'),
+                  'invalid', '弱腳格式');
+select pg_temp.st(public.submit_self_rating('10000000-0000-0000-0000-00000000000b', '{"passing": 3}'),
+                  'not_member', '幫沒加入的隊送出');
+select pg_temp.login('00000000-0000-0000-0000-00000000000c');   -- 在 A 隊還沒連到名單
+select pg_temp.st(public.submit_self_rating('10000000-0000-0000-0000-00000000000a', '{"passing": 3}'),
+                  'not_linked', '還沒認領就送出能力表');
+
+-- 資料表權限：TRUNCATE 不受 RLS 管，一定要收回（測沒有被其他表參照的表，才不會因為外鍵而失敗）；Team ID 只能用 reset_team_code 改
+select pg_temp.must_fail('truncate public.ability_ratings', '球員清空自評');
+select pg_temp.must_fail($q$update public.ability_ratings set scores = '{"passing": 5}'$q$, '改自評的歷史紀錄');
+select pg_temp.login('00000000-0000-0000-0000-00000000000d');   -- A 隊教練
+select pg_temp.must_fail($q$update public.teams set code = 'AAAA-BBBB' where id = '10000000-0000-0000-0000-00000000000a'$q$,
+                         '教練直接改 Team ID');
+select pg_temp.must_fail('truncate public.duties', '教練清空裁判任務');
+with u as (update public.teams set season = '2026-27' where id = '10000000-0000-0000-0000-00000000000a' returning 1)
+select pg_temp.expect((select count(*) from u), 1, '教練改賽季名稱');
+with u as (update public.teams set season = '亂改' where id = '10000000-0000-0000-0000-00000000000b' returning 1)
+select pg_temp.expect((select count(*) from u), 0, 'A 隊教練改 B 隊');
+reset role;
+
+set local role anon;
+select set_config('request.jwt.claims', '', true);
+select pg_temp.must_fail($q$select public.submit_self_rating('10000000-0000-0000-0000-00000000000a', '{"passing": 3}')$q$,
+                         '沒登入送出能力表');
+reset role;
+
 select 'RLS OK' as result;
 rollback;

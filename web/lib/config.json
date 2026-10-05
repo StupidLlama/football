@@ -1,0 +1,207 @@
+{
+  "_note": "自動產生，不要手改：改 config/settings.toml 後執行 py web/scripts/sync_config.py",
+  "maxScore": 5,
+  "topN": 3,
+  "categories": [
+    {
+      "name": "技術",
+      "color": "#3B82F6",
+      "abilities": [
+        {
+          "key": "ball_control",
+          "label": "控球"
+        },
+        {
+          "key": "passing",
+          "label": "傳球"
+        },
+        {
+          "key": "crossing",
+          "label": "傳中/長傳"
+        },
+        {
+          "key": "dribbling",
+          "label": "盤帶"
+        },
+        {
+          "key": "ball_keeping",
+          "label": "護球"
+        },
+        {
+          "key": "weak_foot",
+          "label": "弱腳能力"
+        }
+      ]
+    },
+    {
+      "name": "進攻",
+      "color": "#EF4444",
+      "abilities": [
+        {
+          "key": "finishing",
+          "label": "射門"
+        },
+        {
+          "key": "heading",
+          "label": "頭球"
+        },
+        {
+          "key": "set_piece",
+          "label": "定位球"
+        }
+      ]
+    },
+    {
+      "name": "心智",
+      "color": "#A855F7",
+      "abilities": [
+        {
+          "key": "pressure",
+          "label": "抗壓"
+        },
+        {
+          "key": "space",
+          "label": "空間感"
+        },
+        {
+          "key": "play_reading",
+          "label": "閱讀比賽"
+        },
+        {
+          "key": "football_iq",
+          "label": "球商"
+        }
+      ]
+    },
+    {
+      "name": "防守",
+      "color": "#10B981",
+      "abilities": [
+        {
+          "key": "duel",
+          "label": "1v1 對抗"
+        },
+        {
+          "key": "aerial",
+          "label": "空中對抗"
+        },
+        {
+          "key": "intercepting",
+          "label": "攔截"
+        },
+        {
+          "key": "goalkeeping",
+          "label": "守門"
+        }
+      ]
+    },
+    {
+      "name": "身體",
+      "color": "#F59E0B",
+      "abilities": [
+        {
+          "key": "speed",
+          "label": "速度"
+        },
+        {
+          "key": "stamina",
+          "label": "體能"
+        },
+        {
+          "key": "physical",
+          "label": "身體對抗"
+        },
+        {
+          "key": "explosive",
+          "label": "爆發力"
+        }
+      ]
+    }
+  ],
+  "positions": {
+    "GK": {
+      "goalkeeping": 0.85,
+      "explosive": 0.05,
+      "pressure": 0.05,
+      "play_reading": 0.05
+    },
+    "CB": {
+      "heading": 0.15,
+      "aerial": 0.15,
+      "duel": 0.15,
+      "intercepting": 0.15,
+      "play_reading": 0.15,
+      "physical": 0.15,
+      "passing": 0.1
+    },
+    "LB/RB": {
+      "duel": 0.2,
+      "intercepting": 0.15,
+      "speed": 0.15,
+      "stamina": 0.15,
+      "crossing": 0.1,
+      "play_reading": 0.1,
+      "space": 0.15
+    },
+    "LWB/RWB": {
+      "stamina": 0.2,
+      "speed": 0.15,
+      "crossing": 0.15,
+      "dribbling": 0.1,
+      "duel": 0.15,
+      "intercepting": 0.1,
+      "ball_control": 0.15
+    },
+    "CDM": {
+      "intercepting": 0.2,
+      "play_reading": 0.2,
+      "passing": 0.15,
+      "duel": 0.15,
+      "pressure": 0.1,
+      "stamina": 0.1,
+      "physical": 0.1
+    },
+    "CM": {
+      "passing": 0.2,
+      "ball_keeping": 0.15,
+      "football_iq": 0.15,
+      "stamina": 0.15,
+      "space": 0.15,
+      "pressure": 0.1,
+      "ball_control": 0.1
+    },
+    "CAM": {
+      "passing": 0.15,
+      "football_iq": 0.15,
+      "space": 0.15,
+      "dribbling": 0.15,
+      "ball_control": 0.15,
+      "finishing": 0.15,
+      "set_piece": 0.1
+    },
+    "LM/RM": {
+      "crossing": 0.2,
+      "stamina": 0.2,
+      "speed": 0.15,
+      "dribbling": 0.15,
+      "passing": 0.15,
+      "ball_control": 0.15
+    },
+    "LW/RW": {
+      "dribbling": 0.25,
+      "speed": 0.2,
+      "explosive": 0.15,
+      "finishing": 0.15,
+      "crossing": 0.1,
+      "ball_control": 0.15
+    },
+    "ST": {
+      "finishing": 0.3,
+      "heading": 0.15,
+      "ball_keeping": 0.15,
+      "explosive": 0.15,
+      "physical": 0.1,
+      "space": 0.15
+    }
+  }
+}
