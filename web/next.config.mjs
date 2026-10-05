@@ -1,6 +1,10 @@
 // 網站設定：安全標頭。
 const dev = process.env.NODE_ENV !== "production";
-const supabase = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "https://*.supabase.co";
+// 只取「https://專案.supabase.co」這段（去掉前後空白和換行：環境變數貼上時常多一個換行，CSP 就會壞掉、連不到資料庫）
+function origin(raw) {
+  try { return new URL((raw ?? "").trim()).origin; } catch { return "https://*.supabase.co"; }
+}
+const supabase = origin(process.env.NEXT_PUBLIC_SUPABASE_URL);
 const supabaseWs = supabase.replace(/^https:/, "wss:");
 
 // 內容安全政策（CSP）：網頁只能載入我們允許的來源。就算有人在頁面裡塞了奇怪的程式，也連不到別的網站。

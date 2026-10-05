@@ -100,3 +100,10 @@ def test_ui_says_team_manager_not_coach():
     for p in list((WEB / "app").rglob("*.tsx")) + list((WEB / "components").rglob("*.tsx")) + [WEB / "lib" / "status.ts"]:
         text = p.read_text(encoding="utf-8")
         assert "教練" not in text and "系統管理者" not in text, p.relative_to(WEB)
+
+
+def test_csp_trims_supabase_url():
+    """環境變數貼上時常多換行（2026-10-05 上線時就發生過：CSP 壞掉、登入不了），要先去空白再取 origin。"""
+    cfg = read("next.config.mjs")
+    assert ".trim()" in cfg and ".origin" in cfg
+    assert ".trim()" in read("lib/supabase.ts")
