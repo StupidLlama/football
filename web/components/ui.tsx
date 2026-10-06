@@ -214,12 +214,13 @@ export function Radar({ abilities, series, max = 5, label, showLabels = true }: 
         return <circle key={i} cx={x} cy={y} r={1.4} fill={s.color} stroke="#0B1220" strokeWidth={0.4} />;
       })}
       {showLabels && named.length > 0 && abilities.map((a, i) => {
+        // 點擊一律顯示這一項（不切換）：滑鼠移進來已經先顯示，切換會讓第一次點擊反而把提示框關掉
         // 透明的扇形感應區：滑鼠移過去、手指點下去都會顯示這一項的分數
         const [x1, y1] = axis(i - 0.5, 46), [x2, y2] = axis(i + 0.5, 46);
         return (
           <path key={a.key} d={`M50 50L${x1.toFixed(2)} ${y1.toFixed(2)}L${x2.toFixed(2)} ${y2.toFixed(2)}Z`} fill="transparent"
             onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover((h) => (h === i ? null : h))}
-            onClick={() => setHover((h) => (h === i ? null : i))} style={{ cursor: "pointer" }} />
+            onClick={() => setHover(i)} style={{ cursor: "pointer" }} />
         );
       })}
     </svg>

@@ -71,11 +71,12 @@ export function LineChart({ xLabels, xShort, xSub, series, min = 1, max = 5, lab
             );
           })}
         </g>
+        {/* 點擊一律「顯示這一點」，不要切換：滑鼠移進來時已經先顯示了，切換會讓第一次點擊反而把提示框關掉；離開圖表才收起來 */}
         {xLabels.map((_, i) => {
           const half = n <= 1 ? (W - L - R) / 2 : (W - L - R) / (n - 1) / 2;
           return (
             <rect key={i} x={x(i) - half} y={T} width={half * 2} height={H - T - B + 40} fill="transparent" style={{ cursor: "pointer" }}
-              onMouseEnter={() => setHover(i)} onClick={() => setHover((h) => (h === i ? null : i))} />
+              onMouseEnter={() => setHover(i)} onClick={() => setHover(i)} />
           );
         })}
       </svg>
