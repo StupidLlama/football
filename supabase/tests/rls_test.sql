@@ -417,8 +417,9 @@ select pg_temp.expect((select count(*) from public.contact_messages), 0, '球隊
 with u as (update public.contact_messages set status = 'done' returning 1)
 select pg_temp.expect((select count(*) from u), 0, '球隊管理員改聯絡訊息狀態');
 select pg_temp.login('00000000-0000-0000-0000-00000000000f');
-select pg_temp.expect((select count(*) from public.contact_messages), 5, '網站管理員看得到所有聯絡訊息');
-with u as (update public.contact_messages set status = 'done' returning 1)
+-- 正式資料庫裡可能已經有真的聯絡訊息，所以只算這次測試新增的（created_at = 這個交易開始的時間）
+select pg_temp.expect((select count(*) from public.contact_messages where created_at = now()), 5, '網站管理員看得到所有聯絡訊息');
+with u as (update public.contact_messages set status = 'done' where created_at = now() returning 1)
 select pg_temp.expect((select count(*) from u), 5, '網站管理員改聯絡訊息狀態');
 -- 刪除名單上沒有連結帳號的名字
 select pg_temp.login('00000000-0000-0000-0000-00000000000a');
