@@ -6,7 +6,7 @@ import pytest
 
 from infra import config
 from stats.assignment import max_assignment
-from stats.lineup import (BAD_PENALTY, GOOD_BONUS, assign, auto_lineup, candidates, manual_lineup, option,
+from stats.lineup import (assign, auto_lineup, candidates, manual_lineup, option,
                          picks_of)
 from stats.ranking import AVERAGE, category_ranks, leaderboard, metric_label, metric_value, metrics
 
@@ -81,8 +81,8 @@ def test_max_assignment_empty():
 def test_option_bonus_and_penalty():
     gk = formation("4-3-3").slot("GK")
     base = option(player("A"), gk, R)
-    assert option(player("A", good="GK"), gk, R).score == base.score + GOOD_BONUS
-    assert option(player("A", bad="GK"), gk, R).score == base.score - BAD_PENALTY
+    assert option(player("A", good="GK"), gk, R).score == base.score + R.good_bonus
+    assert option(player("A", bad="GK"), gk, R).score == base.score - R.bad_penalty
 
 
 def test_auto_lineup_fills_every_slot_once_and_benches_everyone_else():

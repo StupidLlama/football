@@ -1,19 +1,19 @@
 """組隊：選好陣型後，自動把球員排到最適合的位置，並列出替補和每個位置的所有人選。
 
-每個人排某個位置的分數 = 位置適合度（0–100）＋ 自評擅長加分 − 自評不擅長扣分。
+每個人排某個位置的分數 = 位置適合度（0–100）＋ 自評擅長加分 − 自評不擅長扣分
+（加分、扣分寫在 config/settings.toml 的 [lineup]；「LB」算在「LB/RB」裡）。
+網站的 web/lib/lineup.ts 是這個檔案的 TypeScript 版，tests/test_v24.py 會比對兩邊結果一樣。
 用指派問題的演算法求「全隊總分最高」的排法，不是一個位置一個位置挑最強的。
 """
 from dataclasses import dataclass
 
 from domain.formations import Formation, Slot
 from domain.models import Player, RatingRules
-from domain.positions import split_positions
+from domain.positions import has_position
 from domain.rating import fitness
 
 from .assignment import max_assignment
 
-GOOD_BONUS = 10      # 自評擅長這個位置
-BAD_PENALTY = 15     # 自評不擅長這個位置
 GK_PRIORITY = 1000   # 人數不夠時，門將一定先排
 
 
@@ -48,11 +48,11 @@ class Lineup:
 
 def option(player: Player, slot: Slot, rules: RatingRules, fit: dict | None = None) -> Option:
     fit = fit if fit is not None else fitness(player, rules)
-    good = slot.role in split_positions(player["good_positions"])
-    bad = slot.role in split_positions(player["bad_positions"])
+    good = has_position(player["good_positions"], slot.role)
+    bad = has_position(player["bad_positions"], slot.role)
     f = fit[slot.role]
     return Option(player["name"], slot.code, slot.role, f, good, bad,
-                  round(f + (GOOD_BONUS if good else 0) - (BAD_PENALTY if bad else 0), 1))
+                  round(f + (rules.good_bonus if good else 0) - (rules.bad_penalty if bad else 0), 1))
 
 
 def candidates(players: list[Player], slot: Slot, rules: RatingRules) -> list[Option]:

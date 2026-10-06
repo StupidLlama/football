@@ -25,8 +25,11 @@ def load_rules(path: Path = SETTINGS_PATH) -> RatingRules:
     categories = tuple(
         Category(c["name"], c["color"], tuple(Ability(a["key"], a["label"], c["name"]) for a in c["abilities"]))
         for c in raw["categories"])
+    lineup = raw.get("lineup", {})
     return RatingRules(categories=categories, position_weights=raw["positions"],
-                       top_n=raw.get("recommend", {}).get("top_n", 3))
+                       top_n=raw.get("recommend", {}).get("top_n", 3),
+                       good_bonus=float(lineup.get("good_bonus", 10)),
+                       bad_penalty=float(lineup.get("bad_penalty", 15)))
 
 
 def load_form_spec(path: Path = SETTINGS_PATH) -> FormSpec:

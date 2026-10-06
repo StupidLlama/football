@@ -26,6 +26,8 @@ class RatingRules:
     categories: tuple[Category, ...]
     position_weights: Mapping[str, Mapping[str, float]]
     top_n: int = 3
+    good_bonus: float = 10    # 組隊：自評擅長加分（config/settings.toml 的 [lineup]）
+    bad_penalty: float = 15   # 組隊：自評不擅長扣分
     min_score: int = 1
     max_score: int = 5
     _by_key: dict = field(default_factory=dict, compare=False, repr=False)

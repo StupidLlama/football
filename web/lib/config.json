@@ -203,5 +203,659 @@
       "physical": 0.1,
       "space": 0.15
     }
-  }
+  },
+  "lineup": {
+    "goodBonus": 10,
+    "badPenalty": 15
+  },
+  "formations": [
+    {
+      "name": "4-3-3",
+      "size": 11,
+      "slots": [
+        {
+          "code": "GK",
+          "role": "GK",
+          "x": 6,
+          "y": 34
+        },
+        {
+          "code": "LB",
+          "role": "LB/RB",
+          "x": 26,
+          "y": 58
+        },
+        {
+          "code": "LCB",
+          "role": "CB",
+          "x": 22,
+          "y": 43
+        },
+        {
+          "code": "RCB",
+          "role": "CB",
+          "x": 22,
+          "y": 25
+        },
+        {
+          "code": "RB",
+          "role": "LB/RB",
+          "x": 26,
+          "y": 10
+        },
+        {
+          "code": "CDM",
+          "role": "CDM",
+          "x": 40,
+          "y": 34
+        },
+        {
+          "code": "LCM",
+          "role": "CM",
+          "x": 52,
+          "y": 48
+        },
+        {
+          "code": "RCM",
+          "role": "CM",
+          "x": 52,
+          "y": 20
+        },
+        {
+          "code": "LW",
+          "role": "LW/RW",
+          "x": 80,
+          "y": 57
+        },
+        {
+          "code": "ST",
+          "role": "ST",
+          "x": 90,
+          "y": 34
+        },
+        {
+          "code": "RW",
+          "role": "LW/RW",
+          "x": 80,
+          "y": 11
+        }
+      ]
+    },
+    {
+      "name": "4-4-2",
+      "size": 11,
+      "slots": [
+        {
+          "code": "GK",
+          "role": "GK",
+          "x": 6,
+          "y": 34
+        },
+        {
+          "code": "LB",
+          "role": "LB/RB",
+          "x": 26,
+          "y": 58
+        },
+        {
+          "code": "LCB",
+          "role": "CB",
+          "x": 22,
+          "y": 43
+        },
+        {
+          "code": "RCB",
+          "role": "CB",
+          "x": 22,
+          "y": 25
+        },
+        {
+          "code": "RB",
+          "role": "LB/RB",
+          "x": 26,
+          "y": 10
+        },
+        {
+          "code": "LM",
+          "role": "LM/RM",
+          "x": 56,
+          "y": 58
+        },
+        {
+          "code": "LCM",
+          "role": "CM",
+          "x": 50,
+          "y": 42
+        },
+        {
+          "code": "RCM",
+          "role": "CM",
+          "x": 50,
+          "y": 26
+        },
+        {
+          "code": "RM",
+          "role": "LM/RM",
+          "x": 56,
+          "y": 10
+        },
+        {
+          "code": "LST",
+          "role": "ST",
+          "x": 88,
+          "y": 44
+        },
+        {
+          "code": "RST",
+          "role": "ST",
+          "x": 88,
+          "y": 24
+        }
+      ]
+    },
+    {
+      "name": "4-2-3-1",
+      "size": 11,
+      "slots": [
+        {
+          "code": "GK",
+          "role": "GK",
+          "x": 6,
+          "y": 34
+        },
+        {
+          "code": "LB",
+          "role": "LB/RB",
+          "x": 26,
+          "y": 58
+        },
+        {
+          "code": "LCB",
+          "role": "CB",
+          "x": 22,
+          "y": 43
+        },
+        {
+          "code": "RCB",
+          "role": "CB",
+          "x": 22,
+          "y": 25
+        },
+        {
+          "code": "RB",
+          "role": "LB/RB",
+          "x": 26,
+          "y": 10
+        },
+        {
+          "code": "LDM",
+          "role": "CDM",
+          "x": 42,
+          "y": 42
+        },
+        {
+          "code": "RDM",
+          "role": "CDM",
+          "x": 42,
+          "y": 26
+        },
+        {
+          "code": "LW",
+          "role": "LW/RW",
+          "x": 72,
+          "y": 56
+        },
+        {
+          "code": "CAM",
+          "role": "CAM",
+          "x": 68,
+          "y": 34
+        },
+        {
+          "code": "RW",
+          "role": "LW/RW",
+          "x": 72,
+          "y": 12
+        },
+        {
+          "code": "ST",
+          "role": "ST",
+          "x": 91,
+          "y": 34
+        }
+      ]
+    },
+    {
+      "name": "3-5-2",
+      "size": 11,
+      "slots": [
+        {
+          "code": "GK",
+          "role": "GK",
+          "x": 6,
+          "y": 34
+        },
+        {
+          "code": "LCB",
+          "role": "CB",
+          "x": 24,
+          "y": 50
+        },
+        {
+          "code": "CB",
+          "role": "CB",
+          "x": 19,
+          "y": 34
+        },
+        {
+          "code": "RCB",
+          "role": "CB",
+          "x": 24,
+          "y": 18
+        },
+        {
+          "code": "LWB",
+          "role": "LWB/RWB",
+          "x": 46,
+          "y": 60
+        },
+        {
+          "code": "CDM",
+          "role": "CDM",
+          "x": 40,
+          "y": 34
+        },
+        {
+          "code": "LCM",
+          "role": "CM",
+          "x": 56,
+          "y": 46
+        },
+        {
+          "code": "RCM",
+          "role": "CM",
+          "x": 56,
+          "y": 22
+        },
+        {
+          "code": "RWB",
+          "role": "LWB/RWB",
+          "x": 46,
+          "y": 8
+        },
+        {
+          "code": "LST",
+          "role": "ST",
+          "x": 88,
+          "y": 44
+        },
+        {
+          "code": "RST",
+          "role": "ST",
+          "x": 88,
+          "y": 24
+        }
+      ]
+    },
+    {
+      "name": "3-4-3",
+      "size": 11,
+      "slots": [
+        {
+          "code": "GK",
+          "role": "GK",
+          "x": 6,
+          "y": 34
+        },
+        {
+          "code": "LCB",
+          "role": "CB",
+          "x": 24,
+          "y": 50
+        },
+        {
+          "code": "CB",
+          "role": "CB",
+          "x": 19,
+          "y": 34
+        },
+        {
+          "code": "RCB",
+          "role": "CB",
+          "x": 24,
+          "y": 18
+        },
+        {
+          "code": "LWB",
+          "role": "LWB/RWB",
+          "x": 48,
+          "y": 60
+        },
+        {
+          "code": "LCM",
+          "role": "CM",
+          "x": 48,
+          "y": 42
+        },
+        {
+          "code": "RCM",
+          "role": "CM",
+          "x": 48,
+          "y": 26
+        },
+        {
+          "code": "RWB",
+          "role": "LWB/RWB",
+          "x": 48,
+          "y": 8
+        },
+        {
+          "code": "LW",
+          "role": "LW/RW",
+          "x": 80,
+          "y": 56
+        },
+        {
+          "code": "ST",
+          "role": "ST",
+          "x": 90,
+          "y": 34
+        },
+        {
+          "code": "RW",
+          "role": "LW/RW",
+          "x": 80,
+          "y": 12
+        }
+      ]
+    },
+    {
+      "name": "5-3-2",
+      "size": 11,
+      "slots": [
+        {
+          "code": "GK",
+          "role": "GK",
+          "x": 6,
+          "y": 34
+        },
+        {
+          "code": "LWB",
+          "role": "LWB/RWB",
+          "x": 34,
+          "y": 61
+        },
+        {
+          "code": "LCB",
+          "role": "CB",
+          "x": 24,
+          "y": 49
+        },
+        {
+          "code": "CB",
+          "role": "CB",
+          "x": 19,
+          "y": 34
+        },
+        {
+          "code": "RCB",
+          "role": "CB",
+          "x": 24,
+          "y": 19
+        },
+        {
+          "code": "RWB",
+          "role": "LWB/RWB",
+          "x": 34,
+          "y": 7
+        },
+        {
+          "code": "CDM",
+          "role": "CDM",
+          "x": 42,
+          "y": 34
+        },
+        {
+          "code": "LCM",
+          "role": "CM",
+          "x": 52,
+          "y": 48
+        },
+        {
+          "code": "RCM",
+          "role": "CM",
+          "x": 52,
+          "y": 20
+        },
+        {
+          "code": "LST",
+          "role": "ST",
+          "x": 88,
+          "y": 44
+        },
+        {
+          "code": "RST",
+          "role": "ST",
+          "x": 88,
+          "y": 24
+        }
+      ]
+    },
+    {
+      "name": "3-3-1",
+      "size": 8,
+      "slots": [
+        {
+          "code": "GK",
+          "role": "GK",
+          "x": 6,
+          "y": 34
+        },
+        {
+          "code": "LB",
+          "role": "LB/RB",
+          "x": 26,
+          "y": 54
+        },
+        {
+          "code": "CB",
+          "role": "CB",
+          "x": 22,
+          "y": 34
+        },
+        {
+          "code": "RB",
+          "role": "LB/RB",
+          "x": 26,
+          "y": 14
+        },
+        {
+          "code": "LM",
+          "role": "LM/RM",
+          "x": 54,
+          "y": 55
+        },
+        {
+          "code": "CM",
+          "role": "CM",
+          "x": 50,
+          "y": 34
+        },
+        {
+          "code": "RM",
+          "role": "LM/RM",
+          "x": 54,
+          "y": 13
+        },
+        {
+          "code": "ST",
+          "role": "ST",
+          "x": 86,
+          "y": 34
+        }
+      ]
+    },
+    {
+      "name": "3-2-2",
+      "size": 8,
+      "slots": [
+        {
+          "code": "GK",
+          "role": "GK",
+          "x": 6,
+          "y": 34
+        },
+        {
+          "code": "LB",
+          "role": "LB/RB",
+          "x": 26,
+          "y": 54
+        },
+        {
+          "code": "CB",
+          "role": "CB",
+          "x": 22,
+          "y": 34
+        },
+        {
+          "code": "RB",
+          "role": "LB/RB",
+          "x": 26,
+          "y": 14
+        },
+        {
+          "code": "LCM",
+          "role": "CM",
+          "x": 50,
+          "y": 44
+        },
+        {
+          "code": "RCM",
+          "role": "CM",
+          "x": 50,
+          "y": 24
+        },
+        {
+          "code": "LST",
+          "role": "ST",
+          "x": 84,
+          "y": 44
+        },
+        {
+          "code": "RST",
+          "role": "ST",
+          "x": 84,
+          "y": 24
+        }
+      ]
+    },
+    {
+      "name": "2-3-2",
+      "size": 8,
+      "slots": [
+        {
+          "code": "GK",
+          "role": "GK",
+          "x": 6,
+          "y": 34
+        },
+        {
+          "code": "LCB",
+          "role": "CB",
+          "x": 24,
+          "y": 44
+        },
+        {
+          "code": "RCB",
+          "role": "CB",
+          "x": 24,
+          "y": 24
+        },
+        {
+          "code": "LM",
+          "role": "LM/RM",
+          "x": 54,
+          "y": 56
+        },
+        {
+          "code": "CM",
+          "role": "CM",
+          "x": 48,
+          "y": 34
+        },
+        {
+          "code": "RM",
+          "role": "LM/RM",
+          "x": 54,
+          "y": 12
+        },
+        {
+          "code": "LST",
+          "role": "ST",
+          "x": 84,
+          "y": 44
+        },
+        {
+          "code": "RST",
+          "role": "ST",
+          "x": 84,
+          "y": 24
+        }
+      ]
+    },
+    {
+      "name": "2-4-1",
+      "size": 8,
+      "slots": [
+        {
+          "code": "GK",
+          "role": "GK",
+          "x": 6,
+          "y": 34
+        },
+        {
+          "code": "LCB",
+          "role": "CB",
+          "x": 24,
+          "y": 44
+        },
+        {
+          "code": "RCB",
+          "role": "CB",
+          "x": 24,
+          "y": 24
+        },
+        {
+          "code": "LM",
+          "role": "LM/RM",
+          "x": 56,
+          "y": 58
+        },
+        {
+          "code": "LCM",
+          "role": "CM",
+          "x": 46,
+          "y": 42
+        },
+        {
+          "code": "RCM",
+          "role": "CM",
+          "x": 46,
+          "y": 26
+        },
+        {
+          "code": "RM",
+          "role": "LM/RM",
+          "x": 56,
+          "y": 10
+        },
+        {
+          "code": "ST",
+          "role": "ST",
+          "x": 86,
+          "y": 34
+        }
+      ]
+    }
+  ]
 }

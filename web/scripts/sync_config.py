@@ -1,6 +1,7 @@
-"""把 config/settings.toml 的能力清單和位置權重轉成網站用的 web/lib/config.json。
+"""把 config/settings.toml（能力、位置權重、組隊加分扣分）和 config/formations.toml（陣型）
+轉成網站用的 web/lib/config.json。
 
-能力、類別、位置權重只在 settings.toml 改一次，跑這個指令網站就會同步：
+只在 toml 改一次，跑這個指令網站就會同步：
 
     py web/scripts/sync_config.py
 
@@ -13,13 +14,17 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 SETTINGS = ROOT / "config" / "settings.toml"
+FORMATIONS = ROOT / "config" / "formations.toml"
 OUT = ROOT / "web" / "lib" / "config.json"
 MAX_SCORE = 5   # 跟 domain/models.py 的 RatingRules.max_score 一樣
 
 
-def build(settings_path: Path = SETTINGS) -> dict:
+def build(settings_path: Path = SETTINGS, formations_path: Path = FORMATIONS) -> dict:
     with open(settings_path, "rb") as f:
         raw = tomllib.load(f)
+    with open(formations_path, "rb") as f:
+        formations = tomllib.load(f)["formations"]
+    lineup = raw.get("lineup", {})
     return {
         "_note": "自動產生，不要手改：改 config/settings.toml 後執行 py web/scripts/sync_config.py",
         "maxScore": MAX_SCORE,
@@ -30,6 +35,12 @@ def build(settings_path: Path = SETTINGS) -> dict:
             for c in raw["categories"]
         ],
         "positions": raw["positions"],
+        "lineup": {"goodBonus": lineup.get("good_bonus", 10), "badPenalty": lineup.get("bad_penalty", 15)},
+        "formations": [
+            {"name": f["name"], "size": int(f["size"]),
+             "slots": [{"code": s["code"], "role": s["role"], "x": s["x"], "y": s["y"]} for s in f["slots"]]}
+            for f in formations
+        ],
     }
 
 

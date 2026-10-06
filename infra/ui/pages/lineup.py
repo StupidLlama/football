@@ -9,7 +9,7 @@ from infra.charts import pitch as pitch_chart
 from infra.charts.lineup import lineup_pitch, lineup_png
 from infra.ui.common import get_players, grey_column, jersey_numbers, nicknames, records, rules
 from infra.ui.theme import kicker, kpi, steps
-from stats.lineup import (BAD_PENALTY, GOOD_BONUS, assign, auto_lineup, candidates, manual_lineup, option,
+from stats.lineup import (assign, auto_lineup, candidates, manual_lineup, option,
                           picks_of)
 
 R = rules()
@@ -117,7 +117,7 @@ with d2:
 # ---------- ③ 換人：每個位置一個選單 ----------
 st.subheader("③ 換人")
 st.markdown(f'<span class="potato-note">選單裡的人照「適合這個位置的程度」排，數字是適合度（滿分 100）；'
-            f'自評擅長的人排序時加 {GOOD_BONUS}、自評不擅長的扣 {BAD_PENALTY}</span>', unsafe_allow_html=True)
+            f'自評擅長的人排序時加 {R.good_bonus:g}、自評不擅長的扣 {R.bad_penalty:g}</span>', unsafe_allow_html=True)
 cols = st.columns(4)
 for i, slot in enumerate(formation.slots):
     ranked = [o.name for o in candidates(players, slot, R)]
