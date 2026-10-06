@@ -528,5 +528,117 @@ select set_config('request.jwt.claims', '', true);
 select pg_temp.must_fail($q$select public.get_career('10000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-0000000000a1')$q$, '沒登入看生涯');
 reset role;
 
+-- ============================================================
+-- v2.4 組隊：正式陣容 / 草稿、分享連結（不用登入只能看、只看得到背號和位置）
+-- ============================================================
+create function pg_temp.share_text() returns text language sql as $$
+  select public.get_shared_lineup(current_setting('test.tok'))::text
+$$;
+grant execute on function pg_temp.st(jsonb, text, text), pg_temp.expect(bigint, bigint, text),
+                          pg_temp.must_fail(text, text), pg_temp.share_text() to anon;
+
+set local role authenticated;
+-- A 隊球員：存草稿可以，存正式陣容不行；放別隊的人、同一人放兩個位置都不行
+select pg_temp.login('00000000-0000-0000-0000-00000000000a');
+select set_config('test.draft', public.save_lineup('10000000-0000-0000-0000-00000000000a', null, 'draft', '我的草稿', 8, '3-3-1',
+         '{"GK": "20000000-0000-0000-0000-0000000000a1", "ST": "20000000-0000-0000-0000-0000000000a2", "CB": null}',
+         '{GK}', '{20000000-0000-0000-0000-0000000000a1,20000000-0000-0000-0000-0000000000a2}') ->> 'id', true);
+select pg_temp.expect((current_setting('test.draft') <> '')::int, 1, '球員存草稿');
+select pg_temp.st(public.save_lineup('10000000-0000-0000-0000-00000000000a', null, 'official', '', 8, '3-3-1', '{}'), 'forbidden', '球員存正式陣容');
+select pg_temp.st(public.save_lineup('10000000-0000-0000-0000-00000000000a', null, 'draft', '', 8, '3-3-1',
+                  '{"GK": "20000000-0000-0000-0000-0000000000b1"}'), 'invalid', '陣容放別隊的人');
+select pg_temp.st(public.save_lineup('10000000-0000-0000-0000-00000000000a', null, 'draft', '', 8, '3-3-1',
+                  '{"GK": "20000000-0000-0000-0000-0000000000a1", "ST": "20000000-0000-0000-0000-0000000000a1"}'),
+                  'invalid', '同一人放兩個位置');
+select pg_temp.st(public.save_lineup('10000000-0000-0000-0000-00000000000a', null, 'draft', '', 9, '3-3-1', '{}'), 'invalid', '賽制不是 8 或 11');
+select pg_temp.st(public.save_lineup('10000000-0000-0000-0000-00000000000a', null, 'draft', '', 8, '3-3-1', '{"GK": null}', '{ST}'), 'invalid',
+                  '鎖定不存在的位置');
+select pg_temp.must_fail($q$insert into public.lineups (team_id, owner_id, kind, size, formation)
+                            values ('10000000-0000-0000-0000-00000000000a', auth.uid(), 'official', 8, '3-3-1')$q$, '球員直接寫入陣容表');
+select pg_temp.must_fail($q$update public.lineups set kind = 'official'$q$, '球員直接把草稿改成正式');
+select pg_temp.st(public.save_lineup('10000000-0000-0000-0000-00000000000a', current_setting('test.draft')::uuid, 'official', '', 8, '3-3-1', '{}'),
+                  'invalid', '草稿直接改成正式陣容');
+select pg_temp.st(public.save_lineup('10000000-0000-0000-0000-00000000000a', current_setting('test.draft')::uuid, 'draft', '改名', 8, '3-2-2', '{}'),
+                  'ok', '改自己的草稿');
+
+-- A 隊管理員：存正式陣容；看不到球員的草稿
+select pg_temp.login('00000000-0000-0000-0000-00000000000d');
+select set_config('test.official', public.save_lineup('10000000-0000-0000-0000-00000000000a', null, 'official', '週六先發', 8, '3-3-1',
+         '{"GK": "20000000-0000-0000-0000-0000000000a1", "ST": "20000000-0000-0000-0000-0000000000a2"}') ->> 'id', true);
+select pg_temp.expect((select count(*) from public.lineups), 1, '管理員只看到正式陣容（看不到別人的草稿）');
+select pg_temp.st(public.save_lineup('10000000-0000-0000-0000-00000000000a', current_setting('test.draft')::uuid, 'draft', 'x', 8, '3-3-1', '{}'),
+                  'forbidden', '管理員改球員的草稿');
+select pg_temp.st(public.delete_lineup(current_setting('test.draft')::uuid), 'forbidden', '管理員刪球員的草稿');
+
+-- 球員看得到正式陣容＋自己的草稿，但不能改、不能刪、不能分享正式陣容
+select pg_temp.login('00000000-0000-0000-0000-00000000000a');
+select pg_temp.expect((select count(*) from public.lineups), 2, '球員看到正式陣容＋自己的草稿');
+select pg_temp.st(public.save_lineup('10000000-0000-0000-0000-00000000000a', current_setting('test.official')::uuid, 'official', 'x', 8, '3-3-1', '{}'),
+                  'forbidden', '球員改正式陣容');
+select pg_temp.st(public.delete_lineup(current_setting('test.official')::uuid), 'forbidden', '球員刪正式陣容');
+select pg_temp.st(public.set_lineup_share(current_setting('test.official')::uuid, true), 'forbidden', '球員分享正式陣容');
+
+-- 別隊（只在 C 隊的人）：看不到、存不了 A 隊的陣容
+select pg_temp.login('00000000-0000-0000-0000-000000000012');
+select pg_temp.expect((select count(*) from public.lineups where team_id = '10000000-0000-0000-0000-00000000000a'), 0, '別隊看 A 隊的陣容');
+select pg_temp.st(public.save_lineup('10000000-0000-0000-0000-00000000000a', null, 'draft', '', 8, '3-3-1', '{}'), 'not_member', '別隊存 A 隊的陣容');
+select pg_temp.st(public.set_lineup_share(current_setting('test.official')::uuid, true), 'forbidden', '別隊分享 A 隊的陣容');
+
+-- 管理員分享正式陣容（預設不顯示名字）
+select pg_temp.login('00000000-0000-0000-0000-00000000000d');
+select set_config('test.tok', public.set_lineup_share(current_setting('test.official')::uuid, true) ->> 'token', true);
+select pg_temp.expect(length(current_setting('test.tok')), 32, '分享碼 32 碼');
+reset role;
+
+-- 沒登入：用分享碼看得到背號和位置，看不到名字、球員 id、能力分數；也碰不到資料表和其他函式
+set local role anon;
+select set_config('request.jwt.claims', '', true);
+select pg_temp.st(public.get_shared_lineup(current_setting('test.tok')), 'ok', '沒登入用分享碼看陣容');
+select pg_temp.expect((pg_temp.share_text() like '%球員A1%')::int, 0, '預設不顯示名字');
+select pg_temp.expect((pg_temp.share_text() like '%20000000-%')::int, 0, '分享頁不帶球員 id');
+select pg_temp.expect((pg_temp.share_text() like '%passing%' or pg_temp.share_text() like '%score%')::int, 0, '分享頁不帶能力分數');
+select pg_temp.expect((pg_temp.share_text() like '%我的草稿%' or pg_temp.share_text() like '%owner%')::int, 0, '分享頁不帶草稿和是誰排的');
+select pg_temp.st(public.get_shared_lineup('not-a-real-token-not-a-real-tok'), 'not_found', '亂打的分享碼');
+select pg_temp.st(public.get_shared_lineup(null), 'not_found', '空的分享碼');
+select pg_temp.must_fail('select * from public.lineups', '沒登入讀陣容表');
+select pg_temp.must_fail($q$select public.save_lineup('10000000-0000-0000-0000-00000000000a', null, 'draft', '', 8, '3-3-1', '{}')$q$, '沒登入存陣容');
+select pg_temp.must_fail($q$select public.set_lineup_share(current_setting('test.official')::uuid, false)$q$, '沒登入關分享');
+select pg_temp.must_fail('select public.new_share_token()', '沒登入產生分享碼');
+reset role;
+
+-- 勾「顯示名字」才有名字；重發後舊連結失效；關掉分享後新連結也失效
+set local role authenticated;
+select pg_temp.login('00000000-0000-0000-0000-00000000000d');
+select pg_temp.st(public.set_lineup_share(current_setting('test.official')::uuid, true, true), 'ok', '改成顯示名字');
+select pg_temp.expect((pg_temp.share_text() like '%球員A1%')::int, 1, '勾了顯示名字才看得到名字');
+select set_config('test.old', current_setting('test.tok'), true);
+select set_config('test.tok', public.set_lineup_share(current_setting('test.official')::uuid, true, false, true) ->> 'token', true);
+select pg_temp.expect((current_setting('test.tok') <> current_setting('test.old'))::int, 1, '重發換了新的分享碼');
+select pg_temp.st(public.get_shared_lineup(current_setting('test.old')), 'not_found', '重發後舊連結失效');
+select pg_temp.st(public.get_shared_lineup(current_setting('test.tok')), 'ok', '重發後新連結可以看');
+select pg_temp.st(public.set_lineup_share(current_setting('test.official')::uuid, false), 'ok', '關掉分享');
+select pg_temp.st(public.get_shared_lineup(current_setting('test.tok')), 'not_found', '關掉分享後連結失效');
+select pg_temp.must_fail('select public.lineup_problem(null, 8, null, null, null, null, null)', '登入的人直接呼叫內部檢查函式');
+
+-- 球員分享自己的草稿；下載資料看得到自己的陣容；離隊後草稿連結失效
+select pg_temp.login('00000000-0000-0000-0000-00000000000a');
+select set_config('test.tok', public.set_lineup_share(current_setting('test.draft')::uuid, true) ->> 'token', true);
+select pg_temp.st(public.get_shared_lineup(current_setting('test.tok')), 'ok', '分享自己的草稿');
+select pg_temp.expect(jsonb_array_length(public.export_my_data() -> 'lineups'), 1, '下載資料包含自己存的陣容');
+reset role;
+delete from public.memberships where team_id = '10000000-0000-0000-0000-00000000000a' and user_id = '00000000-0000-0000-0000-00000000000a';
+select pg_temp.st(public.get_shared_lineup(current_setting('test.tok')), 'not_found', '草稿主人離隊後連結失效');
+
+-- 刪帳號：自己的草稿一起刪，管理員的正式陣容留著
+insert into public.memberships (team_id, user_id, role, player_id)
+values ('10000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-000000000012', 'player', null);
+set local role authenticated;
+select pg_temp.login('00000000-0000-0000-0000-000000000012');
+select pg_temp.st(public.save_lineup('10000000-0000-0000-0000-00000000000a', null, 'draft', '', 11, '4-3-3', '{}'), 'ok', '新隊友存草稿');
+select pg_temp.st(public.delete_my_account(), 'ok', '新隊友刪帳號');
+reset role;
+select pg_temp.expect((select count(*) from public.lineups where owner_id is null and kind = 'draft'), 0, '刪帳號後沒有留下無主草稿');
+select pg_temp.expect((select count(*) from public.lineups where kind = 'official' and team_id = '10000000-0000-0000-0000-00000000000a'), 1, '正式陣容還在');
+
 select 'RLS OK' as result;
 rollback;

@@ -21,6 +21,7 @@ export const STATUS: Record<string, string> = {
   too_fast: "剛剛已經送出了，請過幾秒再試",
   rate_limited: "送出太多次了，請一小時後再試",
   linked: "這位球員已經連到帳號，不能刪除；要先請他刪除帳號或移出球隊",
+  too_many: "存的陣容太多了，請先刪掉幾組舊的",
 };
 
 /** 成功的 status（其他都算失敗，要顯示訊息）。 */

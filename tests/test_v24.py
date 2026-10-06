@@ -70,3 +70,74 @@ def test_node_lineup_tests_pass_if_node_available():
     r = subprocess.run([node, "--test", "tests/v24.test.ts"], cwd=WEB, capture_output=True, text=True,
                        encoding="utf-8")
     assert r.returncode == 0, r.stdout[-2000:] + r.stderr[-2000:]
+
+
+# ---------- B. 資料庫 0007 ----------
+import re  # noqa: E402
+
+MIGRATIONS = sorted((ROOT / "supabase" / "migrations").glob("*.sql"))
+MIG7 = (ROOT / "supabase" / "migrations" / "0007_lineups.sql").read_text(encoding="utf-8")
+ALL_SQL = "\n".join(f.read_text(encoding="utf-8") for f in MIGRATIONS)
+RLS_TEST = (ROOT / "supabase" / "tests" / "rls_test.sql").read_text(encoding="utf-8")
+SHARED_FN = "get_shared_lineup"
+
+
+def _functions(sql: str) -> dict[str, str]:
+    return {m.group(1): m.group(0) for m in
+            re.finditer(r"create or replace function public\.(\w+)\(.*?\bas \$\$", sql, re.S)}
+
+
+def test_0007_security_definer_functions_pin_search_path():
+    for name, head in _functions(MIG7).items():
+        if "security definer" in head:
+            assert "set search_path = public" in head, name
+
+
+def test_0007_every_function_revoked_from_anon_first():
+    revoked = re.search(r"revoke all on function(.*?)from public, anon;", MIG7, re.S).group(1)
+    for name in _functions(MIG7):
+        assert f"public.{name}(" in revoked, f"{name} 沒有先從 public、anon 收回"
+
+
+def test_only_the_share_function_is_granted_to_anon():
+    """全部 migration 裡，只有分享頁的函式開放給沒登入的人；資料表一律不給 anon。"""
+    grants = re.findall(r"grant execute on function(.*?)to ([^;]+);", ALL_SQL, re.S)
+    to_anon = [fns for fns, who in grants if re.search(r"\banon\b", who)]
+    assert len(to_anon) == 1 and re.findall(r"public\.(\w+)\(", to_anon[0]) == [SHARED_FN]
+    assert not re.search(r"grant [^;]* on (table )?public\.\w+[^;]* to [^;]*\banon\b", ALL_SQL, re.I)
+    assert not re.search(r"create policy[^;]*\bto anon\b", ALL_SQL)
+
+
+def test_shared_lineup_returns_only_drawing_fields():
+    """分享頁只回傳畫圖需要的欄位：不帶球員 id、能力分數、草稿主人；名字要勾選才給。"""
+    body = re.search(rf"function public\.{SHARED_FN}\(.*?\nend \$\$;", MIG7, re.S).group(0)
+    keys = set(re.findall(r"'(\w+)', ", body.split("jsonb_build_object(", 1)[1]))
+    assert keys <= {"status", "team_name", "season", "name", "size", "formation", "show_names", "updated_at",
+                    "slots", "number"}, keys
+    for bad in ("ability_ratings", "scores", "owner_id", "attending", "'id'", "p.id,"):
+        assert bad not in body.split("returns jsonb", 1)[1].split("select * into t")[1], bad
+    assert "case when l.share_names then p.name end" in body
+
+
+def test_lineups_table_written_only_through_functions():
+    assert re.search(r"revoke all on public\.lineups from anon, authenticated;", MIG7)
+    grants = re.findall(r"grant ([^;]*) on public\.lineups to authenticated;", MIG7)
+    assert grants == ["select"]
+
+
+def test_share_token_is_long_and_random():
+    assert "share_token ~ '^[A-Za-z0-9_-]{32}$'" in MIG7
+    assert "gen_random_uuid()" in re.search(r"function public\.new_share_token.*?\$\$;", MIG7, re.S).group(0)
+
+
+def test_rls_test_covers_v24():
+    for label in ("球員存正式陣容", "管理員只看到正式陣容（看不到別人的草稿）", "別隊看 A 隊的陣容",
+                  "沒登入用分享碼看陣容", "預設不顯示名字", "分享頁不帶球員 id", "分享頁不帶能力分數",
+                  "重發後舊連結失效", "關掉分享後連結失效", "草稿主人離隊後連結失效", "沒登入讀陣容表",
+                  "刪帳號後沒有留下無主草稿"):
+        assert label in RLS_TEST, label
+
+
+def test_new_statuses_have_messages():
+    for st in set(re.findall(r"'status', '(\w+)'", MIG7)):
+        assert st in (WEB / "lib" / "status.ts").read_text(encoding="utf-8"), st
