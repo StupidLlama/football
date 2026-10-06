@@ -9,9 +9,9 @@ import {
   picksOf, reason, shortageText, swapSlots, type Formation, type Lineup, type LineupPlayer, type LineupRules,
 } from "../lib/lineup.ts";
 
-const rules: LineupRules = JSON.parse(readFileSync(new URL("../lib/config.json", import.meta.url), "utf-8"));
+const rules: LineupRules & { formations: Formation[] } = JSON.parse(readFileSync(new URL("../lib/config.json", import.meta.url), "utf-8"));
 const fx = JSON.parse(readFileSync(new URL("./fixtures/lineup_cases.json", import.meta.url), "utf-8"));
-const ALL: Formation[] = rules.formations as Formation[];
+const ALL: Formation[] = rules.formations;
 
 type FxPlayer = { id: string; name: string; scores: Record<string, number>; good: string[]; bad: string[] };
 const toPlayers = (ps: FxPlayer[]): LineupPlayer[] =>
