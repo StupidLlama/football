@@ -18,7 +18,7 @@ export function navItems(teamId: string, v: TeamView, isAdmin: boolean): NavItem
     { href: `${base}/home`, label: "首頁", icon: "⌂" },
     { href: `${base}/players`, label: "球員", icon: "◎", match: (p) => p.startsWith(`${base}/players`) },
     { href: `${base}/form`, label: "能力表", icon: "✎", badge: needForm ? 1 : 0 },
-    { href: `${base}/lineup`, label: "組隊", icon: "▦", soon: "v2.4" },
+    { href: `${base}/lineup`, label: "組隊", icon: "▦" },
     { href: `${base}/matches`, label: "比賽", icon: "◷", soon: "v2.5" },
     { href: `${base}/practice`, label: "練習", icon: "◆", soon: "之後" },
   ];

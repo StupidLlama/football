@@ -156,6 +156,56 @@ export const actions = {
                                 nickname: f.nickname, message: f.message }),
 };
 
+// ---------- 組隊（v2.4）----------
+export type LineupKind = "official" | "draft";
+export type LineupRow = {
+  id: string; team_id: string; owner_id: string | null; kind: LineupKind; name: string; size: number;
+  formation: string; picks: Record<string, string | null>; locked: string[]; attending: string[];
+  share_token: string | null; share_names: boolean; shared_at: string | null; created_at: string; updated_at: string;
+};
+const LINEUP_COLS = "id, team_id, owner_id, kind, name, size, formation, picks, locked, attending, "
+  + "share_token, share_names, shared_at, created_at, updated_at";
+
+/** 這一隊看得到的陣容：全部正式陣容 ＋ 自己的草稿（RLS 已經擋好，這裡不用再篩）。 */
+export async function getLineups(teamId: string): Promise<LineupRow[]> {
+  return must<LineupRow[]>(await supabase().from("lineups").select(LINEUP_COLS).eq("team_id", teamId)
+    .order("updated_at", { ascending: false }), "陣容");
+}
+
+export type SaveLineupInput = {
+  team: string; lineup?: string | null; kind: LineupKind; name: string; size: number; formation: string;
+  picks: Record<string, string | null>; locked: string[]; attending: string[];
+};
+
+export async function saveLineup(input: SaveLineupInput): Promise<RpcResult & { id?: string }> {
+  return (await rpc("save_lineup", {
+    team: input.team, lineup: input.lineup ?? null, kind: input.kind, name: input.name, size: input.size,
+    formation: input.formation, picks: input.picks, locked: input.locked, attending: input.attending,
+  })) as RpcResult & { id?: string };
+}
+
+export async function deleteLineup(lineup: string): Promise<RpcResult> {
+  return rpc("delete_lineup", { lineup });
+}
+
+export async function setLineupShare(lineup: string, shared: boolean, showNames = false, renew = false):
+  Promise<RpcResult & { token?: string | null }> {
+  return (await rpc("set_lineup_share", { lineup, shared, show_names: showNames, renew })) as RpcResult & { token?: string | null };
+}
+
+export type SharedLineup = {
+  status: string; team_name?: string; season?: string | null; name?: string; size?: number; formation?: string;
+  show_names?: boolean; updated_at?: string;
+  slots?: Record<string, { number: string | null; name?: string } | null>;
+};
+
+/** 用分享碼看陣容：不用登入（走 anon），所以這裡直接呼叫 rpc，不經過需要 session 的 supabase() helper 的其他動作。 */
+export async function getSharedLineup(token: string): Promise<SharedLineup> {
+  const r = await supabase().rpc("get_shared_lineup", { token });
+  if (r.error) return { status: "error" };
+  return (r.data ?? { status: "error" }) as SharedLineup;
+}
+
 // ---------- 球員生涯（v2.3）----------
 /** 在 team 這一隊看 player 的生涯：本人看得到自己所有隊伍；別人只看得到他「放進生涯」的隊伍＋這一隊。 */
 export async function getCareer(team: string, player: string): Promise<CareerResult> {
