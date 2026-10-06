@@ -117,12 +117,20 @@ function MyCareer() {
     return () => clearTimeout(t);
   }, [loaded]);
 
+  // 按下去畫面馬上切換（樂觀更新），存好再跟資料庫對齊；失敗就切回原本的狀態並顯示原因
+  const [pending, setPending] = useState<Record<string, boolean>>({});
   async function flip(teamId: string, teamName: string, shared: boolean) {
+    if (busy) return;
     setBusy(teamId);
-    const r = await actions.setCareerShared(teamId, shared);
-    setBusy(null);
-    if (r.status === "ok") { await auth.reload(); setError(""); say(shared ? `已把${teamName}放進生涯` : `已把${teamName}從生涯拿掉`); }
-    else setError(message(r));
+    setPending((p) => ({ ...p, [teamId]: shared }));
+    try {
+      const r = await actions.setCareerShared(teamId, shared);
+      if (r.status === "ok") { await auth.reload(); setError(""); say(shared ? `已把${teamName}放進生涯` : `已把${teamName}從生涯拿掉`); }
+      else setError(message(r));
+    } finally {
+      setPending((p) => { const n = { ...p }; delete n[teamId]; return n; });
+      setBusy(null);
+    }
   }
 
   return (
@@ -136,15 +144,16 @@ function MyCareer() {
       {teams.length === 0 && <p className="faint">還沒有加入任何球隊。</p>}
       {teams.map(({ team, membership }) => {
         const linked = !!membership.player_id;
-        const on = linked && membership.career_shared;
+        const on = linked && (pending[team.id] ?? membership.career_shared);
+        const saving = busy === team.id;
         const id = `career-${team.id}`;
         return (
           <div key={team.id} className="row" style={{ flexWrap: "wrap" }}>
             <span style={{ flex: "1 1 200px", minWidth: 0 }}>
               <label htmlFor={id} style={{ cursor: linked ? "pointer" : "default" }}>{team.name}</label><br />
-              <span className="faint" style={{ fontSize: 14 }}>{team.season ?? "沒有填賽季"}{linked ? (on ? " · 隊友看得到" : " · 只有你看得到") : " · 還沒認領名單上的自己，不能放進生涯"}</span>
+              <span className="faint" style={{ fontSize: 14 }}>{team.season ?? "沒有填賽季"}{!linked ? " · 還沒認領名單上的自己，不能放進生涯" : saving ? " · 儲存中…" : on ? " · 已放進生涯" : " · 沒放進生涯"}</span>
             </span>
-            <button id={id} type="button" role="switch" className="switch" aria-checked={on} disabled={!linked || busy === team.id}
+            <button id={id} type="button" role="switch" className="switch" aria-checked={on} aria-busy={saving} disabled={!linked || (busy !== null && !saving)}
               aria-label={`${team.name}${team.season ? `（${team.season}）` : ""}放進生涯`}
               onClick={() => flip(team.id, team.name, !on)} />
           </div>

@@ -42,18 +42,23 @@ export function CareerPanel({ teamId, playerId, name }: { teamId: string; player
 
 function CareerBody({ career, self, name, teamId }: { career: Career; self: boolean; name: string; teamId: string }) {
   const pts = career.points;
-  const hidden = career.seasons.filter((s) => !s.shared).length;
+  const shared = career.seasons.filter((s) => s.shared).length;
+  const hidden = career.teamCount - shared;
   const first = pts[0], last = pts[pts.length - 1];
+  // 本人看到的說明：照「幾隊、放了幾隊」講清楚現在誰看得到
+  const selfNote = career.teamCount <= 1
+    ? (shared
+        ? <>這一隊已經放進生涯。之後加入新賽季的球隊，也可以把它放進來，串成一條生涯。</>
+        : <>這一隊還沒放進生涯：這一隊的隊友看得到，你之後加入的其他球隊看不到。</>)
+    : hidden
+      ? <>你有 {career.teamCount} 隊，其中 {hidden} 隊還沒放進生涯（標「沒放進生涯」），你其他球隊的隊友看不到那幾隊。</>
+      : <>你的 {career.teamCount} 隊都已經放進生涯，你每一隊的隊友都看得到。</>;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       {self && (
         <div className="panel" style={{ padding: "12px 16px", display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-          <span style={{ flex: "1 1 260px" }}>
-            {hidden
-              ? <>有 {hidden} 隊還沒放進生涯（標「沒放進生涯」），你其他球隊的隊友看不到那幾隊。</>
-              : career.teamCount > 1 ? <>你所有的球隊都已經放進生涯，隊友看得到。</> : <>你目前只有這一隊。之後加入新賽季的球隊，可以把這一隊放進生涯。</>}
-          </span>
+          <span style={{ flex: "1 1 260px" }}>{selfNote}</span>
           <Link className="btn btn-line btn-sm" href={`/settings?team=${encodeURIComponent(teamId)}#s-career`}>管理我的生涯</Link>
         </div>
       )}
@@ -62,7 +67,9 @@ function CareerBody({ career, self, name, teamId }: { career: Career; self: bool
       )}
 
       <div className="kpis">
-        <Kpi label="生涯球隊" value={<AnimatedNumber value={career.teamCount} digits={0} />} sub={career.seasons.map((s) => s.season ?? s.team_name).join("、")} />
+        {self
+          ? <Kpi label="放進生涯的球隊" value={<AnimatedNumber value={shared} digits={0} />} sub={`你共有 ${career.teamCount} 隊`} />
+          : <Kpi label="生涯球隊" value={<AnimatedNumber value={career.teamCount} digits={0} />} sub={career.seasons.map((s) => s.season ?? s.team_name).join("、")} />}
         <Kpi label="能力表" value={<><AnimatedNumber value={pts.length} digits={0} /> 次</>} sub={first ? `第一次 ${dateLabel(first.date)}` : "還沒填過"} />
         <Kpi label="目前平均能力" value={last ? <AnimatedNumber value={last.avg} /> : "—"} sub={last ? last.teamLabel : ""} />
         <Kpi label="生涯變化" value={first && last && pts.length > 1 ? <AnimatedNumber value={last.avg - first.avg} signed /> : "—"}
