@@ -1,6 +1,7 @@
 "use client";
 // 球員生涯（v2.3）：同一個帳號在不同球隊（賽季）的能力表串成一條時間線。
-// 資料來自 get_career：本人看得到自己所有隊伍（沒放進生涯的標「只有你看得到」）；隊友只看得到放進生涯的隊伍＋這一隊。
+// 資料來自 get_career：本人看得到自己所有隊伍；隊友只看得到放進生涯的隊伍＋這一隊。
+// 本人看的時候，沒放進生涯的隊伍會標出誰看得到：這一隊＝只有這一隊的隊友，其他隊＝只有你。
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { getCareer } from "@/lib/api";
@@ -41,7 +42,7 @@ export function CareerPanel({ teamId, playerId, name }: { teamId: string; player
 
 function CareerBody({ career, self, name, teamId }: { career: Career; self: boolean; name: string; teamId: string }) {
   const pts = career.points;
-  const hidden = career.seasons.filter((s) => !s.current && !s.shared).length;
+  const hidden = career.seasons.filter((s) => !s.shared).length;
   const first = pts[0], last = pts[pts.length - 1];
 
   return (
@@ -50,7 +51,7 @@ function CareerBody({ career, self, name, teamId }: { career: Career; self: bool
         <div className="panel" style={{ padding: "12px 16px", display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
           <span style={{ flex: "1 1 260px" }}>
             {hidden
-              ? <>有 {hidden} 隊還沒放進生涯（標「只有你看得到」），隊友看不到那幾隊。</>
+              ? <>有 {hidden} 隊還沒放進生涯（標「沒放進生涯」），你其他球隊的隊友看不到那幾隊。</>
               : career.teamCount > 1 ? <>你所有的球隊都已經放進生涯，隊友看得到。</> : <>你目前只有這一隊。之後加入新賽季的球隊，可以把這一隊放進生涯。</>}
           </span>
           <Link className="btn btn-line btn-sm" href={`/settings?team=${encodeURIComponent(teamId)}#s-career`}>管理我的生涯</Link>
@@ -82,14 +83,20 @@ function Timeline({ career, self }: { career: Career; self: boolean }) {
       <ol style={{ listStyle: "none", margin: 0, padding: 0 }}>
         {career.seasons.slice().reverse().map((s, i) => (
           <li key={s.team_id} className="fade-up" style={{ animationDelay: `${i * 0.07}s`, display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(90px, 160px) 44px",
-            gap: "4px 12px", alignItems: "center", padding: "10px 0", borderTop: i ? "1px solid #1E2A42" : 0, opacity: !s.current && !s.shared ? 0.75 : undefined }}>
+            gap: "4px 12px", alignItems: "center", padding: "10px 0", borderTop: i ? "1px solid #1E2A42" : 0, opacity: self && !s.shared && !s.current ? 0.75 : undefined }}>
             <div style={{ minWidth: 0 }}>
               <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
                 <b>{s.label}</b>
                 {s.jersey_number && <span className="num faint">#{s.jersey_number}</span>}
                 <CaptainBadge badge={s.badge} />
                 {s.current && <span className="tag" style={{ border: "1px solid #60A5FA88", color: "#BFDBFE" }}>這一隊</span>}
-                {self && !s.current && !s.shared && <span className="tag" style={{ border: "1px dashed #4A5A7A", color: "#8A97AD" }}>只有你看得到</span>}
+                {self && !s.shared && (
+                  <span className="tag" style={{ border: "1px dashed #4A5A7A", color: "#8A97AD" }}
+                    title={s.current ? "這一隊的隊友本來就看得到；你在其他球隊的隊友看不到" : "只有你自己看得到"}>
+                    {s.current ? "沒放進生涯 · 只有這一隊看得到" : "沒放進生涯 · 只有你看得到"}
+                  </span>
+                )}
+                {self && s.shared && <span className="tag" style={{ border: "1px solid #2DD4BF66", color: "#5EEAD4" }}>已放進生涯</span>}
               </div>
               <div className="tags" style={{ marginTop: 4 }}>
                 {s.good_positions.length ? s.good_positions.map((p) => <PrefTag key={p} pos={p} kind="good" />) : <span className="faint" style={{ fontSize: 13 }}>沒有填擅長位置</span>}

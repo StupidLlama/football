@@ -108,6 +108,14 @@ function MyCareer() {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState("");
   const teams = auth.teams ?? [];
+  const loaded = auth.teams !== null;   // null = 還在讀
+
+  // 直接打開 /settings#s-career 時，頁面是登入後才畫出來的，瀏覽器原本的「跳到 #」已經錯過了，所以畫好後自己捲過去
+  useEffect(() => {
+    if (!loaded || window.location.hash !== "#s-career") return;
+    const t = setTimeout(() => document.getElementById("s-career")?.scrollIntoView({ block: "start" }), 50);
+    return () => clearTimeout(t);
+  }, [loaded]);
 
   async function flip(teamId: string, teamName: string, shared: boolean) {
     setBusy(teamId);
