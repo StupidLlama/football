@@ -89,8 +89,7 @@ function Timeline({ career, self }: { career: Career; self: boolean }) {
       <h2 id="career-tl" style={{ margin: "0 0 4px", fontSize: 18 }}>每一隊</h2>
       <ol style={{ listStyle: "none", margin: 0, padding: 0 }}>
         {career.seasons.slice().reverse().map((s, i) => (
-          <li key={s.team_id} className="fade-up" style={{ animationDelay: `${i * 0.07}s`, display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(90px, 160px) 44px",
-            gap: "4px 12px", alignItems: "center", padding: "10px 0", borderTop: i ? "1px solid #1E2A42" : 0, opacity: self && !s.shared && !s.current ? 0.75 : undefined }}>
+          <li key={s.team_id} className="fade-up career-row" style={{ animationDelay: `${i * 0.07}s`, borderTop: i ? "1px solid #1E2A42" : 0, opacity: self && !s.shared && !s.current ? 0.75 : undefined }}>
             <div style={{ minWidth: 0 }}>
               <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
                 <b>{s.label}</b>
@@ -110,8 +109,8 @@ function Timeline({ career, self }: { career: Career; self: boolean }) {
                 <span className="faint" style={{ fontSize: 13 }}>{s.points.length ? `能力表 ${s.points.length} 次，最新 ${dateLabel(s.latest!.date)}` : "這一隊沒有填能力表"}</span>
               </div>
             </div>
-            {s.latest ? <Bar frac={s.latest.avg / RULES.maxScore} color="#60A5FA" height={10} delay={i * 70} /> : <span />}
-            <span className="num" style={{ textAlign: "right" }}>{s.latest ? <AnimatedNumber value={s.latest.avg} /> : "—"}</span>
+            <span className="career-bar">{s.latest ? <Bar frac={s.latest.avg / RULES.maxScore} color="#60A5FA" height={10} delay={i * 70} /> : null}</span>
+            <span className="num career-avg" style={{ textAlign: "right" }}>{s.latest ? <AnimatedNumber value={s.latest.avg} /> : "—"}</span>
           </li>
         ))}
       </ol>
@@ -143,7 +142,8 @@ function Trend({ career, name }: { career: Career; name: string }) {
       </figcaption>
       {tp.length < 2 && <p className="faint" style={{ margin: "0 0 8px", fontSize: 14 }}>目前只有一個時間點；之後再填能力表或加入新賽季的球隊，就會連成線。</p>}
       <LineChart label={`${name} 的生涯趨勢：${series.map((s) => s.name).join("、")}，從 ${tp[0].teamLabel} 到 ${tp[tp.length - 1].teamLabel}`}
-        xLabels={tp.map((p) => p.teamLabel)} xSub={tp.map((p) => dateLabel(p.date))} series={series} />
+        xLabels={tp.map((p) => p.teamLabel)} xShort={tp.map((p) => career.seasons.find((x) => x.team_id === p.teamId)?.season ?? p.teamLabel)}
+        xSub={tp.map((p) => dateLabel(p.date))} series={series} />
       <p className="faint" style={{ margin: "8px 0 0", fontSize: 13 }}>每隊取第一次和最新的能力表，滿分 {RULES.maxScore}。滑鼠移到（手機點）時間點看數字。</p>
     </figure>
   );

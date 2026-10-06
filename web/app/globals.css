@@ -179,6 +179,17 @@ textarea.field { padding: 10px 12px; min-height: 96px; resize: vertical; line-he
 .doc .tbl-wrap { overflow-x: auto; }
 
 /* v2.3 圖表 */
+.radar-wrap { max-width: 520px; margin: 0 auto; padding: 8px 52px; }
+@media (max-width: 480px) { .radar-wrap { padding: 14px 34px; } }
+.career-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(90px, 160px) 44px; gap: 4px 12px; align-items: center; padding: 10px 0; }
+.career-row .tag { white-space: normal; }
+.career-bar { display: block; min-width: 0; }
+@media (max-width: 560px) {
+  /* 手機：隊名和標籤佔整列，平均能力的長條換到下一行 */
+  .career-row { grid-template-columns: minmax(0, 1fr) 44px; }
+  .career-row > div:first-child { grid-column: 1 / -1; }
+}
+.footer a { display: inline-block; padding: 10px 2px; min-height: 40px; }
 .radar-tip { position: absolute; left: 50%; bottom: -4px; transform: translate(-50%, 100%); z-index: 5; min-width: 170px;
   padding: 8px 12px; border-radius: 10px; background: #0B1220; border: 1px solid #2E4470; font-size: 13px; line-height: 1.6;
   box-shadow: 0 8px 24px rgba(0,0,0,.4); pointer-events: none; }

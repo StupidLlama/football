@@ -1,16 +1,29 @@
 "use client";
 // 折線圖（生涯趨勢）：一條或幾條線，y 軸固定 1–5 分。
 // 動畫：線從左到右畫出來、資料點依序出現；換顯示的線時重畫。滑鼠移到（或手指點）某個時間點顯示該點所有數值。
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export type LineSeries = { key: string; name: string; color: string; values: (number | null)[]; width?: number };
 
-const W = 640, H = 260, L = 36, R = 92, T = 14, B = 46;
+// 圖的座標大小：桌機寬一點；手機用比較窄的座標，縮放後字和線才不會太小（手機上整張圖約 230 像素高）
+const WIDE = { W: 640, H: 260, R: 92, fs: 12 }, NARROW = { W: 360, H: 250, R: 64, fs: 12 };
+const L = 36, T = 14, B = 46;
 
-export function LineChart({ xLabels, xSub, series, min = 1, max = 5, label }: {
-  xLabels: string[]; xSub?: string[]; series: LineSeries[]; min?: number; max?: number; label: string;
+export function LineChart({ xLabels, xShort, xSub, series, min = 1, max = 5, label }: {
+  xLabels: string[]; xShort?: string[]; xSub?: string[]; series: LineSeries[]; min?: number; max?: number; label: string;
 }) {
   const [hover, setHover] = useState<number | null>(null);
+  const wrap = useRef<HTMLDivElement | null>(null);
+  const [narrow, setNarrow] = useState(false);
+  useEffect(() => {
+    const el = wrap.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(([e]) => setNarrow(e.contentRect.width < 500));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const { W, H, R, fs } = narrow ? NARROW : WIDE;
+  const labels = narrow && xShort ? xShort : xLabels;
   const n = xLabels.length;
   const x = (i: number) => (n <= 1 ? L + (W - L - R) / 2 : L + (i * (W - L - R)) / (n - 1));
   const y = (v: number) => T + ((max - Math.max(min, Math.min(max, v))) * (H - T - B)) / (max - min);
@@ -20,18 +33,18 @@ export function LineChart({ xLabels, xSub, series, min = 1, max = 5, label }: {
   const stepDelay = n > 1 ? 0.8 / n : 0;
 
   return (
-    <div style={{ position: "relative" }} onMouseLeave={() => setHover(null)}>
+    <div ref={wrap} style={{ position: "relative" }} onMouseLeave={() => setHover(null)}>
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={label} style={{ width: "100%", height: "auto", display: "block", overflow: "visible" }}>
         {ticks.map((t) => (
           <g key={t}>
             <line x1={L} x2={W - R + 8} y1={y(t)} y2={y(t)} stroke="#22304A" strokeWidth={1} />
-            <text x={L - 10} y={y(t)} fill="#8A97AD" fontSize={12} textAnchor="end" dominantBaseline="middle">{t}</text>
+            <text x={L - 10} y={y(t)} fill="#8A97AD" fontSize={fs} textAnchor="end" dominantBaseline="middle">{t}</text>
           </g>
         ))}
-        {xLabels.map((lab, i) => (
+        {labels.map((lab, i) => (
           <g key={i}>
-            <text x={x(i)} y={H - B + 20} fill={hover === i ? "#FFFFFF" : "#B6C2D6"} fontSize={12} textAnchor="middle">{lab}</text>
-            {xSub?.[i] && <text x={x(i)} y={H - B + 36} fill="#8A97AD" fontSize={11} textAnchor="middle">{xSub[i]}</text>}
+            <text x={x(i)} y={H - B + 20} fill={hover === i ? "#FFFFFF" : "#B6C2D6"} fontSize={fs} textAnchor="middle">{lab}</text>
+            {xSub?.[i] && <text x={x(i)} y={H - B + 36} fill="#8A97AD" fontSize={fs - 1} textAnchor="middle">{xSub[i]}</text>}
           </g>
         ))}
         {hover !== null && <line x1={x(hover)} x2={x(hover)} y1={T} y2={H - B} stroke="#4A5A7A" strokeWidth={1} />}
@@ -52,7 +65,7 @@ export function LineChart({ xLabels, xSub, series, min = 1, max = 5, label }: {
                     className="pop-in" style={{ animationDelay: `${(i * stepDelay + si * 0.08).toFixed(2)}s` }} />
                 ))}
                 {/* 線尾直接標名字（不用只靠顏色分辨） */}
-                <text x={last[0] + 10} y={last[1]} fill="#B6C2D6" fontSize={12} dominantBaseline="middle" className="fade-up"
+                <text x={last[0] + 10} y={last[1]} fill="#B6C2D6" fontSize={fs} dominantBaseline="middle" className="fade-up"
                   style={{ animationDelay: `${(0.8 + si * 0.08).toFixed(2)}s` }}>{s.name}</text>
               </g>
             );

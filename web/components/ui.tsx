@@ -179,6 +179,15 @@ export function Radar({ abilities, series, max = 5, label, showLabels = true }: 
   abilities: Ability[]; series: RadarSeries[]; max?: number; label: string; showLabels?: boolean;
 }) {
   const [hover, setHover] = useState<number | null>(null);
+  const boxRef = useRef<HTMLDivElement | null>(null);
+  const [boxWidth, setBoxWidth] = useState(0);
+  useEffect(() => {
+    const el = boxRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(([e]) => setBoxWidth(e.contentRect.width));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [showLabels]);
   const n = abilities.length;
   const ring = (level: number) => radarPoints(Array(n).fill(level), max);
   const axis = (i: number, r: number) => {
@@ -217,18 +226,22 @@ export function Radar({ abilities, series, max = 5, label, showLabels = true }: 
   );
   if (!showLabels) return svg;
   const tip = hover !== null ? abilities[hover] : null;
+  // 手機上圖比較小：能力名稱縮小一點、往外推一點，才不會互相重疊（360–400 像素寬實測過）
+  const compact = boxWidth > 0 && boxWidth < 300;
   return (
-    <div className="radar-wrap" style={{ maxWidth: 520, margin: "0 auto", padding: "8px 52px" }}>
-      <div style={{ position: "relative", width: "100%", aspectRatio: "1 / 1" }} onMouseLeave={() => setHover(null)}>
+    <div className="radar-wrap">
+      <div ref={boxRef} style={{ position: "relative", width: "100%", aspectRatio: "1 / 1" }} onMouseLeave={() => setHover(null)}>
         {svg}
         {abilities.map((a, i) => {
-          const [x, y] = axis(i, 45);
+          const [x, y] = axis(i, compact ? 47 : 45);
           const ang = -Math.PI / 2 + (i * 2 * Math.PI) / n;
-          const tx = Math.cos(ang) > 0.3 ? "0%" : Math.cos(ang) < -0.3 ? "-100%" : "-50%";
+          // 文字錨點隨角度平滑移動：右邊的字往右長、左邊的往左長；上方的字放在點上面、下方的放在點下面
+          const c = Math.max(-1, Math.min(1, Math.cos(ang) / 0.3));
+          const tx = -50 + 50 * c, ty = -50 + 50 * Math.sin(ang);
           return (
             <span key={a.key} aria-hidden="true" style={{
-              position: "absolute", left: `${x.toFixed(1)}%`, top: `${y.toFixed(1)}%`, transform: `translate(${tx}, -50%)`,
-              fontSize: 11, lineHeight: 1.1, color: hover === i ? "#FFFFFF" : "#B6C2D6", fontWeight: hover === i ? 700 : 400,
+              position: "absolute", left: `${x.toFixed(1)}%`, top: `${y.toFixed(1)}%`, transform: `translate(${tx.toFixed(0)}%, ${ty.toFixed(0)}%)`,
+              fontSize: compact ? 10 : 11, lineHeight: 1.1, color: hover === i ? "#FFFFFF" : "#B6C2D6", fontWeight: hover === i ? 700 : 400,
               whiteSpace: "nowrap", pointerEvents: "none",
             }}>{a.label}</span>
           );
