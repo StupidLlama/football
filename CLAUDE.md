@@ -130,6 +130,13 @@ py web/scripts/sync_config.py              # 改了 config/settings.toml 的能�
 - 跨隊的資料只能經過資料庫函式拿（例如 `get_career`），不要放寬 RLS 讓別隊的表直接讀得到。
 - 手機版版面改動後，用 360 和 390 像素寬檢查：沒有左右捲動、雷達圖能力名稱不重疊。
 
+## v2.4 組隊的規則
+
+- 排人演算法（加分扣分、位置適合度比對）寫在 `domain/`、`stats/lineup.py`（Python 版）和 `web/lib/lineup.ts`／`assignment.ts`（網站版），兩邊邏輯要一致；改規則後重新產生 `web/tests/fixtures/lineup_cases.json`（`py web/scripts/lineup_fixture.py`），讓 `web/tests/v24.test.ts` 能對照 Python 的答案驗證。加分扣分數字只能放 `config/settings.toml` 的 `[lineup]`，不要寫死。
+- 分享連結只能透過 `get_shared_lineup` 這一個函式讀（唯一 grant 給 anon 的函式），回傳欄位要白名單（背號、位置、隊名、陣型），絕對不能有球員 id、能力分數、是誰排的；新加欄位要同時檢查 `tests/test_v24.py` 的白名單測試。
+- 官方陣容（`kind='official'`）只有球隊管理員能存/刪；草稿（`kind='draft'`）只有自己能存/刪/分享，規則在 `save_lineup`／`delete_lineup`／`set_lineup_share` 裡，不要放寬 RLS。
+- 球場座標系統：105×68 公尺，進攻方向朝右（x 大 = 進攻方向），SVG 的 y 軸是往下的，畫的時候要用 `W - y` 反過來。
+
 ## 版本交接規則
 
 **什麼時候寫交接說明（`docs/HANDOFF.md`，整份覆蓋）**
@@ -150,9 +157,9 @@ py web/scripts/sync_config.py              # 改了 config/settings.toml 的能�
 ## 下一步（2026-10-07）
 
 - v2.2 / v2.2.1：已上線（見 `docs/V2_2_1_SETUP.md` 的剩餘事項：Google 登入正式版、v2.2.1 標籤）。
-- **v2.3（2026-10-07 已上線，標籤 v2.3）**：雷達圖「自評／比賽表現／兩者疊圖」、同位置平均比較、球員生涯（設定 → 我的生涯開關、球員報告生涯分頁）、圖表動畫、雷達圖點擊／滑鼠顯示分數、手機版調整。0006 已在 Supabase 執行，rls_test 通過。桌機和手機（390 寬）都用 Chrome 擴充功能實測通過。POLICY_VERSION = 2026-10-06，上線後大家要重新同意一次。
-- 還沒用真實資料測過：兩位球員比較的變形動畫、隊友看別人的生涯、兩個時間點比較（隊上要有第二個人、自己要填第二次能力表）。
-- **下一版 v2.4 組隊（F3）**：交接說明和計畫草稿在 `docs/HANDOFF.md`。之後：v2.5 比賽與出賽登記；語言設定（多語系）。
+- v2.3：已上線，標籤 v2.3。還沒用真實資料測過：兩位球員比較的變形動畫、隊友看別人的生涯、兩個時間點比較（隊上要有第二個人、自己要填第二次能力表）。
+- **v2.4 組隊（F3）：程式已寫完在 `v2.4` 分支，還沒合併到 main、還沒上線。** 0007 migration 和 rls_test 使用者已經在 Supabase 執行過、通過。步驟和驗收清單在 `docs/V2_4_SETUP.md`（本機測試 → 桌機/手機驗收 → 合併到 main → 打標籤）。因為沙盒連不到 npm，`npm run typecheck`／`npm test`／手機實測都還要在使用者電腦上做一次。
+- 下一版 v2.5：比賽列表與出賽登記（F7，出席名單直接接進組隊）；之後語言設定（多語系）。
 
 - 使用者之後會裝插畫風格的外掛，再加入手繪 / 人性化的視覺元素。
 - 之後：依 `docs/PROJECT_PLAN.md` 的開發順序做影片分析（Video translate 放 `adapters/video.py`，OpenCV/YOLO 放 `infra/video/`）。
