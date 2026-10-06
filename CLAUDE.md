@@ -41,23 +41,24 @@ infra/charts/              style.py 深色配色、radar.py（Plotly 雷達圖�
 infra/ui/                  theme.py（CSS、圖例）、common.py（共用）、pages/（home 首頁、overview 能力總覽、player、compare、leaderboard、lineup、matches、coach 教練專區）
 web/                       v2.2 Next.js 網站（Tools shell，TypeScript）：瀏覽器直接連 Supabase（supabase-js），動作呼叫資料庫函式
   app/                     頁面：首頁、login、join、teams（選球隊）、settings、t/[teamId]/（我的、home、players、players/[playerId]、form 能力表、claim、coach 管理專區、lineup/matches/practice 即將推出）；v2.2.1：consent（同意頁）、privacy、terms、contact、api/contact/route.ts（伺服器端，轉發到 Discord）
-  components/              共用元件：ui.tsx（雷達圖、標籤、KPI、提示訊息、頁尾）、shell.tsx（側邊欄）、guard.tsx（RequireLogin：要登入＋同意最新政策）、doc.tsx（政策頁版面）、position-picker.tsx…
-  lib/                     rating.ts（= domain/rating.py 的 TS 版，純計算）、teamview.ts、todos.ts、positions.ts（純計算）；api.ts（所有 Supabase 查詢與 rpc）、policies.ts（POLICY_VERSION、網站管理員、資料存放地區）、status.ts（狀態訊息，跟 backend/accounts.py 一樣）、auth.tsx、team.tsx
+  components/              共用元件：ui.tsx（雷達圖＋滑鼠移上去顯示分數、標籤、KPI、提示訊息、頁尾）、anim.tsx（useTween、AnimatedNumber：圖表動畫，尊重「減少動態效果」）、line-chart.tsx（生涯趨勢折線圖）、career.tsx（球員報告的生涯分頁）、shell.tsx（側邊欄）、guard.tsx（RequireLogin：要登入＋同意最新政策）、doc.tsx（政策頁版面）、position-picker.tsx…
+  lib/                     rating.ts（= domain/rating.py 的 TS 版，純計算）、teamview.ts、todos.ts、positions.ts、career.ts（生涯時間線）、compare.ts（同位置平均、進步退步）、anim.ts（緩動、插值）（純計算）；api.ts（所有 Supabase 查詢與 rpc）、policies.ts（POLICY_VERSION、網站管理員、資料存放地區）、status.ts（狀態訊息，跟 backend/accounts.py 一樣）、auth.tsx、team.tsx
   lib/config.json          由 config/settings.toml 產生：py web/scripts/sync_config.py（不要手改）
   tests/                   node --test 的計算測試（npm test）
 backend/                   v2 後端（Tools shell）：main.py（FastAPI）、accounts.py（v2.1 帳號 API：加入、教練碼、認領、教練管理）、db.py（as_user = 用使用者身分查詢，RLS 生效）、auth.py（驗證 Supabase JWT）、importer.py（v1 資料匯入）、scripts/（migrate、rls_check）；v2.2 起網站不經過這個 API
-supabase/migrations/       v2 資料表與 RLS 的 SQL，編號只能往後加（0004_web.sql：網站用的資料表權限、submit_self_rating；0005_privacy.sql：同意紀錄、刪除帳號、下載資料、聯絡訊息）；supabase/tests/ 是權限測試
+supabase/migrations/       v2 資料表與 RLS 的 SQL，編號只能往後加（0004_web.sql：網站用的資料表權限、submit_self_rating；0005_privacy.sql：同意紀錄、刪除帳號、下載資料、聯絡訊息；0006_career.sql：生涯開關 career_shared、set_career_shared、get_career）；supabase/tests/ 是權限測試
 config/settings.toml       能力分類、表單欄位、位置適合度權重、回饋網址
 config/formations.toml     11 人制、8 人制陣型（位置、座標）
 config/performance.toml    比賽表現評分的維度與各位置權重（v4 才用）
 analysis/                  影片分析腳本（之後）＋ import_match_csv.py
-tests/                     test_architecture.py（分層規則）、test_layers.py、test_lineup_ranking.py、test_v13.py、test_v14.py、test_v20.py、test_v21.py、test_v22.py（網站和資料庫對得起來）、test_v221.py（政策、同意、刪帳號、安全標頭）
+tests/                     test_architecture.py（分層規則）、test_layers.py、test_lineup_ranking.py、test_v13.py、test_v14.py、test_v20.py、test_v21.py、test_v22.py（網站和資料庫對得起來）、test_v221.py（政策、同意、刪帳號、安全標頭）、test_v23.py（生涯、雷達切換、同位置比較、動畫）
 docs/PROJECT_PLAN.md       軟工專題規劃
 docs/SPEC.md               產品規格與版本規劃
 docs/V2_SETUP.md           v2 上線步驟（建表、權限測試、匯入、啟動後端）
 docs/V2_1_SETUP.md         v2.1 上線步驟（帳號系統、Google 登入設定、設定系統管理者、試用流程）
 docs/V2_2_SETUP.md         v2.2 上線步驟（0004 migration、web/.env.local、npm、Vercel 部署、手機驗收）
 docs/V2_2_1_SETUP.md       v2.2.1 上線步驟（0005、Discord Webhook、Vercel 環境變數、Google 登入正式版）
+docs/V2_3_SETUP.md         v2.3 上線步驟（0006、手機驗收、合併到 main、打標籤）
 docs/SECURITY.md           金鑰保管、換金鑰、個資外洩處理順序
 ```
 
@@ -124,14 +125,16 @@ py web/scripts/sync_config.py              # 改了 config/settings.toml 的能�
 - 用詞：畫面上叫「球隊管理員」「管理員碼」「管理專區」「網站管理員」，不要寫「教練」「系統管理者」（`test_v221.py` 會檢查）；資料庫的角色值仍是 `coach`。政策裡不寫擁有者真名。
 - 登入後的頁面都用 `RequireLogin` 包起來（會檢查同意版本）。政策內容有實質改變時，改 `web/lib/policies.ts` 的 `POLICY_VERSION`，大家下次登入會重新同意。
 - 需要秘密的東西（目前只有 `DISCORD_WEBHOOK_URL`）只能用在 `app/api/**/route.ts`，不能加 `NEXT_PUBLIC_`。
+- 圖表動畫一律用 `components/anim.tsx` 的 `useTween` / `AnimatedNumber` 或 globals.css 的 `.line-draw` `.pop-in` `.fade-up`；新的 CSS 動畫要加進 `@media (prefers-reduced-motion: reduce)` 關掉（`test_v23.py` 會檢查）。
+- 跨隊的資料只能經過資料庫函式拿（例如 `get_career`），不要放寬 RLS 讓別隊的表直接讀得到。
+- 手機版版面改動後，用 360 和 390 像素寬檢查：沒有左右捲動、雷達圖能力名稱不重疊。
 
-## 下一步（2026-10-05）
+## 下一步（2026-10-06）
 
-- v2.1.1 = 介面設計稿（已完成，在 Design 畫布上），v2.2 網站照它做。
-- v2.2（2026-10-05 已部署）：0004 已在 Supabase 執行；本機和 Vercel 都測過；Supabase Site URL 已改成 Vercel 網址。v2.2 標籤已打（GitHub Release）；舊測試頁 `/dev` 已刪。剩：手機 3 分鐘填完驗收。
-- v2.2.1（程式已完成、已 push）：隱私權政策、服務條款、同意頁、下載資料、刪除帳號、聯絡我們（Discord）、安全標頭、教練→球隊管理員。0005 已在 Supabase 執行；Discord Webhook 已加到 Vercel（Secret）。剩：Google 登入改正式版、打 v2.2.1 標籤（見 `docs/V2_2_1_SETUP.md`）。Vercel 的 `NEXT_PUBLIC_SUPABASE_URL` 值後面有換行，程式已經會自己 trim。使用者之後會開新的聯絡信箱（`NEXT_PUBLIC_CONTACT_EMAIL`）。
-- 之後：語言設定（多語系）。
-- v2.3 之後：表現評分疊圖、跨賽季比較；v2.4 組隊（拖曳）；v2.5 比賽與出賽登記。
+- v2.2 / v2.2.1：已上線（見 `docs/V2_2_1_SETUP.md` 的剩餘事項：Google 登入正式版、v2.2.1 標籤）。
+- **v2.3（程式完成，在 `v2.3` 分支，還沒合併到 main）**：雷達圖「自評／比賽表現／兩者疊圖」、同位置平均比較、球員生涯（設定 → 我的生涯開關、球員報告生涯分頁）、圖表動畫、雷達圖顯示分數、手機版調整。0006 已在 Supabase 執行，rls_test 已通過（正式資料庫）。桌機版已用 Chrome 擴充功能實測；手機版修好雷達文字重疊、生涯清單太擠、趨勢圖太小後，**還要再測一次**。剩：手機複測 → 合併到 main → 打 v2.3 標籤（見 `docs/V2_3_SETUP.md`）。POLICY_VERSION 改成 2026-10-06，上線後大家要重新同意一次。
+- 還沒用真實資料測過：兩位球員比較的變形動畫、隊友看別人的生涯、兩個時間點比較（隊上要有第二個人、自己要填第二次能力表）。
+- 之後：語言設定（多語系）；v2.4 組隊（拖曳）；v2.5 比賽與出賽登記。
 
 - 使用者之後會裝插畫風格的外掛，再加入手繪 / 人性化的視覺元素。
 - 之後：依 `docs/PROJECT_PLAN.md` 的開發順序做影片分析（Video translate 放 `adapters/video.py`，OpenCV/YOLO 放 `infra/video/`）。
