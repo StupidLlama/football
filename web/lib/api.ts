@@ -4,11 +4,12 @@
 import { supabase } from "./supabase";
 import type { RpcResult } from "./status";
 import type { Scores } from "./rating";
+import type { CareerResult } from "./career";
 
 export type Role = "player" | "coach";
 export type Team = { id: string; code: string; name: string; season: string | null; league_name: string | null };
 export type Membership = {
-  team_id: string; user_id: string; role: Role; player_id: string | null; joined_at: string;
+  team_id: string; user_id: string; role: Role; player_id: string | null; joined_at: string; career_shared: boolean;
   claim_player_id: string | null; claim_new_name: string | null; claim_at: string | null;
 };
 export type Player = {
@@ -37,7 +38,7 @@ export type TeamData = {
 // 只選需要的欄位（coach_codes 的 salt、code_hash 根本沒有開放，select * 會被拒絕）
 const COLS = {
   team: "id, code, name, season, league_name",
-  membership: "team_id, user_id, role, player_id, joined_at, claim_player_id, claim_new_name, claim_at",
+  membership: "team_id, user_id, role, player_id, joined_at, career_shared, claim_player_id, claim_new_name, claim_at",
   player: "id, team_id, name, nickname, jersey_number, badge, good_positions, bad_positions, weak_side, message",
   rating: "player_id, scores, submitted_at, source",
   profile: "user_id, display_name, is_admin, policy_version, policy_accepted_at",
@@ -149,10 +150,17 @@ export const actions = {
   deleteMyAccount: () => rpc("delete_my_account", {}),
   deleteUnlinkedPlayer: (player: string) => rpc("delete_unlinked_player", { player }),
   exportMyData: () => rpc("export_my_data", {}),
+  setCareerShared: (team: string, shared: boolean) => rpc("set_career_shared", { team, shared }),
   submitRating: (team: string, f: { scores: Scores; good: string[]; bad: string[]; weakSide: string; nickname: string; message: string }) =>
     rpc("submit_self_rating", { team, scores: f.scores, good: f.good, bad: f.bad, weak_side: f.weakSide,
                                 nickname: f.nickname, message: f.message }),
 };
+
+// ---------- 球員生涯（v2.3）----------
+/** 在 team 這一隊看 player 的生涯：本人看得到自己所有隊伍；別人只看得到他「放進生涯」的隊伍＋這一隊。 */
+export async function getCareer(team: string, player: string): Promise<CareerResult> {
+  return (await rpc("get_career", { team, player })) as CareerResult;
+}
 
 // ---------- 選球隊頁的通知 ----------
 export type TeamNote = { kind: "form" | "claim" | "pending" | "claims" | "match"; text: string; href: string };

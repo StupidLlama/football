@@ -177,3 +177,29 @@ textarea.field { padding: 10px 12px; min-height: 96px; resize: vertical; line-he
 .doc th, .doc td { text-align: left; vertical-align: top; padding: 8px 10px; border-top: 1px solid #22304A; }
 .doc th { color: var(--faint); font-weight: 400; white-space: nowrap; }
 .doc .tbl-wrap { overflow-x: auto; }
+
+/* v2.3 圖表 */
+.radar-tip { position: absolute; left: 50%; bottom: -4px; transform: translate(-50%, 100%); z-index: 5; min-width: 170px;
+  padding: 8px 12px; border-radius: 10px; background: #0B1220; border: 1px solid #2E4470; font-size: 13px; line-height: 1.6;
+  box-shadow: 0 8px 24px rgba(0,0,0,.4); pointer-events: none; }
+.seg { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; border-radius: 12px; background: var(--panel-2); border: 1px solid var(--line-2); }
+.seg button { all: unset; box-sizing: border-box; min-height: 36px; padding: 0 14px; border-radius: 9px; cursor: pointer; color: #C9D3E3; font-size: 15px;
+  display: inline-flex; align-items: center; transition: background .2s, color .2s; }
+.seg button[aria-checked="true"] { background: #16305E; color: #FFFFFF; font-weight: 700; box-shadow: inset 0 0 0 1px var(--blue); }
+.seg button:focus-visible { outline: 2px solid var(--orange); outline-offset: 1px; }
+.switch { background: #2A3550; transition: background .2s; }
+.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #E9EDF3; transition: transform .2s; }
+.switch[aria-checked="true"] { background: var(--teal); }
+.switch[aria-checked="true"]::after { transform: translateX(20px); }
+.switch:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
+.switch:disabled { opacity: .45; cursor: not-allowed; }
+.line-draw { stroke-dasharray: 1; stroke-dashoffset: 1; animation: fap-draw .9s ease-out forwards; }
+.pop-in { opacity: 0; transform-box: fill-box; transform-origin: center; animation: fap-pop .35s ease-out forwards; }
+.fade-up { opacity: 0; animation: fap-fade-up .45s ease-out forwards; }
+@keyframes fap-pop { from { opacity: 0; transform: scale(.3); } to { opacity: 1; transform: scale(1); } }
+@keyframes fap-fade-up { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .line-draw { animation: none; stroke-dashoffset: 0; }
+  .pop-in, .fade-up { animation: none; opacity: 1; transform: none; }
+  .switch, .switch::after, .seg button { transition: none; }
+}

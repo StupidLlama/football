@@ -1,5 +1,5 @@
 "use client";
-// 球員報告：能力分析（雷達圖、強項、待加強、類別）、位置（球場圖、適合度）、比賽數據（之後）。
+// 球員報告：能力分析（雷達圖：自評／表現／兩者、強項、待加強、類別）、位置（球場圖、適合度）、生涯（v2.3）、比賽數據（之後）。
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState, type CSSProperties } from "react";
@@ -7,12 +7,15 @@ import { ABILITIES, CATEGORY_NAMES, POSITIONS, RULES } from "@/lib/config";
 import { groupByLine, lineOf, PITCH } from "@/lib/positions";
 import { rank, strengths } from "@/lib/rating";
 import { useTeamView } from "@/lib/team";
-import { Bar, CaptainBadge, dateLabel, Feet, fmt, footText, Kpi, LegendLine, PrefTag, Radar, signed } from "@/components/ui";
+import { Bar, CaptainBadge, dateLabel, Feet, fmt, footText, Kpi, LegendLine, PrefTag, Radar } from "@/components/ui";
+import { AnimatedNumber } from "@/components/anim";
+import { CareerPanel } from "@/components/career";
 
 export default function ReportPage() {
   const { teamId, playerId } = useParams<{ teamId: string; playerId: string }>();
   const v = useTeamView();
-  const [tab, setTab] = useState<"ability" | "pos" | "match">("ability");
+  const [tab, setTab] = useState<"ability" | "pos" | "career" | "match">("ability");
+  const [mode, setMode] = useState<"self" | "perf" | "both">("self");
   const R = v.players.find((p) => p.id === playerId);
   const back = <Link className="btn btn-line btn-sm" href={`/t/${teamId}/players`} style={{ marginBottom: 12 }}>回球員列表</Link>;
   if (!R) return <>{back}<p className="panel muted pad">找不到這位球員。</p></>;
@@ -58,13 +61,13 @@ export default function ReportPage() {
       {back}
       {header}
       <div className="kpis" style={{ marginTop: 16 }}>
-        <Kpi label="平均能力" value={fmt(R.avg)} sub={`比隊平均 ${signed(R.avg - v.teamAvg)}`} />
+        <Kpi label="平均能力" value={<AnimatedNumber value={R.avg} />} sub={<>比隊平均 <AnimatedNumber value={R.avg - v.teamAvg} signed /></>} />
         <Kpi label="隊內排名" value={`#${rank(R.avg, avgs)}`} sub={`共 ${v.rated.length} 人（依平均能力）`} />
         <Kpi label="數據推薦位置" value={R.rec[0]} sub={`其次 ${R.rec.slice(1).join("、")}`} />
         <Kpi label="最強能力" value={best.label} sub={`${best.score} 分，隊內 #${best.rank}`} />
       </div>
       <div className="tabs" role="tablist" aria-label="球員報告" style={{ marginTop: 20 }}>
-        {([["ability", "能力分析"], ["pos", "位置"], ["match", "比賽數據"]] as const).map(([k, l]) => (
+        {([["ability", "能力分析"], ["pos", "位置"], ["career", "生涯"], ["match", "比賽數據"]] as const).map(([k, l]) => (
           <button key={k} type="button" role="tab" className="tabbtn" aria-selected={tab === k} onClick={() => setTab(k)}>{l}</button>
         ))}
       </div>
@@ -72,13 +75,25 @@ export default function ReportPage() {
       {tab === "ability" && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
           <figure className="panel" style={{ flex: "3 1 340px", minWidth: 0, margin: 0, padding: 16 }}>
-            <figcaption style={{ display: "flex", gap: 16, flexWrap: "wrap", fontSize: 14, marginBottom: 8 }}>
-              <LegendLine color="#11A595">{R.name}</LegendLine><LegendLine color="#8A97AD" dashed>全隊平均</LegendLine>
-            </figcaption>
-            <Radar abilities={ABILITIES} label={`${R.name} 的 21 項能力雷達圖，和全隊平均比較。最強：${strong.map((s) => s.label).join("、")}`} series={[
-              { values: ABILITIES.map((a) => v.teamScores[a.key] ?? 0), color: "#8A97AD", dashed: true, width: 0.6 },
-              { values: ABILITIES.map((a) => S[a.key] ?? 0), color: "#11A595", fill: "rgba(17,165,149,.22)" },
-            ]} />
+            <div role="radiogroup" aria-label="雷達圖顯示" className="seg" style={{ marginBottom: 12 }}>
+              {([["self", "自評"], ["perf", "比賽表現"], ["both", "兩者疊圖"]] as const).map(([k, l]) => (
+                <button key={k} type="button" role="radio" aria-checked={mode === k} onClick={() => setMode(k)}>{l}</button>
+              ))}
+            </div>
+            {mode === "perf" ? (
+              <NoPerformance name={R.name} />
+            ) : (
+              <>
+                <div style={{ display: "flex", gap: 16, flexWrap: "wrap", fontSize: 14, marginBottom: 8 }}>
+                  <LegendLine color="#11A595">{R.name}（自評）</LegendLine><LegendLine color="#8A97AD" dashed>全隊平均</LegendLine>
+                  {mode === "both" && <span className="faint">比賽表現：尚無比賽數據</span>}
+                </div>
+                <Radar abilities={ABILITIES} label={`${R.name} 的 21 項能力雷達圖，和全隊平均比較。最強：${strong.map((s) => s.label).join("、")}`} series={[
+                  { values: ABILITIES.map((a) => v.teamScores[a.key] ?? 0), color: "#8A97AD", dashed: true, width: 0.6, name: "全隊平均" },
+                  { values: ABILITIES.map((a) => S[a.key] ?? 0), color: "#11A595", fill: "rgba(17,165,149,.22)", name: `${R.name}（自評）` },
+                ]} />
+              </>
+            )}
           </figure>
           <div style={{ flex: "2 1 280px", minWidth: 0, display: "flex", flexDirection: "column", gap: 12 }}>
             <AbilityTable title="強項" rows={strong} />
@@ -90,7 +105,7 @@ export default function ReportPage() {
               </div>
               {CATEGORY_NAMES.map((c) => (
                 <div key={c} className="ab" style={{ gridTemplateColumns: "1fr 48px 56px 72px" }}>
-                  <span>{c}</span><span className="n">{fmt(R.cat[c])}</span><span className="n faint">{fmt(v.teamCat[c])}</span>
+                  <span>{c}</span><span className="n"><AnimatedNumber value={R.cat[c]} /></span><span className="n faint">{fmt(v.teamCat[c])}</span>
                   <span className="n faint">#{rank(R.cat[c], v.rated.map((p) => p.cat[c]))}</span>
                 </div>
               ))}
@@ -147,11 +162,11 @@ export default function ReportPage() {
               {groupByLine(POSITIONS).map(({ line, positions }) => (
                 <div key={line.name}>
                   <p style={{ margin: "10px 0 2px", fontSize: 14, fontWeight: 700, color: line.color }}>{line.name}</p>
-                  {positions.slice().sort((a, b) => R.fit[b] - R.fit[a]).map((pos) => (
+                  {positions.slice().sort((a, b) => R.fit[b] - R.fit[a]).map((pos, i) => (
                     <div key={pos} style={{ display: "grid", gridTemplateColumns: "84px 1fr 36px", gap: 10, alignItems: "center", padding: "3px 0" }}>
                       <span style={{ fontSize: 14 }}>{pos}{R.rec.includes(pos) && <span style={{ color: "#FACC15", marginLeft: 4 }}>★</span>}</span>
-                      <Bar frac={R.fit[pos] / 100} color={line.color} height={12} />
-                      <span className="num" style={{ textAlign: "right" }}>{Math.round(R.fit[pos])}</span>
+                      <Bar frac={R.fit[pos] / 100} color={line.color} height={12} delay={i * 50} />
+                      <span className="num" style={{ textAlign: "right" }}><AnimatedNumber value={R.fit[pos]} digits={0} /></span>
                     </div>
                   ))}
                 </div>
@@ -161,6 +176,8 @@ export default function ReportPage() {
         </div>
       )}
 
+      {tab === "career" && <CareerPanel teamId={teamId} playerId={R.id} name={R.name} />}
+
       {tab === "match" && (
         <div className="panel" style={{ padding: 24, display: "flex", gap: 16, alignItems: "center" }}>
           <svg width="56" height="56" viewBox="0 0 56 56" aria-hidden="true" focusable="false" style={{ flex: "none" }}><rect x="6" y="12" width="44" height="32" rx="4" fill="none" stroke="#4A5A7A" strokeWidth="2" /><path d="M24 22l10 6-10 6z" fill="#4A5A7A" /></svg>
@@ -169,6 +186,21 @@ export default function ReportPage() {
       )}
       {msg}
     </>
+  );
+}
+
+/** 比賽表現評分要等影片分析（v3–v4.0）才有；在那之前不顯示 0 分，而是說明還沒有數據。 */
+function NoPerformance({ name }: { name: string }) {
+  return (
+    <div style={{ display: "flex", gap: 16, alignItems: "center", padding: "32px 8px" }}>
+      <svg width="56" height="56" viewBox="0 0 56 56" aria-hidden="true" focusable="false" style={{ flex: "none" }}>
+        <polygon points="28,6 49,21 41,46 15,46 7,21" fill="none" stroke="#4A5A7A" strokeWidth="2" strokeDasharray="4 3" />
+      </svg>
+      <div>
+        <p style={{ margin: 0, fontWeight: 700 }}>尚無比賽數據</p>
+        <p className="muted" style={{ margin: "4px 0 0" }}>{name} 的比賽表現評分要等影片分析上線（v3–v4）後才會出現，到時候可以和自評疊在一起比較。</p>
+      </div>
+    </div>
   );
 }
 

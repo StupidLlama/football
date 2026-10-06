@@ -448,5 +448,84 @@ select pg_temp.must_fail('select public.delete_my_account()', '沒登入刪帳�
 select pg_temp.must_fail('select public.export_my_data()', '沒登入下載資料');
 reset role;
 
+-- ============================================================
+-- v2.3 球員生涯：A 的帳號在 C 隊（上賽季）、E 隊也有身分，自己決定放不放進生涯
+-- ============================================================
+insert into public.teams (id, code, name, season) values
+  ('10000000-0000-0000-0000-00000000000c', 'RLS-TEST-C', 'C 隊', '2025-26'),
+  ('10000000-0000-0000-0000-0000000000e0', 'RLS-TEST-E', 'E 隊', '2024-25');
+insert into auth.users (id, email) values
+  ('00000000-0000-0000-0000-000000000012', 'rls-i@example.test');   -- 只在 C 隊
+insert into public.players (id, team_id, name, jersey_number) values
+  ('20000000-0000-0000-0000-0000000000c1', '10000000-0000-0000-0000-00000000000c', '球員C1', '7'),
+  ('20000000-0000-0000-0000-0000000000c2', '10000000-0000-0000-0000-00000000000c', '球員C2', null),
+  ('20000000-0000-0000-0000-0000000000e1', '10000000-0000-0000-0000-0000000000e0', '球員E1', null);
+insert into public.memberships (team_id, user_id, role, player_id) values
+  ('10000000-0000-0000-0000-00000000000c', '00000000-0000-0000-0000-00000000000a', 'player', '20000000-0000-0000-0000-0000000000c1'),
+  ('10000000-0000-0000-0000-00000000000c', '00000000-0000-0000-0000-000000000012', 'player', '20000000-0000-0000-0000-0000000000c2'),
+  ('10000000-0000-0000-0000-0000000000e0', '00000000-0000-0000-0000-00000000000a', 'player', '20000000-0000-0000-0000-0000000000e1');
+insert into public.ability_ratings (team_id, player_id, scores, submitted_at) values
+  ('10000000-0000-0000-0000-00000000000c', '20000000-0000-0000-0000-0000000000c1', '{"passing": 2}', now() - interval '300 days'),
+  ('10000000-0000-0000-0000-00000000000c', '20000000-0000-0000-0000-0000000000c2', '{"passing": 5}', now() - interval '300 days'),
+  ('10000000-0000-0000-0000-0000000000e0', '20000000-0000-0000-0000-0000000000e1', '{"passing": 1}', now() - interval '600 days');
+
+create function pg_temp.career_teams(j jsonb) returns bigint language sql as $$
+  select count(*) from jsonb_array_elements(coalesce(j -> 'entries', '[]'::jsonb))
+$$;
+create function pg_temp.career_has(j jsonb, team text) returns bigint language sql as $$
+  select count(*) from jsonb_array_elements(coalesce(j -> 'entries', '[]'::jsonb)) e where e ->> 'team_id' = team
+$$;
+grant execute on function pg_temp.career_teams(jsonb), pg_temp.career_has(jsonb, text) to authenticated;
+
+set local role authenticated;
+-- 預設不放進生涯：A 隊管理員只看到 A 隊
+select pg_temp.login('00000000-0000-0000-0000-00000000000d');
+select pg_temp.st(public.get_career('10000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-0000000000a1'), 'ok', '隊友看生涯');
+select pg_temp.expect(pg_temp.career_teams(public.get_career('10000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-0000000000a1')), 1,
+                      '還沒放進生涯時只看得到這一隊');
+-- 本人看得到自己所有隊伍
+select pg_temp.login('00000000-0000-0000-0000-00000000000a');
+select pg_temp.expect(pg_temp.career_teams(public.get_career('10000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-0000000000a1')), 3,
+                      '本人看得到自己所有隊伍');
+-- 本人只打開 C 隊
+select pg_temp.st(public.set_career_shared('10000000-0000-0000-0000-00000000000c', true), 'ok', '把 C 隊放進生涯');
+select pg_temp.st(public.set_career_shared('10000000-0000-0000-0000-00000000000b', true), 'not_member', '開不是自己的隊');
+select pg_temp.st(public.set_career_shared('10000000-0000-0000-0000-00000000000c', null), 'invalid', '開關是空值');
+select pg_temp.must_fail($q$update public.memberships set career_shared = true where user_id = auth.uid()$q$, '直接改生涯開關');
+-- 隊友現在看到 A 隊＋C 隊，看不到 E 隊；C 隊的其他人（C2）不會出現
+select pg_temp.login('00000000-0000-0000-0000-00000000000d');
+select pg_temp.expect(pg_temp.career_teams(public.get_career('10000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-0000000000a1')), 2,
+                      '放進生涯後隊友看到兩隊');
+select pg_temp.expect(pg_temp.career_has(public.get_career('10000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-0000000000a1'),
+                      '10000000-0000-0000-0000-0000000000e0'), 0, '沒打開的 E 隊看不到');
+select pg_temp.expect((select count(*) from jsonb_array_elements(
+                         public.get_career('10000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-0000000000a1') -> 'entries') e,
+                       jsonb_array_elements(e -> 'ratings') r where (r -> 'scores' ->> 'passing') = '5'), 0, '生涯裡沒有別人的能力表');
+-- 隊友還是不能直接讀 C 隊的資料
+select pg_temp.expect((select count(*) from public.ability_ratings where team_id = '10000000-0000-0000-0000-00000000000c'), 0,
+                      '生涯不會打開別隊的資料表');
+-- 不是這隊的人不能看；拿別隊的球員來查也不行
+select pg_temp.login('00000000-0000-0000-0000-000000000012');
+select pg_temp.st(public.get_career('10000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-0000000000a1'), 'not_member', '非隊友看生涯');
+select pg_temp.st(public.get_career('10000000-0000-0000-0000-00000000000c', '20000000-0000-0000-0000-0000000000a1'), 'not_found', '用自己隊查別隊球員');
+-- C 隊的隊友看 C1（同一個帳號）：看得到 C 隊＋打開的隊；A 隊沒打開，所以看不到
+select pg_temp.expect(pg_temp.career_has(public.get_career('10000000-0000-0000-0000-00000000000c', '20000000-0000-0000-0000-0000000000c1'),
+                      '10000000-0000-0000-0000-00000000000a'), 0, '沒打開的 A 隊在 C 隊看不到');
+-- 還沒認領的名字：生涯是空的
+select pg_temp.login('00000000-0000-0000-0000-00000000000d');
+select pg_temp.expect((select (public.get_career('10000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-0000000000a2') ->> 'linked')::boolean::int), 0,
+                      '沒認領的名字沒有生涯');
+-- 關掉之後隊友又看不到
+select pg_temp.login('00000000-0000-0000-0000-00000000000a');
+select pg_temp.st(public.set_career_shared('10000000-0000-0000-0000-00000000000c', false), 'ok', '從生涯拿掉 C 隊');
+select pg_temp.login('00000000-0000-0000-0000-00000000000d');
+select pg_temp.expect(pg_temp.career_teams(public.get_career('10000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-0000000000a1')), 1,
+                      '拿掉之後隊友只看到這一隊');
+reset role;
+set local role anon;
+select set_config('request.jwt.claims', '', true);
+select pg_temp.must_fail($q$select public.get_career('10000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-0000000000a1')$q$, '沒登入看生涯');
+reset role;
+
 select 'RLS OK' as result;
 rollback;

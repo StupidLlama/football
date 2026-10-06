@@ -14,7 +14,7 @@ const player = (id: string, name: string): Player => ({
 });
 const member = (user: string, role: "player" | "coach", playerId: string | null, claim: string | null = null): Membership => ({
   team_id: "T", user_id: user, role, player_id: playerId, joined_at: "2026-09-01T00:00:00Z",
-  claim_player_id: claim, claim_new_name: null, claim_at: claim ? "2026-10-01T00:00:00Z" : null,
+  career_shared: false, claim_player_id: claim, claim_new_name: null, claim_at: claim ? "2026-10-01T00:00:00Z" : null,
 });
 
 function data(me: Membership, extra: Partial<TeamData> = {}): TeamData {

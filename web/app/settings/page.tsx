@@ -1,5 +1,5 @@
 "use client";
-// 設定：個人資料、我的球隊（離隊）、文字大小、隱私與帳號（同意紀錄、下載資料、刪除帳號）、網站管理員（建立隊伍、聯絡訊息）。
+// 設定：個人資料、我的球隊（離隊）、我的生涯（哪幾隊放進生涯）、文字大小、隱私與帳號（同意紀錄、下載資料、刪除帳號）、網站管理員（建立隊伍、聯絡訊息）。
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
@@ -77,6 +77,8 @@ function Settings() {
         <Link className="btn btn-line" href="/join" style={{ marginTop: 12 }}>加入另一隊</Link>
       </section>
 
+      <MyCareer />
+
       <section aria-labelledby="s-look" className="panel" style={{ marginTop: 16, padding: "20px 24px" }}>
         <h2 id="s-look" style={{ margin: "0 0 12px", fontSize: 20 }}>顯示</h2>
         <p className="muted" style={{ margin: "0 0 8px", fontSize: 14 }}>文字大小（只影響這台裝置）</p>
@@ -96,6 +98,51 @@ function Settings() {
       <PrivacyAndAccount />
       <Footer />
     </div>
+  );
+}
+
+/** 我的生涯：每一隊一個開關，打開的隊伍會出現在我在其他隊的球員報告「生涯」分頁。只有本人能開關，預設關閉。 */
+function MyCareer() {
+  const auth = useAuth();
+  const say = useToast();
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState("");
+  const teams = auth.teams ?? [];
+
+  async function flip(teamId: string, teamName: string, shared: boolean) {
+    setBusy(teamId);
+    const r = await actions.setCareerShared(teamId, shared);
+    setBusy(null);
+    if (r.status === "ok") { await auth.reload(); setError(""); say(shared ? `已把${teamName}放進生涯` : `已把${teamName}從生涯拿掉`); }
+    else setError(message(r));
+  }
+
+  return (
+    <section id="s-career" aria-labelledby="s-career-h" className="panel" style={{ marginTop: 16, padding: "20px 24px", scrollMarginTop: 16 }}>
+      <h2 id="s-career-h" style={{ margin: "0 0 4px", fontSize: 20 }}>我的生涯</h2>
+      <p className="muted" style={{ margin: "0 0 8px", fontSize: 14 }}>
+        打開的球隊會串成你的生涯，出現在你球員報告的「生涯」分頁：你<b>現在所有球隊</b>的隊友都看得到那幾隊的能力表、背號和擅長位置。
+        關掉的球隊只有你自己看得到。隨時可以改。
+      </p>
+      {error && <ErrorBox text={error} />}
+      {teams.length === 0 && <p className="faint">還沒有加入任何球隊。</p>}
+      {teams.map(({ team, membership }) => {
+        const linked = !!membership.player_id;
+        const on = linked && membership.career_shared;
+        const id = `career-${team.id}`;
+        return (
+          <div key={team.id} className="row" style={{ flexWrap: "wrap" }}>
+            <span style={{ flex: "1 1 200px", minWidth: 0 }}>
+              <label htmlFor={id} style={{ cursor: linked ? "pointer" : "default" }}>{team.name}</label><br />
+              <span className="faint" style={{ fontSize: 14 }}>{team.season ?? "沒有填賽季"}{linked ? (on ? " · 隊友看得到" : " · 只有你看得到") : " · 還沒認領名單上的自己，不能放進生涯"}</span>
+            </span>
+            <button id={id} type="button" role="switch" className="switch" aria-checked={on} disabled={!linked || busy === team.id}
+              aria-label={`${team.name}${team.season ? `（${team.season}）` : ""}放進生涯`}
+              onClick={() => flip(team.id, team.name, !on)} />
+          </div>
+        );
+      })}
+    </section>
   );
 }
 

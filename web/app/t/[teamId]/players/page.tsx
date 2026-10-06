@@ -1,5 +1,5 @@
 "use client";
-// 球員：球員列表（排行榜合併在這裡：可依平均、任一類別或能力排序，格子可以顯示分數或隊內名次）＋ 比較。
+// 球員：球員列表（排行榜合併在這裡：可依平均、任一類別或能力排序，格子可以顯示分數或隊內名次）＋ 比較（和球員、全隊平均、同位置平均比）。
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState, type CSSProperties } from "react";
 import { ABILITIES, CATEGORY_NAMES, POSITIONS, RULES } from "@/lib/config";
@@ -9,6 +9,8 @@ import { read, write } from "@/lib/prefs";
 import { useTeamView } from "@/lib/team";
 import type { PlayerView } from "@/lib/teamview";
 import { Bar, fmt, Kpi, LegendLine, PrefTag, Radar, signed } from "@/components/ui";
+import { AnimatedNumber } from "@/components/anim";
+import { diffs, groupAverage, playersAt, positionsWithPlayers } from "@/lib/compare";
 
 type Col = { label: string; val: (p: PlayerView) => number; dec: number };
 
@@ -223,32 +225,52 @@ function Compare() {
   const P = v.rated;
   const [a, setA] = useState<string>(v.myPlayer?.scores ? v.myPlayer.id : P[0]?.id ?? "");
   const [b, setB] = useState<string>(P.find((p) => p.id !== a)?.id ?? "");
-  const [vsTeam, setVsTeam] = useState(P.length < 2);
+  const [against, setAgainst] = useState<"player" | "team" | "pos">(P.length < 2 ? "team" : "player");
+  const [pos, setPos] = useState<string>("");
   if (P.length === 0) return <p className="panel muted pad">還沒有人填能力表，沒辦法比較。</p>;
 
   const A = P.find((p) => p.id === a) ?? P[0];
   const Bp = P.find((p) => p.id === b) ?? P.find((p) => p.id !== A.id) ?? P[0];
-  const useTeam = vsTeam || P.length < 2;
-  const bScores = useTeam ? v.teamScores : Bp.scores!;
-  const bCat = useTeam ? v.teamCat : Bp.cat;
-  const bAvg = useTeam ? v.teamAvg : Bp.avg;
-  const bName = useTeam ? "全隊平均" : Bp.name;
-  const diffs = ABILITIES.map((x) => ({ ...x, a: A.scores![x.key] ?? 0, b: bScores[x.key] ?? 0 }))
-    .map((x) => ({ ...x, d: x.a - x.b })).sort((x, y) => Math.abs(y.d) - Math.abs(x.d)).slice(0, 5);
+  // 同位置：可選的位置 = 有人自評擅長的位置；預設 A 自己第一個擅長位置
+  const posOptions = positionsWithPlayers(P, POSITIONS);
+  const myPos = A.good_positions.find((g) => posOptions.some((o) => o.pos === g)) ?? posOptions[0]?.pos ?? "";
+  const curPos = posOptions.some((o) => o.pos === pos) ? pos : myPos;
+  const group = against === "pos" && curPos ? groupAverage(playersAt(P, curPos, A.id), RULES) : null;
+  const mode = against === "player" && P.length < 2 ? "team" : against === "pos" && !group ? "pos-empty" : against;
+
+  const bScores = mode === "player" ? Bp.scores! : mode === "pos" ? group!.scores : v.teamScores;
+  const bCat = mode === "player" ? Bp.cat : mode === "pos" ? group!.cat : v.teamCat;
+  const bAvg = mode === "player" ? Bp.avg : mode === "pos" ? group!.avg : v.teamAvg;
+  const bName = mode === "player" ? Bp.name : mode === "pos" ? `${curPos} 平均` : "全隊平均";
+  const avgLike = mode !== "player";
+  const top = mode === "pos-empty" ? [] : diffs(A.scores!, bScores, RULES).slice(0, 5);
   const diffStyle = (d: number): CSSProperties => ({ textAlign: "right", color: d > 0 ? "#2DD4BF" : d < 0 ? "#F5A524" : "#8A97AD" });
+  const bColor = mode === "player" ? "#D08000" : "#8A97AD";
 
   return (
     <>
       <div className="panel pad">
         <p style={{ margin: "0 0 8px", fontWeight: 700 }}><span style={{ display: "inline-block", width: 12, height: 12, borderRadius: 3, background: "#11A595", marginRight: 8 }} />球員 A</p>
         <div className="chips">{P.map((p) => <button key={p.id} type="button" className="chip" aria-pressed={p.id === A.id} onClick={() => setA(p.id)}>{p.name}</button>)}</div>
-        <label style={{ display: "inline-flex", alignItems: "center", gap: 10, margin: "16px 0 8px", cursor: "pointer" }}>
-          <input type="checkbox" checked={useTeam} disabled={P.length < 2} onChange={() => setVsTeam(!vsTeam)} style={{ width: 20, height: 20, accentColor: "#2DD4BF" }} />和全隊平均比
-        </label>
-        {!useTeam && (
+        <p style={{ margin: "16px 0 8px", fontWeight: 700 }}>和誰比</p>
+        <div role="radiogroup" aria-label="和誰比" className="seg">
+          {([["player", "另一位球員"], ["team", "全隊平均"], ["pos", "同位置平均"]] as const).map(([k, l]) => (
+            <button key={k} type="button" role="radio" aria-checked={against === k} disabled={k === "player" && P.length < 2}
+              onClick={() => setAgainst(k)} style={k === "player" && P.length < 2 ? { opacity: .45, cursor: "not-allowed" } : undefined}>{l}</button>
+          ))}
+        </div>
+        {mode === "player" && (
           <>
-            <p style={{ margin: "8px 0", fontWeight: 700 }}><span style={{ display: "inline-block", width: 12, height: 12, borderRadius: 3, background: "#D08000", marginRight: 8 }} />球員 B</p>
+            <p style={{ margin: "16px 0 8px", fontWeight: 700 }}><span style={{ display: "inline-block", width: 12, height: 12, borderRadius: 3, background: "#D08000", marginRight: 8 }} />球員 B</p>
             <div className="chips">{P.map((p) => <button key={p.id} type="button" className="chip" aria-pressed={p.id === Bp.id} onClick={() => setB(p.id)}>{p.name}</button>)}</div>
+          </>
+        )}
+        {against === "pos" && (
+          <>
+            <p style={{ margin: "16px 0 8px", fontWeight: 700 }}>位置<span className="faint" style={{ fontWeight: 400, fontSize: 13, marginLeft: 6 }}>自評擅長這個位置的隊友（不含{A.name}）的平均</span></p>
+            <div className="chips">{posOptions.map((o) => (
+              <button key={o.pos} type="button" className="chip" aria-pressed={o.pos === curPos} onClick={() => setPos(o.pos)}>{o.pos}<span className="faint" style={{ marginLeft: 4, fontSize: 13 }}>{playersAt(P, o.pos, A.id).length}</span></button>
+            ))}</div>
           </>
         )}
       </div>
@@ -256,40 +278,49 @@ function Compare() {
         <figure className="panel" style={{ flex: "3 1 340px", minWidth: 0, margin: 0, padding: 16 }}>
           <figcaption style={{ display: "flex", gap: 16, flexWrap: "wrap", fontSize: 14, marginBottom: 8 }}>
             <LegendLine color="#11A595">{A.name}</LegendLine>
-            <LegendLine color={useTeam ? "#8A97AD" : "#D08000"} dashed={useTeam}>{bName}</LegendLine>
+            {mode !== "pos-empty" && <LegendLine color={bColor} dashed={avgLike}>{bName}{group ? `（${group.n} 人）` : ""}</LegendLine>}
           </figcaption>
           <Radar abilities={ABILITIES} label={`${A.name} 和 ${bName} 的 21 項能力雷達圖`} series={[
-            { values: ABILITIES.map((x) => bScores[x.key] ?? 0), color: useTeam ? "#8A97AD" : "#D08000", fill: useTeam ? "none" : "rgba(208,128,0,.18)", dashed: useTeam, width: 0.7 },
-            { values: ABILITIES.map((x) => A.scores![x.key] ?? 0), color: "#11A595", fill: "rgba(17,165,149,.22)" },
+            ...(mode === "pos-empty" ? [] : [{ values: ABILITIES.map((x) => bScores[x.key] ?? 0), color: bColor, fill: avgLike ? "none" : "rgba(208,128,0,.18)", dashed: avgLike, width: 0.7, name: bName }]),
+            { values: ABILITIES.map((x) => A.scores![x.key] ?? 0), color: "#11A595", fill: "rgba(17,165,149,.22)", name: A.name },
           ]} />
         </figure>
         <div style={{ flex: "2 1 280px", minWidth: 0, display: "flex", flexDirection: "column", gap: 12 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <Kpi label={A.name} value={fmt(A.avg)} sub={`平均能力（${signed(A.avg - bAvg)}）`} />
-            <Kpi label={bName} value={fmt(bAvg)} sub="平均能力" />
-          </div>
-          <div className="panel" style={{ padding: "12px 16px" }}>
-            <p style={{ margin: "0 0 4px", fontWeight: 700 }}>差距最大的 5 項能力</p>
-            <div className="ab faint" style={{ gridTemplateColumns: "1fr 40px 48px 52px", borderTop: 0, fontSize: 13 }}><span>能力</span><span style={{ textAlign: "right" }}>A</span><span style={{ textAlign: "right" }}>{useTeam ? "隊平均" : "B"}</span><span style={{ textAlign: "right" }}>差距</span></div>
-            {diffs.map((d) => (
-              <div key={d.key} className="ab" style={{ gridTemplateColumns: "1fr 40px 48px 52px" }}>
-                <span>{d.label}<span className="faint" style={{ fontSize: 13, marginLeft: 6 }}>{d.category}</span></span>
-                <span className="n">{fmt(d.a, 0)}</span><span className="n">{fmt(d.b, useTeam ? 1 : 0)}</span><span className="n" style={diffStyle(d.d)}>{signed(d.d, 1)}</span>
+          {mode === "pos-empty" ? (
+            <p className="panel muted" style={{ margin: 0, padding: "12px 16px" }}>
+              {curPos ? `除了 ${A.name}，沒有其他人自評擅長 ${curPos}。換一個位置試試。` : "還沒有人填擅長位置。"}
+            </p>
+          ) : (
+            <>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <Kpi label={A.name} value={<AnimatedNumber value={A.avg} />} sub={<>平均能力（<AnimatedNumber value={A.avg - bAvg} signed />）</>} />
+                <Kpi label={bName} value={<AnimatedNumber value={bAvg} />} sub={group ? `平均能力，${group.n} 人` : "平均能力"} />
               </div>
-            ))}
-          </div>
-          <div className="panel" style={{ padding: "12px 16px" }}>
-            <p style={{ margin: "0 0 4px", fontWeight: 700 }}>類別分數</p>
-            <div className="ab faint" style={{ gridTemplateColumns: "1fr 48px 52px 56px", borderTop: 0, fontSize: 13 }}><span>類別</span><span style={{ textAlign: "right" }}>A</span><span style={{ textAlign: "right" }}>{useTeam ? "隊平均" : "B"}</span><span style={{ textAlign: "right" }}>差距</span></div>
-            {CATEGORY_NAMES.map((c) => {
-              const d = (A.cat[c] ?? 0) - (bCat[c] ?? 0);
-              return (
-                <div key={c} className="ab" style={{ gridTemplateColumns: "1fr 48px 52px 56px" }}>
-                  <span>{c}</span><span className="n">{fmt(A.cat[c] ?? 0)}</span><span className="n">{fmt(bCat[c] ?? 0)}</span><span className="n" style={diffStyle(d)}>{signed(d)}</span>
-                </div>
-              );
-            })}
-          </div>
+              <div className="panel" style={{ padding: "12px 16px" }}>
+                <p style={{ margin: "0 0 4px", fontWeight: 700 }}>差距最大的 5 項能力</p>
+                <div className="ab faint" style={{ gridTemplateColumns: "1fr 40px 48px 52px", borderTop: 0, fontSize: 13 }}><span>能力</span><span style={{ textAlign: "right" }}>A</span><span style={{ textAlign: "right" }}>{avgLike ? "平均" : "B"}</span><span style={{ textAlign: "right" }}>差距</span></div>
+                {top.map((d, i) => (
+                  <div key={d.key} className="ab fade-up" style={{ gridTemplateColumns: "1fr 40px 48px 52px", animationDelay: `${i * 0.05}s` }}>
+                    <span>{d.label}<span className="faint" style={{ fontSize: 13, marginLeft: 6 }}>{d.category}</span></span>
+                    <span className="n">{fmt(d.a, 0)}</span><span className="n">{fmt(d.b, avgLike ? 1 : 0)}</span><span className="n" style={diffStyle(d.d)}>{signed(d.d, 1)}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="panel" style={{ padding: "12px 16px" }}>
+                <p style={{ margin: "0 0 4px", fontWeight: 700 }}>類別分數</p>
+                <div className="ab faint" style={{ gridTemplateColumns: "1fr 48px 52px 56px", borderTop: 0, fontSize: 13 }}><span>類別</span><span style={{ textAlign: "right" }}>A</span><span style={{ textAlign: "right" }}>{avgLike ? "平均" : "B"}</span><span style={{ textAlign: "right" }}>差距</span></div>
+                {CATEGORY_NAMES.map((c) => {
+                  const d = (A.cat[c] ?? 0) - (bCat[c] ?? 0);
+                  return (
+                    <div key={c} className="ab" style={{ gridTemplateColumns: "1fr 48px 52px 56px" }}>
+                      <span>{c}</span><span className="n"><AnimatedNumber value={A.cat[c] ?? 0} /></span><span className="n"><AnimatedNumber value={bCat[c] ?? 0} /></span>
+                      <span className="n" style={diffStyle(d)}><AnimatedNumber value={d} signed /></span>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
         </div>
       </div>
     </>
