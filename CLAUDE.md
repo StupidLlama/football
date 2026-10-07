@@ -158,7 +158,7 @@ py web/scripts/sync_config.py              # 改了 config/settings.toml 的能�
 
 - v2.2 / v2.2.1：已上線（見 `docs/V2_2_1_SETUP.md` 的剩餘事項：Google 登入正式版、v2.2.1 標籤）。
 - v2.3：已上線，標籤 v2.3。還沒用真實資料測過：兩位球員比較的變形動畫、隊友看別人的生涯、兩個時間點比較（隊上要有第二個人、自己要填第二次能力表）。
-- **v2.4 組隊（F3）：程式已寫完在 `v2.4` 分支，還沒合併到 main、還沒上線。** 0007 migration 和 rls_test 使用者已經在 Supabase 執行過、通過。步驟和驗收清單在 `docs/V2_4_SETUP.md`（本機測試 → 桌機/手機驗收 → 合併到 main → 打標籤）。因為沙盒連不到 npm，`npm run typecheck`／`npm test`／手機實測都還要在使用者電腦上做一次。
+- **v2.4 組隊（F3）：程式已寫完在 `v2.4` 分支，還沒合併到 main、還沒上線。** 0007 migration 和 rls_test 使用者已經在 Supabase 執行過、通過。步驟和驗收清單在 `docs/V2_4_SETUP.md`（本機測試 → 桌機/手機驗收 → 合併到 main → 打標籤）。因為沙盒連不到 npm，`npm run typecheck`／`npm test`／手機實測都還要在使用者電腦上做一次。合併前多修了一個 bug（球場拖曳在 Chrome 變選取文字，`-webkit-user-drag`，commit `380614a`），所以這次上線打標籤改成 **`v2.4.1`**，不是 `v2.4`。
 - 下一版 v2.5：比賽列表與出賽登記（F7，出席名單直接接進組隊）；之後語言設定（多語系）。
 
 - 使用者之後會裝插畫風格的外掛，再加入手繪 / 人性化的視覺元素。

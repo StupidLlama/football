@@ -85,4 +85,10 @@ push 到 main 後 Vercel 會自動重新部署。上線後：
 
 ## 4. 打標籤
 
-GitHub → Releases → Draft a new release → Tag 輸入 `v2.4`、Target 選 `main` → 寫幾行更新內容 → Publish。
+因為合併前多修了一個 bug（拖曳在 Chrome 選取文字，見下方「已知問題」），這次標籤打 **`v2.4.1`**，不是 `v2.4`。
+
+GitHub → Releases → Draft a new release → Tag 輸入 `v2.4.1`、Target 選 `main` → 寫幾行更新內容 → Publish。
+
+### 這個 patch 修了什麼（v2.4.1）
+
+- 球場上拖曳球員：Chrome／Safari 對非圖片、連結的元素，光有 `draggable="true"` 不會真的能拖，要加 `-webkit-user-drag: element`，不然滑鼠按下去會變成選取文字。commit `380614a`。
