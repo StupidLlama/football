@@ -46,7 +46,7 @@ export function LineupShare({ row, labels, formation, onClose, onChanged }: {
     catch { say("複製失敗，請手動選取連結"); }
   };
 
-  const download = () => downloadPitchPng(pitchSvgMarkup(formation, labels, row.name || formation.label), `${row.name || "陣容"}.png`);
+  const download = () => downloadPitchPng(pitchSvgMarkup(formation, labels, row.name || formation.name), `${row.name || "陣容"}.png`);
 
   return (
     <div className="panel pad stack" style={{ gap: 12 }} role="dialog" aria-label="分享陣容">
@@ -108,14 +108,14 @@ export function SharedLineupView({ token }: { token: string }) {
   for (const [code, slot] of Object.entries(data.slots ?? {})) {
     labels[code] = slot ? { number: slot.number, text: slot.name ?? "", tag: "none", rated: false } : null;
   }
-  const title = data.name || formation.label;
+  const title = data.name || formation.name;
 
   return (
     <Centered>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}><Logo /><span style={{ fontWeight: 700 }}>Football Analysis Potato</span></div>
       <h1 style={{ fontSize: 26, margin: "0 0 4px" }}>{title}</h1>
       <p className="faint" style={{ margin: "0 0 16px" }}>
-        {data.team_name}{data.season ? `（${data.season}）` : ""} · {formation.label}
+        {data.team_name}{data.season ? `（${data.season}）` : ""} · {formation.name}
       </p>
       <Pitch formation={formation} labels={labels} lockedSlots={new Set()} selectedSlot={null} onSlotClick={() => {}} />
       <button type="button" className="btn btn-main btn-wide" style={{ marginTop: 16 }}

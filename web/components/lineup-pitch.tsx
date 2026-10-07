@@ -61,9 +61,10 @@ function SlotBox({ slot, label, locked, selected, draggable, onClick, onDragOver
   const dashed = !label || label.tag === "bad" || !label.rated;
   const name = label?.text ?? "";
   const short = name.length > 7 ? `${name.slice(0, 6)}…` : name;
+  // SVGProps<SVGGElement> 沒有宣告 draggable（但瀏覽器支援），型別檢查過不了，用 any 繞過。
+  const dragProps = { draggable, onDragStart, onDragOver, onDrop } as unknown as Record<string, unknown>;
   return (
-    <g className="pop-in" style={{ cursor: "pointer" }} onClick={onClick}
-      draggable={draggable} onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop}>
+    <g className="pop-in" style={{ cursor: "pointer" }} onClick={onClick} {...dragProps}>
       <rect x={x0} y={y0} width={bw} height={bh} rx={1.6}
         fill={label ? `${color}33` : "transparent"} stroke={selected ? "#F5A524" : color}
         strokeWidth={selected ? 1.4 : 0.9} strokeDasharray={dashed && !selected ? "1.4 1.1" : undefined} />
@@ -86,7 +87,7 @@ export function Pitch({ formation, labels, lockedSlots, selectedSlot, onSlotClic
 }) {
   return (
     <div style={{ width: "100%", maxWidth: 680, margin: "0 auto" }}>
-      <svg viewBox={`-2 -2 ${L + 4} ${W + 4}`} role="img" aria-label={`${formation.label} 陣容圖`}
+      <svg viewBox={`-2 -2 ${L + 4} ${W + 4}`} role="img" aria-label={`${formation.name} 陣容圖`}
         style={{ width: "100%", height: "auto", display: "block", borderRadius: 10 }}>
         <PitchMarkings />
         {formation.slots.map((slot) => (
