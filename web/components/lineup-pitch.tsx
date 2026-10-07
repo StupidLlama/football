@@ -62,9 +62,14 @@ function SlotBox({ slot, label, locked, selected, draggable, onClick, onDragOver
   const name = label?.text ?? "";
   const short = name.length > 7 ? `${name.slice(0, 6)}…` : name;
   // SVGProps<SVGGElement> 沒有宣告 draggable（但瀏覽器支援），型別檢查過不了，用 any 繞過。
+  // Chrome/Safari（WebKit）對非圖片/連結元素，光有 draggable="true" 不會真的能拖，
+  // 要加 -webkit-user-drag: element，不然滑鼠按下去會變成選取文字（這就是「拖不動」的原因）。
   const dragProps = { draggable, onDragStart, onDragOver, onDrop } as unknown as Record<string, unknown>;
+  const dragStyle: CSSProperties & Record<string, string> = draggable
+    ? { cursor: "pointer", WebkitUserDrag: "element", userSelect: "none", WebkitUserSelect: "none" }
+    : { cursor: "pointer" };
   return (
-    <g className="pop-in" style={{ cursor: "pointer" }} onClick={onClick} {...dragProps}>
+    <g className="pop-in" style={dragStyle} onClick={onClick} {...dragProps}>
       <rect x={x0} y={y0} width={bw} height={bh} rx={1.6}
         fill={label ? `${color}33` : "transparent"} stroke={selected ? "#F5A524" : color}
         strokeWidth={selected ? 1.4 : 0.9} strokeDasharray={dashed && !selected ? "1.4 1.1" : undefined} />
