@@ -2,13 +2,15 @@
 // 球隊首頁：待辦、下一場（黃框倒數）、近期戰績、即將比賽、比賽結果、裁判任務、球員名單。
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { setAttendance, type AttendanceAnswer } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { answerOf, countdown, isLocked, kickoffLabel, splitGames } from "@/lib/matches";
 import { useTeamView } from "@/lib/team";
 import { record, whenLabel, type MatchView, type Result } from "@/lib/teamview";
 import { todosFor } from "@/lib/todos";
+import { AttendanceButtons } from "@/components/attendance-buttons";
 import { TodoCards } from "@/components/todos";
-import { CaptainBadge, PosTag, RoleBadge } from "@/components/ui";
+import { CaptainBadge, PosTag, RoleBadge, useNow, useToast } from "@/components/ui";
 
 const RES: Record<Result, [string, string, string]> = { W: ["勝", "#2DD4BF", "#06201C"], D: ["和", "#64748B", "#FFFFFF"], L: ["負", "#FB7185", "#2A0A10"] };
 
@@ -21,30 +23,63 @@ function ResultChip({ r }: { r: Result }) {
   );
 }
 
-function useNow(intervalMs = 60_000) {
-  const [now, setNow] = useState(() => new Date());
-  useEffect(() => { const t = setInterval(() => setNow(new Date()), intervalMs); return () => clearInterval(t); }, [intervalMs]);
-  return now;
+function Countdown({ iso, now }: { iso: string; now: Date }) {
+  const { days, hours } = countdown(iso, now);
+  return (
+    <p style={{ margin: 0, display: "flex", gap: 16, alignItems: "flex-end" }} aria-label={`還有 ${days} 天 ${hours} 小時`}>
+      <span style={{ textAlign: "center" }}><span className="num" style={{ display: "block", fontSize: 64, lineHeight: 1 }}>{days}</span><span className="faint" style={{ fontSize: 14 }}>天</span></span>
+      <span style={{ textAlign: "center" }}><span className="num" style={{ display: "block", fontSize: 64, lineHeight: 1 }}>{String(hours).padStart(2, "0")}</span><span className="faint" style={{ fontSize: 14 }}>小時</span></span>
+    </p>
+  );
 }
 
-function NextMatch({ m, now }: { m: MatchView; now: Date }) {
-  const ms = Math.max(0, m.kickoff.getTime() - now.getTime());
-  const days = Math.floor(ms / 86_400_000), hours = Math.floor((ms % 86_400_000) / 3_600_000);
+/** 我們自己建立的下一場比賽（v2.5）：有這個就優先顯示，旁邊直接放出席／請假按鈕。 */
+function NextGame({ teamId, now }: { teamId: string; now: Date }) {
+  const v = useTeamView();
+  const say = useToast();
+  const m = splitGames(v.data.matches, now).upcoming[0];
+  if (!m) return null;
+  const myId = v.myPlayer?.id ?? null;
+  const answer = myId ? answerOf(v.data.attendance, m.id, myId) : null;
+
+  const onAnswer = async (next: AttendanceAnswer | null) => {
+    if (!myId) return;
+    const r = await setAttendance(m.id, next);
+    if (r.status === "ok") { say(next === "in" ? "已登記出席" : next === "out" ? "已登記請假" : "已清掉登記"); await v.reload(); }
+    else say(r.detail ?? "登記失敗");
+  };
+
   return (
     <section aria-labelledby="next-h" className="panel" style={{ marginTop: 24, padding: 24, border: "2px solid #F5A524",
       boxShadow: "0 0 0 4px rgba(245,165,36,.12)", display: "flex", flexWrap: "wrap", gap: 24, alignItems: "center", justifyContent: "space-between" }}>
       <div style={{ minWidth: 0 }}>
         <h2 id="next-h" className="accent" style={{ margin: "0 0 4px", fontSize: 22 }}>下一場</h2>
+        <Link href={`/t/${teamId}/matches/${m.id}`} style={{ margin: "0 0 12px", fontSize: 36, fontWeight: 700, lineHeight: 1.2, display: "block" }}>vs {m.opponent}</Link>
+        <p style={{ margin: "0 0 12px", display: "flex", flexWrap: "wrap", gap: 8 }}>
+          <span className="pill">{kickoffLabel(m.kickoff)}</span>
+          {m.jersey && <span className="pill">球衣 {m.jersey}</span>}
+          {m.location && <span className="pill">{m.location}</span>}
+        </p>
+        {myId && <AttendanceButtons answer={answer} locked={isLocked(m, now)} onAnswer={onAnswer} />}
+      </div>
+      <Countdown iso={m.kickoff} now={now} />
+    </section>
+  );
+}
+
+function NextMatch({ m, now }: { m: MatchView; now: Date }) {
+  return (
+    <section aria-labelledby="next-h" className="panel" style={{ marginTop: 24, padding: 24, border: "2px solid #F5A524",
+      boxShadow: "0 0 0 4px rgba(245,165,36,.12)", display: "flex", flexWrap: "wrap", gap: 24, alignItems: "center", justifyContent: "space-between" }}>
+      <div style={{ minWidth: 0 }}>
+        <h2 id="next-h" className="accent" style={{ margin: "0 0 4px", fontSize: 22 }}>下一場（聯賽賽程）</h2>
         <p style={{ margin: "0 0 12px", fontSize: 36, fontWeight: 700, lineHeight: 1.2 }}>vs {m.opp}</p>
         <p style={{ margin: 0, display: "flex", flexWrap: "wrap", gap: 8 }}>
           <span className="pill">{whenLabel(m.fixture, true)}</span><span className="pill">{m.side}</span>
           {m.fixture.round !== null && <span className="pill">第 {m.fixture.round} 輪</span>}
         </p>
       </div>
-      <p style={{ margin: 0, display: "flex", gap: 16, alignItems: "flex-end" }} aria-label={`還有 ${days} 天 ${hours} 小時`}>
-        <span style={{ textAlign: "center" }}><span className="num" style={{ display: "block", fontSize: 64, lineHeight: 1 }}>{days}</span><span className="faint" style={{ fontSize: 14 }}>天</span></span>
-        <span style={{ textAlign: "center" }}><span className="num" style={{ display: "block", fontSize: 64, lineHeight: 1 }}>{String(hours).padStart(2, "0")}</span><span className="faint" style={{ fontSize: 14 }}>小時</span></span>
-      </p>
+      <Countdown iso={m.kickoff.toISOString()} now={now} />
     </section>
   );
 }
@@ -66,6 +101,7 @@ export default function TeamHome() {
     return o(a) - o(b) || (parseInt(a.jersey_number || "999", 10) - parseInt(b.jersey_number || "999", 10)) || a.name.localeCompare(b.name, "zh-Hant");
   });
   const noLeague = !v.data.team.league_name;
+  const haveOwnGame = splitGames(v.data.matches, now).upcoming.length > 0;
 
   return (
     <>
@@ -79,10 +115,13 @@ export default function TeamHome() {
         <TodoCards todos={todos} />
       </section>
 
-      {upcoming[0] ? <NextMatch m={upcoming[0]} now={now} /> : (
+      {haveOwnGame ? <NextGame teamId={teamId} now={now} /> : upcoming[0] ? <NextMatch m={upcoming[0]} now={now} /> : (
         <section className="panel" style={{ marginTop: 24, padding: 20, border: "2px dashed #F5A52466" }}>
           <h2 className="accent" style={{ margin: "0 0 4px", fontSize: 22 }}>下一場</h2>
-          <p className="muted" style={{ margin: 0 }}>{noLeague ? "這一隊還沒設定聯賽隊名，賽程對不起來。請球隊管理員在管理專區設定。" : "目前沒有排定的比賽。"}</p>
+          <p className="muted" style={{ margin: 0 }}>
+            {noLeague ? "這一隊還沒設定聯賽隊名，賽程對不起來。" : "目前沒有排定的比賽。"}
+            {v.isCoach && <> <Link href={`/t/${teamId}/matches`}>去「比賽」頁新增一場</Link>。</>}
+          </p>
         </section>
       )}
 

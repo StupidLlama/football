@@ -3,6 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { getSharedLineup, setLineupShare, type LineupRow, type SharedLineup } from "@/lib/api";
 import { findFormation, formationsOf, type Formation } from "@/lib/lineup";
+import { kickoffLabel } from "@/lib/matches";
 import { LINEUP_RULES } from "@/lib/config";
 import { message } from "@/lib/status";
 import { downloadPitchPng, Pitch, pitchSvgMarkup, type SlotLabel } from "@/components/lineup-pitch";
@@ -116,6 +117,7 @@ export function SharedLineupView({ token }: { token: string }) {
       <h1 style={{ fontSize: 26, margin: "0 0 4px" }}>{title}</h1>
       <p className="faint" style={{ margin: "0 0 16px" }}>
         {data.team_name}{data.season ? `（${data.season}）` : ""} · {formation.name}
+        {data.match && <> · vs {data.match.opponent} · {kickoffLabel(data.match.kickoff)}</>}
       </p>
       <Pitch formation={formation} labels={labels} lockedSlots={new Set()} selectedSlot={null} onSlotClick={() => {}} />
       <button type="button" className="btn btn-main btn-wide" style={{ marginTop: 16 }}

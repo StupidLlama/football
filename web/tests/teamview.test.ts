@@ -36,7 +36,7 @@ function data(me: Membership, extra: Partial<TeamData> = {}): TeamData {
         home_score: null, away_score: null, referee: "資訊", linesmen: [], note: "" },
     ],
     duties: [{ id: "d1", fixture_id: "f3", role: "主審", slot: 0, player_id: "p1" }],
-    guards: [],
+    guards: [], matches: [], attendance: [],
     ...extra,
   };
 }

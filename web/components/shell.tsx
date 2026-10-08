@@ -19,7 +19,7 @@ export function navItems(teamId: string, v: TeamView, isAdmin: boolean): NavItem
     { href: `${base}/players`, label: "球員", icon: "◎", match: (p) => p.startsWith(`${base}/players`) },
     { href: `${base}/form`, label: "能力表", icon: "✎", badge: needForm ? 1 : 0 },
     { href: `${base}/lineup`, label: "組隊", icon: "▦" },
-    { href: `${base}/matches`, label: "比賽", icon: "◷", soon: "v2.5" },
+    { href: `${base}/matches`, label: "比賽", icon: "◷" },
     { href: `${base}/practice`, label: "練習", icon: "◆", soon: "之後" },
   ];
   if (v.isCoach || isAdmin) items.push({ href: `${base}/coach`, label: "管理專區", icon: "✦", badge: v.claims.length });
@@ -74,7 +74,8 @@ function Bottom({ teamId, path, onGo }: { teamId: string; path: string; onGo?: (
 
 const TITLES: [RegExp, string][] = [
   [/\/players\/[^/]+$/, "球員報告"], [/\/players$/, "球員"], [/\/home$/, "首頁"], [/\/form$/, "能力表"],
-  [/\/claim$/, "找到自己"], [/\/coach$/, "管理專區"], [/\/lineup$/, "組隊"], [/\/matches$/, "比賽"], [/\/practice$/, "練習"],
+  [/\/claim$/, "找到自己"], [/\/coach$/, "管理專區"], [/\/lineup$/, "組隊"], [/\/matches\/[^/]+$/, "比賽詳情"],
+  [/\/matches$/, "比賽"], [/\/practice$/, "練習"],
 ];
 
 export function TeamShell({ teamId, children }: { teamId: string; children: ReactNode }) {

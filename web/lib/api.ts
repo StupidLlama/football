@@ -30,9 +30,23 @@ export type Fixture = {
 };
 export type Duty = { id: string; fixture_id: string; role: "主審" | "邊審"; slot: number; player_id: string | null };
 export type MyTeam = { team: Team; membership: Membership; banned: boolean };
+
+// 球隊自己的比賽（v2.5 F7）：跟系際聯賽賽程（Fixture，上面）是兩件事，不要搞混。
+// 狀態（即將進行／已結束）不存在這裡，用 kickoff 和 our_score 算（見 lib/matches.ts）。
+export type Match = {
+  id: string; team_id: string; opponent: string; kickoff: string; meet_at: string | null;
+  location: string; jersey: string; size: 8 | 11; note: string;
+  our_score: number | null; their_score: number | null; fixture_id: string | null;
+  created_by: string | null; created_at: string; updated_at: string;
+};
+export type AttendanceAnswer = "in" | "out";
+export type Attendance = {
+  match_id: string; player_id: string; team_id: string; status: AttendanceAnswer; note: string;
+  updated_by: string | null; updated_at: string;
+};
 export type TeamData = {
   team: Team; me: Membership; members: Membership[]; profiles: Profile[]; players: Player[]; ratings: Rating[];
-  fixtures: Fixture[]; duties: Duty[]; guards: Guard[];
+  fixtures: Fixture[]; duties: Duty[]; guards: Guard[]; matches: Match[]; attendance: Attendance[];
 };
 
 // 只選需要的欄位（coach_codes 的 salt、code_hash 根本沒有開放，select * 會被拒絕）
@@ -47,6 +61,8 @@ const COLS = {
   fixture: "id, day, start_time, end_time, home, away, round, match_no, home_score, away_score, referee, linesmen, note",
   duty: "id, fixture_id, role, slot, player_id",
   contact: "id, user_id, category, body, page, status, created_at",
+  match: "id, team_id, opponent, kickoff, meet_at, location, jersey, size, note, our_score, their_score, fixture_id, created_by, created_at, updated_at",
+  attendance: "match_id, player_id, team_id, status, note, updated_by, updated_at",
 };
 
 // 欄位清單是變數（COLS），supabase-js 沒辦法從字串推出型別，所以在這裡統一轉成我們自己定義的型別。
@@ -87,7 +103,7 @@ export async function getMyTeams(userId: string): Promise<MyTeam[]> {
 // ---------- 一支球隊的全部資料 ----------
 export async function getTeamData(teamId: string, userId: string): Promise<TeamData | null> {
   const db = supabase();
-  const [team, members, players, ratings, fixtures, duties, guards] = await Promise.all([
+  const [team, members, players, ratings, fixtures, duties, guards, matches, attendance] = await Promise.all([
     db.from("teams").select(COLS.team).eq("id", teamId).maybeSingle(),
     db.from("memberships").select(COLS.membership).eq("team_id", teamId).order("joined_at", { ascending: true }),
     db.from("players").select(COLS.player).eq("team_id", teamId).order("name", { ascending: true }),
@@ -95,6 +111,8 @@ export async function getTeamData(teamId: string, userId: string): Promise<TeamD
     db.from("fixtures").select(COLS.fixture).eq("team_id", teamId).order("day", { ascending: true }),
     db.from("duties").select(COLS.duty).eq("team_id", teamId),
     db.from("coach_code_guard").select(COLS.guard).eq("team_id", teamId),
+    db.from("matches").select(COLS.match).eq("team_id", teamId).order("kickoff", { ascending: true }),
+    db.from("attendance").select(COLS.attendance).eq("team_id", teamId),
   ]);
   if (team.error) throw new Error(`讀取球隊失敗：${team.error.message}`);
   if (!team.data) return null;   // 不存在，或不是這一隊的成員（RLS 看不到）
@@ -108,6 +126,7 @@ export async function getTeamData(teamId: string, userId: string): Promise<TeamD
     players: must<Player[]>(players, "球員"), ratings: must<Rating[]>(ratings, "能力自評"),
     fixtures: must<Fixture[]>(fixtures, "賽程"), duties: must<Duty[]>(duties, "裁判任務"),
     guards: must<Guard[]>(guards, "封鎖狀態"),
+    matches: must<Match[]>(matches, "比賽"), attendance: must<Attendance[]>(attendance, "出席登記"),
   };
 }
 
@@ -156,14 +175,45 @@ export const actions = {
                                 nickname: f.nickname, message: f.message }),
 };
 
+// ---------- 比賽列表＋出賽登記（v2.5 F7）----------
+export type SaveMatchInput = {
+  team: string; match?: string | null; opponent: string; kickoff: string; meetAt?: string | null;
+  location?: string; jersey?: string; size: 8 | 11; note?: string;
+  ourScore?: number | null; theirScore?: number | null;
+};
+
+export async function saveMatch(input: SaveMatchInput): Promise<RpcResult & { id?: string }> {
+  return (await rpc("save_match", {
+    team: input.team, match: input.match ?? null, opponent: input.opponent, kickoff: input.kickoff,
+    meet_at: input.meetAt ?? null, location: input.location ?? "", jersey: input.jersey ?? "", size: input.size,
+    note: input.note ?? "", our_score: input.ourScore ?? null, their_score: input.theirScore ?? null,
+  })) as RpcResult & { id?: string };
+}
+
+export async function deleteMatch(match: string): Promise<RpcResult> {
+  return rpc("delete_match", { match });
+}
+
+/** 從系際聯賽賽程一鍵建立；回傳的 id 可能是剛建立的，也可能是本來就建過的那一場（existed: true）。 */
+export async function matchFromFixture(team: string, fixture: string): Promise<RpcResult & { id?: string; existed?: boolean }> {
+  return (await rpc("match_from_fixture", { team, fixture })) as RpcResult & { id?: string; existed?: boolean };
+}
+
+/** answer: null = 清掉登記（變回還沒回覆）。player 不填 = 登記自己；球隊管理員可以填任何人代登記。 */
+export async function setAttendance(match: string, answer: AttendanceAnswer | null, note = "", player?: string | null):
+  Promise<RpcResult & { answer?: AttendanceAnswer | null }> {
+  return (await rpc("set_attendance", { match, answer, note, player: player ?? null })) as RpcResult & { answer?: AttendanceAnswer | null };
+}
+
 // ---------- 組隊（v2.4）----------
 export type LineupKind = "official" | "draft";
 export type LineupRow = {
   id: string; team_id: string; owner_id: string | null; kind: LineupKind; name: string; size: number;
   formation: string; picks: Record<string, string | null>; locked: string[]; attending: string[];
+  match_id: string | null;
   share_token: string | null; share_names: boolean; shared_at: string | null; created_at: string; updated_at: string;
 };
-const LINEUP_COLS = "id, team_id, owner_id, kind, name, size, formation, picks, locked, attending, "
+const LINEUP_COLS = "id, team_id, owner_id, kind, name, size, formation, picks, locked, attending, match_id, "
   + "share_token, share_names, shared_at, created_at, updated_at";
 
 /** 這一隊看得到的陣容：全部正式陣容 ＋ 自己的草稿（RLS 已經擋好，這裡不用再篩）。 */
@@ -174,13 +224,14 @@ export async function getLineups(teamId: string): Promise<LineupRow[]> {
 
 export type SaveLineupInput = {
   team: string; lineup?: string | null; kind: LineupKind; name: string; size: number; formation: string;
-  picks: Record<string, string | null>; locked: string[]; attending: string[];
+  picks: Record<string, string | null>; locked: string[]; attending: string[]; match?: string | null;
 };
 
 export async function saveLineup(input: SaveLineupInput): Promise<RpcResult & { id?: string }> {
   return (await rpc("save_lineup", {
     team: input.team, lineup: input.lineup ?? null, kind: input.kind, name: input.name, size: input.size,
     formation: input.formation, picks: input.picks, locked: input.locked, attending: input.attending,
+    match: input.match ?? null,
   })) as RpcResult & { id?: string };
 }
 
@@ -196,6 +247,7 @@ export async function setLineupShare(lineup: string, shared: boolean, showNames 
 export type SharedLineup = {
   status: string; team_name?: string; season?: string | null; name?: string; size?: number; formation?: string;
   show_names?: boolean; updated_at?: string;
+  match?: { opponent: string; kickoff: string } | null;
   slots?: Record<string, { number: string | null; name?: string } | null>;
 };
 

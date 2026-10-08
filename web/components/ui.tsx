@@ -68,6 +68,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 export const useToast = () => useContext(ToastCtx);
 
 // ---------- 狀態 ----------
+/** 現在時間，每分鐘更新一次（倒數、「開賽後鎖住」這類跟時間有關的畫面要用）。 */
+export function useNow(intervalMs = 60_000): Date {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => { const t = setInterval(() => setNow(new Date()), intervalMs); return () => clearInterval(t); }, [intervalMs]);
+  return now;
+}
+
 export function Loading({ text = "讀取中…" }: { text?: string }) {
   return <p className="faint" role="status" style={{ padding: "24px 0" }}>{text}</p>;
 }

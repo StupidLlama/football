@@ -2,6 +2,7 @@
 // 組隊（F3）：選賽制和陣型、自動排、拖曳／點選換人、鎖定重排、替補、「為什麼是他」、存檔。
 // 分享連結和陣容圖片在 LineupShare（v2.4 D）。
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { LINEUP_RULES } from "@/lib/config";
 import {
@@ -9,6 +10,7 @@ import {
   picksOf, reason, shortageText, swapSlots, type Lineup, type LineupPlayer, type Picks,
 } from "@/lib/lineup";
 import { deleteLineup, getLineups, saveLineup, type LineupKind, type LineupRow } from "@/lib/api";
+import { answerOf, kickoffLabel } from "@/lib/matches";
 import { message } from "@/lib/status";
 import { useTeamView } from "@/lib/team";
 import type { PlayerView } from "@/lib/teamview";
@@ -43,12 +45,22 @@ export default function LineupPage() {
   const [selected, setSelected] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [matchId, setMatchId] = useState<string | null>(null);
 
   const formation = findFormation(LINEUP_RULES.formations, size, formationName) ?? formationsOf(LINEUP_RULES.formations, size)[0];
   const byId = useMemo(() => new Map(v.players.map((p) => [p.id, p])), [v.players]);
   const attendingPlayers = useMemo(
     () => v.players.filter((p) => attending.has(p.id)).map(toLineupPlayer),
     [v.players, attending]);
+
+  const sortedMatches = useMemo(
+    () => v.data.matches.slice().sort((a, b) => new Date(a.kickoff).getTime() - new Date(b.kickoff).getTime()),
+    [v.data.matches]);
+  const boundMatch = matchId ? v.data.matches.find((m) => m.id === matchId) ?? null : null;
+  // 綁定比賽：出席名單跟著比賽的出席登記走（即時）；不綁定：維持手動勾選（attending 這個 state）。
+  const attendingIdsFor = (mId: string | null): Set<string> =>
+    mId ? new Set(v.players.filter((p) => answerOf(v.data.attendance, mId, p.id) === "in").map((p) => p.id))
+        : new Set(v.players.map((p) => p.id));
 
   const reload = async () => {
     try { setRows(await getLineups(teamId)); setLoadErr(""); }
@@ -66,22 +78,43 @@ export default function LineupPage() {
     }
   };
 
-  const freshLineup = () => {
-    const f11 = formationsOf(LINEUP_RULES.formations, 11)[0];
+  const freshLineup = (mId: string | null = matchId) => {
+    const m = mId ? v.data.matches.find((x) => x.id === mId) ?? null : null;
+    const size0 = (m?.size as 11 | 8 | undefined) ?? 11;
+    const f0 = formationsOf(LINEUP_RULES.formations, size0)[0];
     setCurrentId(null); setName(""); setKind(isCoach ? "official" : "draft");
-    setSize(11); setFormationName(f11.name); setLocked(new Set()); setSelected(null);
-    const all = new Set(v.players.map((p) => p.id));
-    setAttending(all);
-    const players = v.players.filter((p) => all.has(p.id)).map(toLineupPlayer);
-    try { setPicks(picksOf(autoLineup(players, f11, LINEUP_RULES))); } catch { setPicks({}); }
+    setSize(size0); setFormationName(f0.name); setLocked(new Set()); setSelected(null);
+    const ids = attendingIdsFor(mId);
+    setAttending(ids);
+    const players = v.players.filter((p) => ids.has(p.id)).map(toLineupPlayer);
+    try { setPicks(picksOf(autoLineup(players, f0, LINEUP_RULES))); } catch { setPicks({}); }
   };
-  useEffect(() => { if (rows !== null && currentId === null && Object.keys(picks).length === 0) freshLineup(); }, [rows]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (rows !== null && currentId === null && Object.keys(picks).length === 0) {
+      const fromUrl = new URLSearchParams(window.location.search).get("match");
+      const m = fromUrl && v.data.matches.some((x) => x.id === fromUrl) ? fromUrl : null;
+      setMatchId(m);
+      freshLineup(m);
+    }
+  }, [rows]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadRow = (row: LineupRow) => {
     const f = findFormation(LINEUP_RULES.formations, row.size, row.formation);
     if (!f) { say("這組陣容用的陣型找不到了"); return; }
     setCurrentId(row.id); setName(row.name); setKind(row.kind); setSize(row.size as 11 | 8); setFormationName(row.formation);
-    setAttending(new Set(row.attending)); setLocked(new Set(row.locked)); setPicks(row.picks); setSelected(null);
+    setMatchId(row.match_id);
+    setAttending(row.match_id ? attendingIdsFor(row.match_id) : new Set(row.attending));
+    setLocked(new Set(row.locked)); setPicks(row.picks); setSelected(null);
+  };
+
+  /** 換成綁定（或解除綁定）一場比賽：賽制跟著比賽改、名單換成那場的出席登記，排走的人被踢出去的位置清空。 */
+  const bindMatch = (id: string | null) => {
+    setMatchId(id);
+    const m = id ? v.data.matches.find((x) => x.id === id) ?? null : null;
+    if (m && m.size !== size) changeSize(m.size as 11 | 8);
+    const ids = attendingIdsFor(id);
+    setAttending(ids);
+    setPicks((p) => Object.fromEntries(Object.entries(p).map(([c, pid]) => [c, pid && ids.has(pid) ? pid : null])));
   };
 
   const changeSize = (s: 11 | 8) => {
@@ -155,7 +188,7 @@ export default function LineupPage() {
     try {
       const r = await saveLineup({
         team: teamId, lineup: currentId, kind, name, size, formation: formationName,
-        picks, locked: [...locked], attending: [...attending],
+        picks, locked: [...locked], attending: [...attending], match: matchId,
       });
       if (r.status === "ok") {
         say("已存檔");
@@ -192,7 +225,7 @@ export default function LineupPage() {
     <section className="stack" style={{ gap: 16 }}>
       <header style={{ display: "flex", flexWrap: "wrap", gap: "8px 16px", alignItems: "baseline", justifyContent: "space-between" }}>
         <h1 className="hide-sm" style={{ margin: 0, fontSize: 30 }}>組隊</h1>
-        <button type="button" className="btn btn-line btn-sm" onClick={freshLineup}>開新陣容</button>
+        <button type="button" className="btn btn-line btn-sm" onClick={() => freshLineup()}>開新陣容</button>
       </header>
 
       {rows.length > 0 && (
@@ -213,10 +246,18 @@ export default function LineupPage() {
       )}
 
       <div className="panel pad stack" style={{ gap: 12 }}>
+        <label className="label">這組陣容要排哪一場
+          <select className="field" value={matchId ?? ""} disabled={!canEdit}
+            onChange={(e) => bindMatch(e.target.value || null)}>
+            <option value="">不綁定（從全隊選）</option>
+            {sortedMatches.map((m) => <option key={m.id} value={m.id}>{kickoffLabel(m.kickoff)} vs {m.opponent}</option>)}
+          </select>
+        </label>
         <div className="chips">
           <div role="radiogroup" aria-label="賽制" className="seg">
             {SIZES.map((s) => (
-              <button key={s} type="button" role="radio" aria-checked={size === s} onClick={() => changeSize(s)} disabled={!canEdit}>{s} 人制</button>
+              <button key={s} type="button" role="radio" aria-checked={size === s} onClick={() => changeSize(s)}
+                disabled={!canEdit || !!boundMatch} title={boundMatch ? "賽制跟著綁定的比賽，不能單獨改" : undefined}>{s} 人制</button>
             ))}
           </div>
           <select className="field" style={{ minWidth: 140, width: "auto" }} value={formationName} disabled={!canEdit}
@@ -235,20 +276,31 @@ export default function LineupPage() {
         )}
       </div>
 
-      <details className="panel pad">
-        <summary style={{ cursor: "pointer", fontWeight: 700 }}>今天誰會來（{attending.size} / {v.players.length}）</summary>
-        <p className="faint" style={{ fontSize: 13, margin: "8px 0" }}>v2.5 之後會直接接出賽登記，現在先手動勾選。</p>
-        <div className="chips" style={{ marginBottom: 8 }}>
-          <button type="button" className="btn btn-line btn-sm" onClick={() => setAttending(new Set(v.players.map((p) => p.id)))} disabled={!canEdit}>全選</button>
-          <button type="button" className="btn btn-line btn-sm" onClick={() => setAttending(new Set())} disabled={!canEdit}>全不選</button>
-        </div>
-        <div className="chips">
-          {v.players.map((p) => (
-            <button key={p.id} type="button" className="chip" aria-pressed={attending.has(p.id)} onClick={() => toggleAttending(p.id)} disabled={!canEdit}>
-              {p.jersey_number ? `#${p.jersey_number} ` : ""}{p.name}
-            </button>
-          ))}
-        </div>
+      <details className="panel pad" open>
+        <summary style={{ cursor: "pointer", fontWeight: 700 }}>
+          {boundMatch ? `出席名單（${attending.size} / ${v.players.length}）` : `今天誰會來（${attending.size} / ${v.players.length}）`}
+        </summary>
+        {boundMatch ? (
+          <p className="faint" style={{ fontSize: 13, margin: "8px 0" }}>
+            跟著 vs {boundMatch.opponent} 的出席登記自動更新；要改名單請去
+            <Link href={`/t/${teamId}/matches/${boundMatch.id}`}> 比賽詳情</Link>登記。
+          </p>
+        ) : (
+          <>
+            <p className="faint" style={{ fontSize: 13, margin: "8px 0" }}>手動勾選；上面也可以直接選一場比賽，改用那場的出席登記。</p>
+            <div className="chips" style={{ marginBottom: 8 }}>
+              <button type="button" className="btn btn-line btn-sm" onClick={() => setAttending(new Set(v.players.map((p) => p.id)))} disabled={!canEdit}>全選</button>
+              <button type="button" className="btn btn-line btn-sm" onClick={() => setAttending(new Set())} disabled={!canEdit}>全不選</button>
+            </div>
+            <div className="chips">
+              {v.players.map((p) => (
+                <button key={p.id} type="button" className="chip" aria-pressed={attending.has(p.id)} onClick={() => toggleAttending(p.id)} disabled={!canEdit}>
+                  {p.jersey_number ? `#${p.jersey_number} ` : ""}{p.name}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
       </details>
 
       {shortage && <p className="status warn">{shortage}</p>}
