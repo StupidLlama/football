@@ -33,7 +33,7 @@ def test_every_table_has_rls():
 
 
 # 只有資料庫函式能讀寫的表：故意不給任何 RLS 規則（team_secrets 在 v2.1 已刪除）
-SECRET_TABLES = {"team_secrets", "join_attempts"}
+SECRET_TABLES = {"team_secrets", "join_attempts", "chat_discord"}
 
 
 def test_every_table_except_secrets_has_select_policy():

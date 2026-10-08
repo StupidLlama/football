@@ -780,5 +780,136 @@ select pg_temp.expect((select count(*) from public.attendance where match_id = c
 select pg_temp.expect((select count(*) from public.lineups where id = current_setting('test.bound')::uuid and match_id is null), 1,
                       '刪比賽後陣容變回不綁定');
 
+-- ============================================================
+-- v2.6 隊伍聊天室（F6）
+-- ============================================================
+-- 準備：新隊友 15（最後測刪帳號）
+insert into auth.users (id, email) values ('00000000-0000-0000-0000-000000000015', 'rls-15@example.test');
+insert into public.memberships (team_id, user_id, role, player_id)
+values ('10000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-000000000015', 'player', null);
+
+set local role authenticated;
+-- 球員：發一般貼文、回覆、編輯自己的；不能發筆記／戰術、不能置頂、不能附草稿、不能直接寫表
+select pg_temp.login('00000000-0000-0000-0000-00000000000a');
+select set_config('test.msg', public.post_message('10000000-0000-0000-0000-00000000000a', '週六誰要去練球？') ->> 'id', true);
+select pg_temp.expect((current_setting('test.msg') <> '')::int, 1, '球員發主貼文');
+select pg_temp.st(public.post_message('10000000-0000-0000-0000-00000000000a', '偷發戰術', 'tactic'), 'forbidden', '球員發戰術');
+select pg_temp.st(public.post_message('10000000-0000-0000-0000-00000000000a', '偷發筆記', 'note'), 'forbidden', '球員發筆記');
+select pg_temp.st(public.post_message('10000000-0000-0000-0000-00000000000a', '   '), 'invalid', '發空白訊息');
+select pg_temp.st(public.post_message('10000000-0000-0000-0000-00000000000a', repeat('長', 2001)), 'invalid', '訊息超過 2000 字');
+select pg_temp.st(public.post_message('10000000-0000-0000-0000-00000000000a', '看我的草稿', 'general', null,
+                  current_setting('test.draft')::uuid), 'invalid', '附草稿陣容');
+select pg_temp.must_fail($q$insert into public.messages (team_id, author_id, body)
+                          values ('10000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000a', '偷寫')$q$,
+                         '球員直接寫訊息表');
+select pg_temp.must_fail($q$update public.messages set body = '偷改'$q$, '球員直接改訊息表');
+select pg_temp.st(public.set_pinned(current_setting('test.msg')::uuid, true), 'forbidden', '球員置頂');
+select set_config('test.reply', public.post_message('10000000-0000-0000-0000-00000000000a', '我可以', 'general',
+                  current_setting('test.msg')::uuid) ->> 'id', true);
+select pg_temp.expect((current_setting('test.reply') <> '')::int, 1, '球員回覆');
+select pg_temp.st(public.post_message('10000000-0000-0000-0000-00000000000a', '回覆的回覆', 'general',
+                  current_setting('test.reply')::uuid), 'invalid', '回覆回覆');
+select pg_temp.st(public.edit_message(current_setting('test.msg')::uuid, '週六下午誰要去練球？'), 'ok', '作者編輯自己的訊息');
+select pg_temp.expect((select count(*) from public.messages where id = current_setting('test.msg')::uuid
+                         and edited_at is not null and body = '週六下午誰要去練球？'), 1, '編輯後標記已編輯');
+select pg_temp.st(public.mark_chat_read('10000000-0000-0000-0000-00000000000a'), 'ok', '標記已讀');
+select pg_temp.expect((select count(*) from public.chat_reads), 1, '看得到自己讀到哪裡');
+select pg_temp.must_fail($q$insert into public.chat_reads (team_id, user_id)
+                          values ('10000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000a')$q$,
+                         '直接寫已讀表');
+select pg_temp.must_fail('select public.message_problem(null)', '登入的人直接呼叫訊息檢查函式');
+
+-- 隊友：看得到全隊訊息，但不能改、不能刪別人的；看不到別人讀到哪裡
+select pg_temp.login('00000000-0000-0000-0000-00000000000c');
+select pg_temp.expect((select count(*) from public.messages where team_id = '10000000-0000-0000-0000-00000000000a'), 2,
+                      '隊友看得到全隊訊息');
+select pg_temp.st(public.edit_message(current_setting('test.msg')::uuid, '亂改'), 'forbidden', '編輯別人的訊息');
+select pg_temp.st(public.delete_message(current_setting('test.msg')::uuid), 'forbidden', '球員刪別人的訊息');
+select pg_temp.expect((select count(*) from public.chat_reads), 0, '看別人讀到哪裡');
+-- c 在 B 隊是管理員：不能附 A 隊的陣容
+select pg_temp.st(public.post_message('10000000-0000-0000-0000-00000000000b', 'B 隊戰術', 'tactic', null,
+                  current_setting('test.bound')::uuid), 'invalid', '附別隊的陣容');
+
+-- 球隊管理員：發戰術附正式陣容、置頂、刪任何訊息、不能編輯別人的
+select pg_temp.login('00000000-0000-0000-0000-00000000000d');
+select set_config('test.tac', public.post_message('10000000-0000-0000-0000-00000000000a', '週六先發這樣排', 'tactic', null,
+                  current_setting('test.bound')::uuid) ->> 'id', true);
+select pg_temp.expect((current_setting('test.tac') <> '')::int, 1, '管理員發戰術附正式陣容');
+select pg_temp.st(public.set_pinned(current_setting('test.tac')::uuid, true), 'ok', '管理員置頂');
+select pg_temp.st(public.set_pinned(current_setting('test.reply')::uuid, true), 'invalid', '置頂回覆');
+select pg_temp.st(public.post_message('10000000-0000-0000-0000-00000000000a', '回覆不能有類型', 'note',
+                  current_setting('test.msg')::uuid), 'invalid', '回覆有類型');
+select pg_temp.st(public.edit_message(current_setting('test.msg')::uuid, '管理員改字'), 'forbidden', '管理員編輯別人的訊息');
+select pg_temp.st(public.delete_message(current_setting('test.reply')::uuid), 'ok', '管理員刪任何訊息');
+select pg_temp.expect((select count(*) from public.messages where id = current_setting('test.reply')::uuid
+                         and body = '' and deleted_at is not null), 1, '刪除後內容清空');
+select pg_temp.st(public.edit_message(current_setting('test.reply')::uuid, '復活'), 'not_found', '編輯已刪除的訊息');
+-- 置頂最多 5 則
+select pg_temp.expect((select count(*) from generate_series(1, 4) g
+                        where public.set_pinned((public.post_message('10000000-0000-0000-0000-00000000000a',
+                                                  '公告 ' || g, 'note') ->> 'id')::uuid, true) ->> 'status' = 'ok'), 4,
+                      '再置頂 4 則');
+select pg_temp.st(public.set_pinned((public.post_message('10000000-0000-0000-0000-00000000000a', '第 6 則', 'note')
+                  ->> 'id')::uuid, true), 'invalid', '置頂超過 5 則');
+select pg_temp.st(public.set_pinned(current_setting('test.tac')::uuid, false), 'ok', '取消置頂');
+select pg_temp.expect((select count(*) from public.messages where pinned_at is not null
+                         and team_id = '10000000-0000-0000-0000-00000000000a'), 4, '取消後剩 4 則置頂');
+
+-- Discord：只有管理員設定；網址怎樣都讀不到；新主貼文排進通知、回覆不會
+select pg_temp.st(public.set_chat_discord('10000000-0000-0000-0000-00000000000a', 'https://evil.example/api/webhooks/1/x'),
+                  'invalid', '亂填 Discord 網址');
+select pg_temp.st(public.set_chat_discord('10000000-0000-0000-0000-00000000000a',
+                  'https://discord.com/api/webhooks/123456789012345678/rls-test-token-abcdefghijklmnop'), 'ok', '管理員設定 Discord');
+select pg_temp.expect(((public.get_chat_discord('10000000-0000-0000-0000-00000000000a') ->> 'configured')::boolean)::int, 1,
+                      '管理員看得到已設定 Discord');
+select pg_temp.expect((public.get_chat_discord('10000000-0000-0000-0000-00000000000a')::text like '%webhooks%')::int, 0,
+                      '設定 Discord 不回傳網址');
+select pg_temp.must_fail('select * from public.chat_discord', '管理員讀 Discord 網址');
+select pg_temp.must_fail('select public.notify_discord()', '登入的人直接呼叫 Discord 觸發器');
+select set_config('test.dc', public.post_message('10000000-0000-0000-0000-00000000000a', '明天集合 6 點', 'note') ->> 'id', true);
+select pg_temp.st(public.post_message('10000000-0000-0000-0000-00000000000a', '收到', 'general',
+                  current_setting('test.dc')::uuid), 'ok', '回覆有 Discord 的隊伍');
+select pg_temp.login('00000000-0000-0000-0000-00000000000a');
+select pg_temp.st(public.set_chat_discord('10000000-0000-0000-0000-00000000000a', ''), 'forbidden', '球員關掉 Discord');
+select pg_temp.st(public.get_chat_discord('10000000-0000-0000-0000-00000000000a'), 'forbidden', '球員查 Discord 設定');
+reset role;
+select pg_temp.expect((select count(*) from net.http_request_queue
+                        where url = 'https://discord.com/api/webhooks/123456789012345678/rls-test-token-abcdefghijklmnop'), 1,
+                      '新主貼文排進 Discord 通知、回覆不會');
+
+-- 別隊、沒登入：看不到、發不了、刪不了
+set local role authenticated;
+select pg_temp.login('00000000-0000-0000-0000-000000000014');
+select pg_temp.expect((select count(*) from public.messages where team_id = '10000000-0000-0000-0000-00000000000a'), 0,
+                      '別隊看 A 隊的訊息');
+select pg_temp.st(public.post_message('10000000-0000-0000-0000-00000000000a', '亂入'), 'not_member', '別隊在 A 隊發文');
+select pg_temp.st(public.delete_message(current_setting('test.msg')::uuid), 'not_found', '別隊刪 A 隊的訊息');
+select pg_temp.st(public.set_chat_discord('10000000-0000-0000-0000-00000000000a', ''), 'not_member', '別隊改 A 隊的 Discord');
+reset role;
+set local role anon;
+select pg_temp.must_fail('select * from public.messages', '沒登入讀訊息表');
+select pg_temp.must_fail('select * from public.chat_reads', '沒登入讀已讀表');
+select pg_temp.must_fail($q$select public.post_message('10000000-0000-0000-0000-00000000000a', 'x')$q$, '沒登入發文');
+reset role;
+
+-- 洗版：1 分鐘內最多 10 則；下載資料有自己的訊息；刪帳號後訊息清空；作者刪自己的之後不能再回覆
+set local role authenticated;
+select pg_temp.login('00000000-0000-0000-0000-000000000015');
+select pg_temp.expect((select count(*) from generate_series(1, 10) g
+                        where public.post_message('10000000-0000-0000-0000-00000000000a', '洗版 ' || g) ->> 'status' = 'ok'), 10,
+                      '1 分鐘內發 10 則');
+select pg_temp.st(public.post_message('10000000-0000-0000-0000-00000000000a', '第 11 則'), 'too_fast', '1 分鐘內發太多則');
+select pg_temp.st(public.delete_my_account(), 'ok', '發過訊息的隊友刪帳號');
+select pg_temp.login('00000000-0000-0000-0000-00000000000a');
+select pg_temp.expect(jsonb_array_length(public.export_my_data() -> 'chat_messages'), 1,
+                      '下載資料包含自己的聊天訊息（被刪掉的回覆不算）');
+select pg_temp.st(public.delete_message(current_setting('test.msg')::uuid), 'ok', '作者刪自己的訊息');
+select pg_temp.st(public.post_message('10000000-0000-0000-0000-00000000000a', '還有人嗎', 'general',
+                  current_setting('test.msg')::uuid), 'invalid', '回覆已刪除的訊息');
+reset role;
+select pg_temp.expect((select count(*) from public.messages where body like '洗版%'), 0, '刪帳號後訊息清空');
+select pg_temp.expect((select count(*) from public.messages where author_id = '00000000-0000-0000-0000-000000000015'), 0,
+                      '刪帳號後訊息沒有作者');
+
 select 'RLS OK' as result;
 rollback;
