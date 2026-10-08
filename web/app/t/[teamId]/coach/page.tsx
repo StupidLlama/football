@@ -317,7 +317,7 @@ function ChatDiscordSettings() {
     setBusy(true); setError("");
     const r = await setChatDiscord(team, trimmed);
     setBusy(false);
-    if (r.status === "ok") { setUrl(""); load(); say("已設定，之後有新的置頂主貼文會推到 Discord"); } else setError(message(r));
+    if (r.status === "ok") { setUrl(""); load(); say("已設定，之後有新的主貼文會推到 Discord"); } else setError(message(r));
   }
 
   async function clear() {
