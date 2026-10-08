@@ -187,8 +187,8 @@ function PlayerForm({ rows, self, onSave, onCancel }: {
         <label className="label" style={{ flex: "2 1 180px" }}>姓名
           <input className="field" value={name} onChange={(e) => setName(e.target.value)} maxLength={40} required autoFocus />
         </label>
-        <label className="label" style={{ flex: "1 1 90px" }}>背號（可空白）
-          <input className="field num" value={jersey} onChange={(e) => setJersey(e.target.value)} inputMode="numeric" maxLength={3} />
+        <label className="label" style={{ flex: "1 1 90px" }}>背號
+          <input className="field num" value={jersey} onChange={(e) => setJersey(e.target.value)} inputMode="numeric" maxLength={3} placeholder="可空白" />
         </label>
       </div>
       <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
