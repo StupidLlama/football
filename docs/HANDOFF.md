@@ -1,157 +1,162 @@
-# 交接說明：v2.5 → v2.6
+# 交接說明：v2.6.1 → v2.7
 
-> 給下一個工作階段（新的 Claude 對話，或 VS Code 裡的 Claude Code）看的。每完成一個小版本（v2.5 → v2.6）或大一點的修補版就整份覆蓋；舊版本留在 git 歷史（`git log -p docs/HANDOFF.md`）。
-> 寫於 2026-10-08，對應 commit：main 上的 `ecbea52`（還沒打標籤，請先打 `v2.5`，見第 2 節）。
+> 給下一個工作階段（新的 Claude 對話，或 VS Code 裡的 Claude Code）看的。每完成一個小版本或大一點的修補版就整份覆蓋；舊版本留在 git 歷史（`git log -p docs/HANDOFF.md`）。
+> 寫於 2026-10-08，對應 main 上的 `d9a93ac`（v2.6.1 已上線；標籤 `v2.6.1` 請使用者在 GitHub 網頁打，Target `main`）。
 
 ## 0. 開場怎麼用
 
 新對話第一句貼：
 
 ```
-讀 StupidLlama/football 的 docs/HANDOFF.md、CLAUDE.md 和 docs/SPEC.md，接著做 v2.6。先列計畫（大分類＋細項），等我確認再動手。
+讀 StupidLlama/football 的 docs/HANDOFF.md、CLAUDE.md 和 docs/SPEC.md，接著做 v2.7。先列計畫（大分類＋細項），等我確認再動手。
 ```
 
-**建議模型**：開場（讀資料、列計畫、資料庫設計）用 **Opus**；v2.6 隊伍聊天室要新增訊息表和即時更新（Supabase Realtime 或輪詢，兩種取捨要先想清楚），跟現有權限規則也要接起來，設計要仔細。計畫確認後，照計畫寫畫面、補測試可以切 **Sonnet**。切換要使用者在 App 裡手動做，助手要在開工前提醒、等使用者說好再開工（見 CLAUDE.md「版本交接規則」）。
+**建議模型**：開場（讀資料、列計畫、資料表與權限設計、AI 匯入的格式設計）用 **Opus**。計畫確認後，照計畫寫月曆畫面、補測試可以切 **Sonnet**。切換要使用者在 App 裡手動做，助手要在開工前提醒、等使用者說好再開工。
 
 ## 1. 專案目標（大方向）
 
 - **Football Analysis Potato**：給業餘足球隊用的免費、開源（AGPL-3.0）網站。現在只有作者自己的球隊（NCKU 資工系隊）在用，之後要開放其他隊。
 - 同時是軟體工程課的專題：最終目標是**從比賽影片自動分析**（YOLO 辨識 → 追蹤 → 事件 → 依位置的表現評分）。
 - 開發分四個階段（`docs/SPEC.md`「版本規劃」）：
-  1. v1.x Streamlit 舊網站（已完成，v2.8 退役）
-  2. **v2.x 全隊可用的基本功能（不需要影片）← 現在在這裡，v2.5 已完成**
+  1. v1.x Streamlit 舊網站（已完成，v2.9 退役）
+  2. **v2.x 全隊可用的基本功能（不需要影片）← 現在在這裡，v2.6.1 已完成**
   3. v3.x 影片分析
   4. v4.x 依位置評分、PR 值、開放其他隊
-- 原則：跟影片無關的功能全部在 v2.8 前做完，就算影片分析來不及，全隊也有完整可用的網站。
+- 原則：跟影片無關的功能全部在 **v2.9** 前做完（2026-10-08 版本往後挪一號，見第 4 節）。
 
 ## 2. 目前線上狀態
 
 | 東西 | 狀態 |
 |---|---|
-| 正式網站 | https://football-analysis-potato.vercel.app（Next.js，Vercel，push 到 main 自動部署）— **v2.5 已上線（main @ `ecbea52`）**，已經用 Claude in Chrome 在正式網址上開過比賽頁確認過一次。**還沒打 GitHub 標籤**，下一步請先在 GitHub 網頁上補一個 `v2.5` 標籤（Releases → Draft a new release → Tag `v2.5`、Target `main`） |
-| 舊網站 | https://football-analysis-potato.streamlit.app（並存到 v2.8） |
-| 資料庫 | Supabase（東京），migration 0001–0008 都已執行；`rls_test.sql`（含 v2.5 新增的出賽登記測試）在正式資料庫通過（使用者確認過兩次「all done, succes, rls ok」） |
-| GitHub | StupidLlama/football，main = v2.5（未打標籤）。標籤：v1.0–v1.4.2、v2.0、v2.1、v2.2、v2.2.1、v2.4.1。v2.3 從來沒打過標籤（不影響功能） |
-| 隱私權政策 | POLICY_VERSION = 2026-10-06（v2.3 改版，沿用到現在，v2.5 沒有改政策內容） |
-| 測試資料 | 「測試隊」（2026-27）：作者一人（暱稱 evan）。比賽頁測完後助手已經把建立的測試比賽都刪乾淨，只留了 v2.4 時期就有的「vs 機械」這場（10/10）當作示範資料，使用者可以自行刪除或保留 |
+| 正式網站 | https://football-analysis-potato.vercel.app — **v2.6.1 已上線（main @ `d9a93ac`）**。使用者自己合併、push 到 `de697f2`；最後一個小修（手機背號欄位，`d9a93ac`）是助手 fast-forward 到 main 的 |
+| 舊網站 | https://football-analysis-potato.streamlit.app（並存到 v2.9） |
+| 資料庫 | Supabase（東京），migration **0001–0010 都已執行**（0010 由使用者執行，網站上新增球員成功＝確認生效） |
+| GitHub 標籤 | v1.0–v1.4.2、v2.0、v2.1、v2.2、v2.2.1、v2.4.1、v2.5、v2.6（打在 `8c7e177`）。**v2.6.1 還沒打**。v2.3 從來沒打過 |
+| 隱私權政策 | POLICY_VERSION = 2026-10-08（v2.6 改版，加了聊天室與 Discord）；v2.6.1 沒有改政策 |
+| 測試資料 | 「測試隊」：帳號 `林宥成`（球隊管理員，名單上是隊長 #10）、`evan`（球員）；名單多了「測試球員一」#7、「測試球員二」#8 副隊長（v2.6.1 驗收時建立，可以在「能力表進度」刪掉） |
 
-## 3. v2.5 做了什麼
+## 3. v2.6 和 v2.6.1 做了什麼
 
-### 功能（F7 出賽登記 + F4 的一部分）
+### v2.6 隊伍聊天室（F6）
 
-- **比賽列表**：即將進行／已結束兩個分頁，狀態不存資料庫、用開賽時間和比分自動算。
-- **建立比賽**：球隊管理員手動輸入（對手、開賽時間必填；集合時間、地點、球衣顏色、賽制、備註選填），或從系際聯賽賽程「一鍵帶入」（`match_from_fixture`，同一場不會重複建立）。
-- **出賽登記**：球員點「出席／請假」（沒有第三種「不確定」狀態，沒登記就是「還沒回覆」）；再點一次已選的會清掉登記。開賽後一般球員不能再改，球隊管理員在比賽詳情頁「全隊登記狀況」仍可以代任何人登記/更正。
-- **比賽詳情頁**：完整資訊、自己的登記面板、全隊登記狀況（依出席/請假/還沒回覆分組）、「去排陣容」連到組隊頁並自動帶入這場。
-- **組隊頁接出席名單（F3 串接）**：新增「這組陣容要排哪一場」下拉；綁定後名單自動跟著那場的出席登記走（賽制也鎖定跟著比賽），不綁定則維持原本手動勾選。
-- **首頁**：「下一場」優先顯示自己隊的下一場比賽（倒數＋出席按鈕），沒有才退回顯示系際聯賽賽程版本；待辦新增「下一場還沒回覆」。
+所有人發一般貼文和回覆（只有一層）；球隊管理員發筆記／戰術（可附正式陣容）、置頂最多 5 則；刪除＝清空留殼；Supabase Realtime + 30 秒輪詢；選用的 Discord Webhook（新主貼文才推）。細節見 `docs/V2_6_SETUP.md`、`supabase/migrations/0009_chat.sql`。
 
-### 合併前修正的 bug
+### v2.6.1 名單管理（SPEC F6.1）
 
-組隊頁「開新陣容」按鈕原本寫成 `onClick={freshLineup}`，`freshLineup` 改成接受 `mId` 參數（預設目前綁定的比賽）之後，React 會把滑鼠事件物件當成第一個參數傳進去，導致每次按「開新陣容」都會把出席名單清空、賽制重設成 11 人制，而且跟原本綁定的比賽對不起來。改成 `onClick={() => freshLineup()}`，已經用 Claude in Chrome 複測確認修好。
+- 「管理專區」所有人都看得到：一般球員進去只有「成為球隊管理員」（輸入管理員碼，用 v2.1 就有的 `redeem_coach_code`）；球隊管理員最下面有一行小字說明怎麼讓別人升級。
+- 新分頁「球員名單」：球隊管理員新增球員、改姓名／背號／隊長／副隊長。同隊背號不重複（0–999，`07` 存成 `7`）、C 和 VC 各一位；只在有改到的欄位檢查（舊資料重複不卡住）。隊長可以同時是球隊管理員（兩個欄位本來就無關）。
+- 順便帶上 v2.6 標籤之後才修的 Discord 提示文字。
 
-### 討論過、確認的決定
-
-- 出賽登記只有「出席／請假」兩種狀態，不做「暫定」。
-- 比賽列表這版只到「即將進行／已結束」，不含影片分析才有的「已分析」、跑動數據、表現評分。
-- 教練不在這版手動輸入每場的進球／助攻／上場分鐘，比分有填就算已結束，個人數據留給影片分析。
+**討論過、確認的決定**（使用者用答案表回覆的）
+- 兌換管理員碼放在管理專區頁面本身。
+- 編輯球員只開放姓名、背號、隊長／副隊長；暱稱、位置、慣用腳還是球員自己改。
+- 背號、隊長要擋重複；換隊長要先把原本的人改成「無」。
+- AI 排練習：**網站不串 AI**（見第 4 節）。
+- 練習：月曆＋點日期編輯＋**出席登記**（使用者後來補充要出席）。
+- 版本：E/F 兩項放 v2.7，賽季進步追蹤挪到 v2.8，全隊上線挪到 v2.9。
 
 ### 檔案
 
 | 檔案 | 內容 |
 |---|---|
-| `supabase/migrations/0008_matches.sql` | `matches`、`attendance` 表，`lineups.match_id` 新欄位，`save_match`／`delete_match`／`match_from_fixture`／`set_attendance`，改寫 `save_lineup`（新增 `match` 參數）／`get_shared_lineup`（多回傳比賽資訊）／`export_my_data`／`delete_my_account` |
-| `supabase/tests/rls_test.sql` | 新增約 30 個 v2.5 相關斷言（建立比賽權限、出賽登記、鎖定與管理員覆寫、跨隊隔離、`match_from_fixture` 行為、陣容綁定驗證、分享連結白名單、刪除連動） |
-| `web/lib/matches.ts` | 純計算：比賽狀態／鎖定判斷、出席分組、排序、時間格式、可帶入的聯賽賽程場次 |
-| `web/lib/api.ts` | 新增 `Match`／`Attendance` 型別、`saveMatch`／`deleteMatch`／`matchFromFixture`／`setAttendance`，`saveLineup`／`SharedLineup` 加上比賽欄位 |
-| `web/lib/todos.ts` | 待辦新增「下一場還沒回覆」 |
-| `web/components/match-form.tsx`、`attendance-buttons.tsx` | 建立/編輯比賽表單、出席登記大按鈕 |
-| `web/app/t/[teamId]/matches/page.tsx`、`matches/[matchId]/page.tsx` | 比賽列表、詳情頁 |
-| `web/app/t/[teamId]/lineup/page.tsx` | 新增比賽綁定下拉、`bindMatch`、`freshLineup` 改參數（這次修的 bug 就在這） |
-| `web/app/t/[teamId]/home/page.tsx` | `NextGame` 元件（自己隊的下一場） |
-| `web/components/lineup-share.tsx`、`shell.tsx`、`ui.tsx` | 分享頁顯示比賽資訊、導覽拿掉「即將推出」標籤、`useNow` 共用 hook |
-| `tests/test_v25.py`、`web/tests/v25.test.ts` | 靜態檢查、純計算測試（11 項全過） |
-| `tests/test_v22.py` | 順便修了一個漏洞：欄位檢查沒把新表 `matches`／`attendance` 算進去 |
-| `docs/V2_5_SETUP.md` | 上線步驟和驗收清單 |
+| `supabase/migrations/0010_roster.sql` | `add_player`、`edit_player`（security definer，回傳 status），共用 `roster_problem`、`clean_jersey`（登入的人不能直接呼叫） |
+| `supabase/tests/rls_test.sql` | 最後面多一段「v2.6.1 名單管理」 |
+| `web/lib/roster.ts` | 瀏覽器端同一套檢查（`rosterProblem`、`cleanJersey`、`sortRoster`），純 TS |
+| `web/lib/api.ts` | `addPlayer`、`editPlayer` |
+| `web/app/t/[teamId]/coach/page.tsx` | `Redeem`（非管理員看到的）、`Roster` + `PlayerForm`（球員名單分頁） |
+| `web/components/shell.tsx` | 「管理專區」對所有人顯示（紅點只給管理員） |
+| `tests/test_v261.py`、`web/tests/v261.test.ts` | 靜態檢查、`roster.ts` 測試 |
+| `docs/SPEC.md` | 新增 F6.1、F11，版本表 v2.6.1／v2.7／v2.8／v2.9 |
+| `docs/V2_6_1_SETUP.md` | 上線步驟和驗收清單 |
 
 ### 測試結果
 
-- Python：使用者電腦上跑過 `py -m pytest`，全過（使用者口頭確認「全部通過」，這次沒有附實際數字，下一版若要重新確認可以直接問）。
-- 網站：使用者電腦上 `npm.cmd run typecheck`、`npm.cmd test` 都通過（同樣是口頭確認「全部通過」）。
-- 沙盒這邊的靜態檢查（`minitest.py` 土炮跑的 Python 測試，不含需要 pytest fixture 的檔案）66 過 0 錯；`node --test` 跑 `web/tests/*.test.ts` 45 過 0 錯。
-- **這次用 Claude in Chrome 連到使用者電腦，直接在他的 `localhost:3000` 上操作測試**：建立比賽、刪除比賽（兩步確認）、出席/請假登記、清掉登記、開賽後鎖定（自己不能改、管理員仍可代登記，特地建了一場過去時間的比賽測完再刪掉）、組隊頁綁定/解除綁定比賽、「開新陣容」bug 複測、首頁下一場＋倒數＋待辦、一般球員看不到建立/刪除比賽的按鈕（用真實隊伍「資訊系足」的球員身分測的）。
-- **手機寬度**也用 Claude in Chrome 測了：這次 `resize_window` 工具在**新開的分頁**上縮小成功了（400×642、360×780），之前 v2.4 那次在已經開著的分頁上縮不了；比賽列表/詳情/組隊頁/首頁都沒有左右捲動、按鈕夠大。但這仍然是視窗縮小模擬，不是真的手機。
-- 合併到 main 之後，用 Claude in Chrome 開正式網址（`football-analysis-potato.vercel.app`）確認比賽頁能正常打開、看得到資料。
+- 沙盒本機 PostgreSQL 16：0001–0010 + 完整 `rls_test.sql` → `RLS OK`。
+- 沙盒 `node --test`：58 項全過；沙盒 `pytest`（沒有 pandas 的 6 個檔案跑不了）：其餘全過。
+- 使用者電腦：使用者說「pushed」前有跑 `py -m pytest`、`npm.cmd run typecheck`（沒有回報錯誤，但沒有明確說全部通過——下次合併前要先問清楚）。
+- Claude in Chrome 在使用者 `localhost:3000` 測過：新增（07 → #7）、背號重複、第二位隊長被擋、副隊長、隊長交接、管理員同時是隊長、排序、手機 400 寬（360 用頁面縮放模擬）。
 
 ### 還沒驗收
 
-- **從系際聯賽賽程一鍵帶入**：「測試隊」沒設定聯賽隊名、沒有賽程資料，沒機會測到。等換到真實隊伍「資訊系足」（有設定聯賽隊名、賽程表）上線後，找一場還沒建立的賽程場次試著帶入一次。
-- **分享連結顯示比賽資訊**（陣容綁定比賽時，分享頁標題下面會多一行「vs 對手・開賽時間」）、**存檔後重新整理再打開，綁定的比賽是否還在**：都沒有留測試資料驗證，建議使用者自己手動存一次確認。
-- **真的手機**：只用視窗縮小模擬過，沒用真手機看過。
-- 上一版（v2.3）留下的「還沒驗收」項目也還沒補：兩位球員比較的變形動畫、隊友看別人的生涯、兩個時間點比較（隊上要有第二個人、自己要填第二次能力表）——這些跟 v2.5 無關，純粹是隊上現在只有一個人，沒有真實資料可以測。
+- **一般球員輸入管理員碼的畫面**：使用者第一次去看時開到正式網站（當時還沒合併），之後就直接合併了，沒有回報結果。上線後可以請使用者用 `evan` 帳號在正式網站測一次（輸錯一次看提示 → 輸對 → 同一頁變成管理工具）。
+- 真的手機。
 
-## 4. 下一版：v2.6 隊伍聊天室（F6）
+## 4. 下一版：v2.7 練習行事曆與出席（SPEC F11）
 
-**SPEC**：`docs/SPEC.md` 的「F6 隊伍聊天室」。
+**SPEC**：`docs/SPEC.md` 的「F11 練習行事曆與出席（v2.7）」。重點：
 
-**F6 原文**：
-> 教練發筆記、戰術（可附陣容、影片片段），可置頂；球員可回覆。完成標準：新訊息不用重新整理就出現；教練可刪除任何訊息。
+- 「練習」頁（現在是 `web/app/t/[teamId]/practice/page.tsx` 的 `<ComingSoon>`）改成**月曆**；球隊管理員點日期新增／編輯／刪除練習：日期、開始／結束時間、地點、集合時間、內容／要帶的東西、備註；可以一次建立「每週幾、到哪天」的固定練習。
+- **出席登記**：同 v2.5 比賽的規則（`in`／`out`、開始後鎖定、管理員可以更正）；首頁「我的待辦」提醒下一次練習還沒回覆。
+- **AI 匯入（網站不串接 AI API）**：管理員填基本資訊（隊名、學期、球場…）→ 網站產生一段「給 AI 的指令」→ 管理員連同課表／賽程圖片貼給自己的 AI → AI 回固定格式文字 → 貼回網站 → 解析、**預覽**、確認後才建立；格式錯的行標出來，不要整批失敗。
+- 完成標準：手機 1 分鐘內改好一次練習；照格式回來的文字 100% 解析。
 
-**還沒決定、要先問使用者的**
+**還沒決定、要先問使用者的**（用答案表問，見第 5 節）
 
-- **即時更新怎麼做**：Supabase Realtime（訂閱 `messages` 表的變化，真正「不用重新整理」）還是簡單輪詢（例如每幾秒重抓一次）？Realtime 體驗好但要多學一個 Supabase 功能、多一條連線規則要設計；輪詢簡單但不是真即時。
-- **附件**：「可附陣容、影片片段」——陣容附件應該就是分享現有的 `lineups`（存個 `lineup_id` 參照，權限要注意別洩漏草稿）；影片片段要等 v3 才有真正的片段資料，這版要不要先留欄位、或乾脆先不做附件，只做純文字＋置頂？
-- **刪除規則**：「教練可刪除任何訊息」——球員可以刪自己發的訊息嗎？回覆算不算獨立訊息，還是掛在原訊息下面？
-- **通知**：新訊息要不要跟現有的「我的待辦」或 Discord Webhook（`DISCORD_WEBHOOK_URL`，目前只用在聯絡我們表單）接起來，提醒大家去看？
+- **資料表**：練習另開 `practices` + `practice_attendance`，還是把現有的 `matches`／`attendance` 加一個 `kind`（比賽／練習）？另開比較乾淨；共用可以重用 `set_attendance`、首頁「下一場」的程式。需要權衡（建議另開，但出席規則抽成共用的 SQL 小工具）。
+- **固定練習**：建立時就展開成一筆一筆（好改單次、好記出席），還是存規則再算？（建議展開，最多一學期約 20 筆）
+- **AI 回傳格式**：CSV 一行一筆（`日期,開始,結束,地點,集合,內容,備註`）還是 JSON？CSV 對人和 AI 都好讀；JSON 比較不會被逗號搞壞。指令裡要不要附範例和「不確定就留空、不要猜」的規則。
+- **月曆元件**：自己寫（純 TS 算日期格子放 `web/lib/`，比較好測）還是用套件（沙盒裝不了，要使用者電腦裝）？建議自己寫。
+- 練習要不要也發到聊天室／Discord（例如新增或改時間時自動發一則筆記）？
+- 聯賽比賽日要不要在月曆上一起顯示（灰色、不能編輯）？
 
-**已經有的東西，可以參考**
+**已經有的東西可以參考**
 
-- v2.5 `set_attendance`／`save_match` 這類「動作用資料庫函式、不 raise、回傳 status」的模式，聊天室的發文/刪文/置頂應該照同樣的寫法。
-- `web/components/ui.tsx` 的 `useNow`、`useToast` 可以直接用。
-- 權限規則照 v2.4／v2.5 的慣例：新表一定要 RLS、新函式要 revoke from anon/public 再 grant authenticated、`tests/test_v2x.py` 要照既有的檢查模式補上去。
+- v2.5 `matches`／`attendance`／`set_attendance`（`0008_matches.sql`）和 `web/lib/matches.ts`、`web/app/t/[teamId]/matches/`：出席規則、鎖定、管理員代登記都一樣。
+- v2.6.1 `roster_problem` 的寫法：檢查函式回傳 `jsonb`／null，不 raise，revoke 掉直接呼叫。
+- `web/lib/todos.ts`：首頁待辦。
 
 ## 5. 使用者的習慣（一定要照做）
 
 - 用**繁體中文**回覆；使用者是 NCKU 資工大一，Python 有基礎、還在學；用白話，能用足球比喻更好。
-- **大改動先列待辦清單（大分類＋細項），等使用者確認再動手**；小事直接做。給選項時用編號，附上建議。
+- **大改動先列待辦清單（大分類＋細項），等使用者確認再動手**；小事直接做。
+- **要使用者做決定時，給「答案表」**（表格：題號／問題／編號選項，可以只回編號）。使用者的回答有時是英文、編號跟題號對應，可能有打錯字，照上下文判斷；真的看不懂再問。
+- **叫使用者跑指令時，給可以直接複製貼上的程式碼區塊**，一行一個指令，第一行固定是：
+  ```powershell
+  cd "$env:USERPROFILE\Desktop\軟工\football-team-site"
+  ```
+  （repo 在 `C:\Users\user\Desktop\軟工\football-team-site`；**不要用 `git rev-parse --show-toplevel`**，中文路徑在 PowerShell 會變亂碼；也不要假設使用者在哪個資料夾。）
 - **用圖片之前先問**。
-- 做完要**在瀏覽器實際測過**，不要只說做完了；有連結使用者電腦時優先用 Claude in Chrome 直接在他的 `localhost` 上操作測試，比自己憑空判斷可靠很多。
-- 進度要邊做邊回報（task 清單＋重點訊息）。
-- 開工前如果這項工作適合換模型，**先提醒使用者在 App 切換**，等使用者說好再開工（見 CLAUDE.md「版本交接規則」）。
-- 合併到 main、跑完測試之後，**先用一句話問使用者測試結果是不是全部通過**，不要自己假設都過了就直接合併——這次就是先問過、使用者確認「全部通過」才合併的。
+- 做完要**在瀏覽器實際測過**；優先用 Claude in Chrome 操作使用者的 `localhost:3000`。
+- 開工前如果這項工作適合換模型，**先提醒使用者在 App 切換**，等使用者說好再開工。
+- 合併前**先問使用者測試是不是全部通過**。
 
 ## 6. 環境注意事項（踩過的坑）
 
 **使用者的電腦**
-- Windows，VS Code 繁中版。PowerShell 擋 `npm.ps1`：一律打 **`npm.cmd`**。Python 用 `py`。
-- 本機網站：`cd web` → `npm.cmd run dev` → http://localhost:3000。
+- Windows，VS Code 繁中版，PowerShell。`npm` 要打 **`npm.cmd`**；Python 用 `py`。
+- 使用者常常已經開著 `npm run dev`（再開會出現「Another next dev server is already running」）：不用重開，切分支後會自動更新，重新整理就好。
+- 使用者有時會開到**正式網站**而不是 `localhost`，看不到新功能時先確認網址。
+- 使用者的 Chrome 有 Grammarly：Next.js 開發模式左下角的「1 Issue」（hydration mismatch，`data-gr-ext-installed`）是外掛造成的，不用修。
+- 使用者的帳號是**網站管理員**（`is_admin`），在任何隊都看得到管理工具；要測「一般球員」畫面要用 `evan` 帳號。
 
-**雲端工作環境（助手自己的，Claude Code 的沙盒容器）**
-- 連不到 npm（403）、pip 也大多裝不了：型別檢查、`npm test`、`npm run build`、`pytest` 都要在使用者電腦上跑。
-- **這次意外發現：沙盒裡有一個可以用的本機 PostgreSQL 16**（`/usr/lib/postgresql/16/bin/{initdb,pg_ctl}`，用 `runuser -u postgres --` 繞過 root 直接跑的安全檢查），配合 `supabase/tests/local_shim.sql`（模擬 `auth.users`／`auth.uid()`／角色的 shim）可以在沙盒裡**真的跑一次 migration + 完整的 `rls_test.sql`**，不用等使用者在正式 Supabase 上測才知道權限規則對不對。這次 0008 migration 就是先在這裡測過、確認 `RLS OK` 才請使用者在正式環境跑的，比上一版（只能看程式碼判斷）可靠很多。下一版資料庫設計好以後，建議先用這個方法驗過一輪。
-- **也意外發現：`npm`／`pip` 沒裝好的情況下，可以寫一個土炮的測試執行器**（這次叫 `minitest.py`，直接執行沒有參數的 `test_*` function，對會 `import pytest` 但其實不需要 fixture 的檔案塞一個假的 `pytest` 模組）來跑既有的 Python 靜態檢查測試，比完全無法自我檢查好。但這**不能取代**使用者電腦上的真正 `pytest`（某些測試需要真的 pytest fixture，會被跳過）。
-- `git push` 到分支和 main 都正常，但 **push tag 還是會 403**——標籤要使用者自己在 GitHub 網頁上「Draft a new release」打。
-- `gh` CLI 裝了但沒登入，不能用 `gh release create`。
+**雲端工作環境（助手的沙盒）**
+- 連不到 npm（403）、pip 裝不了、沒有 `pandas`：完整 `pytest`、`npm run typecheck`、`npm test`（真的套件）、`npm run build` 要在使用者電腦上跑。
+- 有 pytest：`/root/.local/bin/pytest -q --continue-on-collection-errors`（缺 pandas 的 6 個檔案會 collection error，其他照跑）。
+- 有全域 `tsc`（`/home/claude/.npm-global/bin/tsc`），但沒有 React／Next 型別：`tsc --noEmit -p web` 只能 grep 自己改的檔案看有沒有真的型別錯誤。
+- `node --test web/tests/*.test.ts` 可以直接跑（Node 22 內建型別剝除）。
+- **本機 PostgreSQL 16**：`service postgresql start` 後，用 `su postgres -c "psql ..."` 依序跑 `supabase/tests/local_shim.sql` → `supabase/migrations/0*.sql` → `supabase/tests/rls_test.sql`，看到 `RLS OK` 才請使用者在 Supabase 執行新 migration。檔案要先複製到 `/tmp` 給 postgres 使用者讀。v2.6.1 有一支腳本做這件事（在助手的 scratchpad，新工作階段不會留著，照這個順序重寫就好）。
+- push 分支和 main 都可以；**push tag 會 403**，標籤要使用者在 GitHub 網頁打。`gh` 沒登入。
+- 開新分支時用 `git switch -c vX.Y origin/main`，**推的時候用 `git push -u origin vX.Y`**；如果 stop hook 說「有未推送的 commit」但 `git ls-remote origin vX.Y` 跟 `HEAD` 一樣，是本機的遠端追蹤紀錄沒更新：`git fetch origin vX.Y:refs/remotes/origin/vX.Y` 就好。
 
-**連結使用者電腦的部分**
-- 這次的對話是**連結到使用者的 Windows 電腦**的：`mcp__remote-devices__device_bash` 是一個跟使用者電腦**分開的、獨立的 Linux VM**，不要以為連了電腦就能在那個 VM 裡跑使用者的指令（`npm`／`pytest`／`git pull` 這些還是要請使用者自己在 VS Code 終端機打）。
-- **Claude in Chrome 才是真的操作使用者的真實 Chrome**：這次比賽頁、組隊頁綁定比賽、首頁下一場幾乎都是透過它測的，包含建立/刪除測試比賽、代登記、鎖定狀態。「開新陣容」的 bug 也是這樣複測確認修好的。
-- `read_page`（accessibility tree）和 `javascript_tool` 在 `computer` 工具的 `screenshot`／`left_click` 偶爾逾時（CDP `Page.captureScreenshot` timeout，可能是 Next dev 熱重載卡住渲染）時還是能用——這次遇到 `computer` 的 click 和 screenshot 連續失敗，改用 `javascript_tool` 直接 `element.click()` 和 `document.body.innerText` 照樣把整個流程測完，比乾脆放棄測試可靠。下次遇到類似情況可以先試這招，不用馬上跟使用者說測不了。
-- **`resize_window` 這次在新開的分頁上成功了**（縮到 400×642、360×780），跟上一版「視窗最大化時常常縮不了」的經驗不完全一樣——看起來差別可能在於「全新分頁 vs 沿用舊分頁」，但樣本太少不確定，下次可以先試試看新分頁，縮不了再跟使用者說改用他自己的 DevTools。
-- 登入一律由使用者自己做；助手不輸入密碼、不填金鑰。
-- git 分支 `v2.5` 這次遇到本機 git 設定缺了 fetch refspec（只設了 `main` 的，沒有 `v2.5` 的），導致 stop hook 誤判「有未推送的 commit」，其實已經推上去了。用 `git config --add remote.origin.fetch '+refs/heads/v2.5:refs/remotes/origin/v2.5'` 補上就好。换到新版本分支工作前可以先確認一下 fetch 設定。
+**Claude in Chrome**
+- 先 `tabs_context_mcp(createIfEmpty: true)`，在**自己的新分頁**測；使用者自己開的分頁不在可操作的分頁群組裡。
+- `screenshot`／`left_click` 有時逾時（使用者切走視窗時常發生）：改用 `javascript_tool`（`element.click()`、`document.querySelector('main').innerText`；React 輸入框要用原生 setter + `input` 事件）照樣能測完。
+- **縮視窗**：`createIfEmpty` 開出來的**新視窗**可以 `resize_window`，但最窄只有 **400**；360 寬用 `document.documentElement.style.zoom = String(400/360)` 模擬。網站有安全標頭，**不能用 iframe** 嵌自己。
+- `ConfirmButton`（按兩下才執行）：兩次點擊要放在**同一個** `browser_batch` 裡，不然 4 秒會過期。
+- 登入由使用者自己做；助手不輸入密碼、不填金鑰。
 
 **上線流程**
-- 新功能先放在 `vX.Y` 分支，**不要直接 push main**。
-- 順序：寫程式 → migration 給使用者在 Supabase SQL Editor 執行 → rls_test → 本機實測（`npm run typecheck`／`npm test`／`pytest`，使用者電腦上跑）→ Claude in Chrome 在使用者電腦的 localhost 上實際操作測試 → **先問使用者測試結果是否全部通過，得到明確答覆再合併** → 合併 main（這個環境可以直接 push main，但標籤要使用者自己在 GitHub 網頁打）→ 合併後用 Claude in Chrome 開正式網址確認一次 → 寫新的 HANDOFF.md。
+- 新功能放 `vX.Y` 分支，不要直接 push main。
+- 寫程式 → 沙盒 PostgreSQL 跑 rls_test → 使用者在 Supabase 執行 migration + rls_test → 使用者電腦跑測試 → Claude in Chrome 在 localhost 驗收 → **問使用者測試是否全部通過** → 合併 main → 用正式網址確認 → 寫 HANDOFF。
 
-## 7. 待辦（不屬於 v2.6，但別忘了）
+## 7. 待辦（不屬於 v2.7，但別忘了）
 
-- **v2.5 還沒打 GitHub 標籤**，請使用者在 GitHub 網頁上補（見第 2 節）。
+- 打 `v2.6.1` 標籤（Target `main`，對應 `d9a93ac`）。
+- v2.6.1 一般球員兌換管理員碼的畫面還沒親眼驗收（見第 3 節）。
+- v2.6 還沒驗收的：真的 Discord 推播收到訊息、真的手機。
+- v2.5 還沒驗收的：系際聯賽賽程一鍵帶入、分享連結含比賽資訊、真的手機。
 - v2.2.1 剩：Google 登入從「測試」切成「正式」（`docs/V2_2_1_SETUP.md`）。
-- v2.3 從來沒有打過 GitHub 標籤，有空的話可以補一個。
-- v2.5 的「還沒驗收」項目（見第 3 節）：系際聯賽賽程一鍵帶入、分享連結含比賽資訊、重新整理後綁定是否還在、真的手機。
-- 使用者問過球場「自由擺放」要不要做，決定先不做，細節見 v2.4.1 時期的討論（`git log -p docs/HANDOFF.md` 找得到）。
+- v2.3 從來沒打過 GitHub 標籤。
+- 球場「自由擺放」先不做（v2.4.1 時討論過）。
 - 使用者之後會裝插畫風格的外掛，加入手繪／人性化的視覺元素。
-- 之後：語言設定（多語系）。
-- SPEC 最後還有沒決定的事項（見 `docs/SPEC.md`「待決定」：控球秒數定義、原始影片保留天數、各版本日期）。
+- 之後：語言設定（多語系）；影片分析照 `docs/PROJECT_PLAN.md`。

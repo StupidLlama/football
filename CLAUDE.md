@@ -162,8 +162,8 @@ py web/scripts/sync_config.py              # 改了 config/settings.toml 的能�
 - v2.2 / v2.2.1：已上線（見 `docs/V2_2_1_SETUP.md` 的剩餘事項：Google 登入正式版、v2.2.1 標籤）。
 - v2.3：已上線（main，從來沒打過 GitHub 標籤，不影響功能，有空再補）。還沒用真實資料測過：兩位球員比較的變形動畫、隊友看別人的生涯、兩個時間點比較。
 - v2.4 組隊（F3）：**已上線（main，標籤 `v2.4.1`）**。
-- v2.5 比賽列表＋出賽登記（F7）、v2.6 隊伍聊天室（F6）：**已合併到 main、已上線**（標籤 `v2.5`、`v2.6`）。v2.6 標籤打在 `8c7e177`，之後修的一行 Discord 提示文字放進 v2.6.1 一起上線。
-- **v2.6.1 名單管理（SPEC F6.1）：程式已寫完在 `v2.6.1` 分支，還沒合併到 main。** 新的 `0010_roster.sql` 還沒在 Supabase 執行。沙盒在本機 PostgreSQL 16 跑過 0001–0010 + `rls_test.sql`（`RLS OK`），`node --test` 全部通過；`npm run typecheck`、完整 `pytest`（要 `pandas`）、瀏覽器和手機驗收要在使用者電腦上做。步驟在 `docs/V2_6_1_SETUP.md`。
+- v2.5 比賽列表＋出賽登記（F7）、v2.6 隊伍聊天室（F6）：**已上線**（標籤 `v2.5`、`v2.6`）。
+- **v2.6.1 名單管理（SPEC F6.1）：已上線（main @ `d9a93ac`），0010 已在 Supabase 執行。** 還沒打 `v2.6.1` 標籤；一般球員兌換管理員碼的畫面還沒親眼驗收。交接說明在 `docs/HANDOFF.md`（v2.6.1 → v2.7）。
 - 沙盒連不到 npm registry（`npm install` 403）、也沒有 `pandas`；但有 PostgreSQL 16（`service postgresql start`，照 `local_shim.sql` → migrations → `rls_test.sql` 的順序用 `psql` 跑）和全域 `tsc`（沒有 React 型別，只能粗略檢查）。真實瀏覽器測試可以用 Claude in Chrome 操作使用者的 `localhost:3000`（`device_bash` 是獨立 VM、不是使用者電腦）。
 - 版本順序（2026-10-08 調整）：**v2.7 練習行事曆與出席（F11）＋ AI 匯入練習**（網站不串 AI：網站產生給 AI 的指令 → 使用者貼給自己的 AI → AI 回固定格式 → 貼回網站解析、預覽、確認）；v2.8 賽季進步追蹤（F8）；v2.9 意見回饋、全隊上線、舊網站退役；之後語言設定（多語系）。
 - 使用者問過「球場上能不能自由擺放（不限定 11 個位置框）」，討論後決定 v2.4.1 先不做，先維持「拖到固定位置框互換」。有空可以再提出來討論要不要做。
