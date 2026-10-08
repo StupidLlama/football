@@ -640,5 +640,145 @@ reset role;
 select pg_temp.expect((select count(*) from public.lineups where owner_id is null and kind = 'draft'), 0, '刪帳號後沒有留下無主草稿');
 select pg_temp.expect((select count(*) from public.lineups where kind = 'official' and team_id = '10000000-0000-0000-0000-00000000000a'), 1, '正式陣容還在');
 
+-- ============================================================
+-- v2.5 比賽列表＋出賽登記（F7）
+-- ============================================================
+-- 準備：A1 重新連回帳號 a（上面測離隊時刪掉了）；新隊友 13 連到新球員 A3（最後測刪帳號）
+insert into auth.users (id, email) values ('00000000-0000-0000-0000-000000000013', 'rls-13@example.test'),
+                                         ('00000000-0000-0000-0000-000000000014', 'rls-14@example.test');   -- 只在 B 隊
+insert into public.players (id, team_id, name) values
+  ('20000000-0000-0000-0000-0000000000a3', '10000000-0000-0000-0000-00000000000a', '球員A3');
+insert into public.memberships (team_id, user_id, role, player_id) values
+  ('10000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000a', 'player', '20000000-0000-0000-0000-0000000000a1'),
+  ('10000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-000000000013', 'player', '20000000-0000-0000-0000-0000000000a3'),
+  ('10000000-0000-0000-0000-00000000000b', '00000000-0000-0000-0000-000000000014', 'player', null);
+grant execute on function pg_temp.st(jsonb, text, text), pg_temp.login(text) to authenticated;
+
+set local role authenticated;
+-- 建立比賽：只有球隊管理員
+select pg_temp.login('00000000-0000-0000-0000-00000000000a');
+select pg_temp.st(public.save_match('10000000-0000-0000-0000-00000000000a', null, '對手隊', now() + interval '2 days'),
+                  'forbidden', '球員建立比賽');
+select pg_temp.must_fail($q$insert into public.matches (team_id, opponent, kickoff)
+                          values ('10000000-0000-0000-0000-00000000000a', '偷建的', now())$q$, '球員直接寫比賽表');
+select pg_temp.login('00000000-0000-0000-0000-00000000000d');
+select set_config('test.match', public.save_match('10000000-0000-0000-0000-00000000000a', null, '對手隊',
+         now() + interval '2 days', now() + interval '2 days' - interval '40 minutes', '操場', '白', 11) ->> 'id', true);
+select pg_temp.expect((current_setting('test.match') <> '')::int, 1, '管理員建立比賽');
+select pg_temp.st(public.save_match('10000000-0000-0000-0000-00000000000a', null, '  ', now()), 'invalid', '比賽沒填對手');
+select pg_temp.st(public.save_match('10000000-0000-0000-0000-00000000000a', null, 'x', now(), now() + interval '1 hour'),
+                  'invalid', '集合時間在開賽之後');
+select pg_temp.st(public.save_match('10000000-0000-0000-0000-00000000000a', null, 'x', now(), null, '', '', 9),
+                  'invalid', '比賽賽制不是 8 或 11');
+select pg_temp.st(public.save_match('10000000-0000-0000-0000-00000000000a', null, 'x', now(), null, '', '', 11, '', 2, null),
+                  'invalid', '比分只填一邊');
+-- 已經開賽的比賽（測鎖定用）
+select set_config('test.past', public.save_match('10000000-0000-0000-0000-00000000000a', null, '昨天的對手',
+         now() - interval '1 day') ->> 'id', true);
+select pg_temp.must_fail('select public.match_problem(null, null, null, null, null, null, null, null, null)',
+                         '登入的人直接呼叫比賽檢查函式');
+
+-- 出賽登記：球員登記自己；沒認領的人不行；不能幫隊友登記；不能直接寫表
+select pg_temp.login('00000000-0000-0000-0000-00000000000a');
+select pg_temp.expect((select count(*) from public.matches), 2, '球員看得到本隊的比賽');
+select pg_temp.st(public.set_attendance(current_setting('test.match')::uuid, 'in'), 'ok', '球員登記自己出席');
+select pg_temp.st(public.set_attendance(current_setting('test.match')::uuid, 'maybe'), 'invalid', '出席狀態亂填');
+select pg_temp.st(public.set_attendance(current_setting('test.match')::uuid, 'in', '', '20000000-0000-0000-0000-0000000000a2'),
+                  'forbidden', '球員幫隊友登記');
+select pg_temp.st(public.set_attendance(current_setting('test.past')::uuid, 'in'), 'closed', '開賽後球員改登記');
+select pg_temp.must_fail($q$insert into public.attendance (match_id, player_id, team_id, status)
+                          values (current_setting('test.match')::uuid, '20000000-0000-0000-0000-0000000000a2',
+                                  '10000000-0000-0000-0000-00000000000a', 'in')$q$, '球員直接寫出席表');
+select pg_temp.must_fail($q$update public.attendance set status = 'out'$q$, '球員直接改出席表');
+select pg_temp.st(public.delete_match(current_setting('test.match')::uuid), 'forbidden', '球員刪比賽');
+select pg_temp.login('00000000-0000-0000-0000-00000000000c');
+select pg_temp.st(public.set_attendance(current_setting('test.match')::uuid, 'in'), 'not_linked', '還沒認領的隊員登記出席');
+
+-- 球隊管理員：幫還沒註冊的隊友登記、開賽後也能更正
+select pg_temp.login('00000000-0000-0000-0000-00000000000d');
+select pg_temp.st(public.set_attendance(current_setting('test.match')::uuid, 'out', '出國', '20000000-0000-0000-0000-0000000000a2'),
+                  'ok', '管理員幫隊友登記請假');
+select pg_temp.st(public.set_attendance(current_setting('test.past')::uuid, 'in', '', '20000000-0000-0000-0000-0000000000a1'),
+                  'ok', '管理員開賽後更正登記');
+select pg_temp.login('00000000-0000-0000-0000-00000000000c');
+select pg_temp.expect((select count(*) from public.attendance where match_id = current_setting('test.match')::uuid), 2,
+                      '隊友看得到全隊的出席登記');
+
+-- 別隊（只在 B 隊的人）：看不到、登記不了、建不了
+select pg_temp.login('00000000-0000-0000-0000-000000000014');
+select pg_temp.expect((select count(*) from public.matches where team_id = '10000000-0000-0000-0000-00000000000a'), 0, '別隊看 A 隊的比賽');
+select pg_temp.expect((select count(*) from public.attendance where team_id = '10000000-0000-0000-0000-00000000000a'), 0, '別隊看 A 隊的出席');
+select pg_temp.st(public.set_attendance(current_setting('test.match')::uuid, 'in', '', '20000000-0000-0000-0000-0000000000a1'),
+                  'not_found', '別隊登記 A 隊的比賽');
+select pg_temp.st(public.save_match('10000000-0000-0000-0000-00000000000a', null, 'x', now()), 'not_member', '別隊建立 A 隊的比賽');
+select pg_temp.st(public.delete_match(current_setting('test.match')::uuid), 'forbidden', '別隊刪 A 隊的比賽');
+reset role;
+
+-- 從聯賽賽程一鍵建立（還沒設定聯賽隊名 → 不行；設定後 → 對手是另一隊；同一場只建一次）
+set local role authenticated;
+select pg_temp.login('00000000-0000-0000-0000-00000000000d');
+select pg_temp.st(public.match_from_fixture('10000000-0000-0000-0000-00000000000a', '30000000-0000-0000-0000-0000000000a1'),
+                  'invalid', '沒設定聯賽隊名就從聯賽建立');
+update public.teams set league_name = '甲' where id = '10000000-0000-0000-0000-00000000000a';
+select set_config('test.fx', public.match_from_fixture('10000000-0000-0000-0000-00000000000a',
+         '30000000-0000-0000-0000-0000000000a1') ->> 'id', true);
+select pg_temp.expect((select count(*) from public.matches where id = current_setting('test.fx')::uuid and opponent = '乙'
+                         and kickoff = timestamptz '2026-10-16 19:00+08'), 1, '從聯賽建立的對手和時間');
+select pg_temp.expect((public.match_from_fixture('10000000-0000-0000-0000-00000000000a', '30000000-0000-0000-0000-0000000000a1')
+                         ->> 'id' = current_setting('test.fx'))::int, 1, '同一場聯賽只建一次');
+select pg_temp.st(public.match_from_fixture('10000000-0000-0000-0000-00000000000a', '30000000-0000-0000-0000-0000000000b1'),
+                  'not_found', '從別隊的聯賽賽程建立');
+select pg_temp.login('00000000-0000-0000-0000-00000000000a');
+select pg_temp.st(public.match_from_fixture('10000000-0000-0000-0000-00000000000a', '30000000-0000-0000-0000-0000000000a1'),
+                  'forbidden', '球員從聯賽建立比賽');
+
+-- 陣容綁定比賽：只能排出席的人、賽制要一樣
+select pg_temp.login('00000000-0000-0000-0000-00000000000d');
+select pg_temp.st(public.save_lineup('10000000-0000-0000-0000-00000000000a', null, 'official', '', 11, '4-3-3',
+         '{"GK": "20000000-0000-0000-0000-0000000000a2"}', '{}', '{}', current_setting('test.match')::uuid),
+         'invalid', '綁定比賽的陣容排了請假的人');
+select pg_temp.st(public.save_lineup('10000000-0000-0000-0000-00000000000a', null, 'official', '', 8, '3-3-1',
+         '{"GK": "20000000-0000-0000-0000-0000000000a1"}', '{}', '{}', current_setting('test.match')::uuid),
+         'invalid', '綁定比賽的陣容賽制不一樣');
+select pg_temp.st(public.save_lineup('10000000-0000-0000-0000-0000000000b0', null, 'draft', '', 11, '4-3-3',
+         '{}', '{}', '{}', current_setting('test.match')::uuid), 'not_member', '綁定比賽時隊伍不對');
+select set_config('test.bound', public.save_lineup('10000000-0000-0000-0000-00000000000a', null, 'official', '對手隊先發', 11, '4-3-3',
+         '{"GK": "20000000-0000-0000-0000-0000000000a1", "ST": null}', '{}', '{}', current_setting('test.match')::uuid) ->> 'id', true);
+select pg_temp.expect((select count(*) from public.lineups where id = current_setting('test.bound')::uuid
+                         and match_id = current_setting('test.match')::uuid), 1, '綁定比賽的陣容存好了');
+select pg_temp.st(public.save_match('10000000-0000-0000-0000-00000000000a', current_setting('test.match')::uuid, '對手隊',
+         now() + interval '2 days', null, '', '', 8), 'invalid', '有陣容綁定時改比賽賽制');
+select set_config('test.tok', public.set_lineup_share(current_setting('test.bound')::uuid, true) ->> 'token', true);
+reset role;
+set local role anon;
+select pg_temp.expect((public.get_shared_lineup(current_setting('test.tok')) -> 'match' ->> 'opponent' = '對手隊')::int, 1,
+                      '分享頁帶綁定比賽的對手');
+select pg_temp.must_fail('select * from public.matches', '沒登入讀比賽表');
+select pg_temp.must_fail('select * from public.attendance', '沒登入讀出席表');
+select pg_temp.must_fail($q$select public.set_attendance(current_setting('test.match')::uuid, 'in')$q$, '沒登入登記出席');
+reset role;
+
+-- 下載資料有出席紀錄；刪帳號後出席紀錄一起刪
+set local role authenticated;
+select pg_temp.login('00000000-0000-0000-0000-00000000000a');
+select pg_temp.expect((select count(*) from jsonb_array_elements(public.export_my_data() -> 'teams') t
+                        cross join jsonb_array_elements(t -> 'attendance') a), 2, '下載資料包含自己的出席紀錄（自己登記＋管理員更正）');
+select pg_temp.login('00000000-0000-0000-0000-000000000013');
+select pg_temp.st(public.set_attendance(current_setting('test.match')::uuid, 'in'), 'ok', '新隊友登記出席');
+select pg_temp.st(public.delete_my_account(), 'ok', '新隊友刪帳號');
+reset role;
+select pg_temp.expect((select count(*) from public.attendance where player_id = '20000000-0000-0000-0000-0000000000a3'), 0,
+                      '刪帳號後出席紀錄一起刪');
+
+-- 刪比賽：出席紀錄跟著刪，綁定的陣容留著、變回不綁定
+set local role authenticated;
+select pg_temp.login('00000000-0000-0000-0000-00000000000d');
+select pg_temp.st(public.delete_match(current_setting('test.match')::uuid), 'ok', '管理員刪比賽');
+reset role;
+select pg_temp.expect((select count(*) from public.attendance where match_id = current_setting('test.match')::uuid), 0,
+                      '刪比賽後出席紀錄一起刪');
+select pg_temp.expect((select count(*) from public.lineups where id = current_setting('test.bound')::uuid and match_id is null), 1,
+                      '刪比賽後陣容變回不綁定');
+
 select 'RLS OK' as result;
 rollback;
