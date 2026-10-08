@@ -44,9 +44,20 @@ export type Attendance = {
   match_id: string; player_id: string; team_id: string; status: AttendanceAnswer; note: string;
   updated_by: string | null; updated_at: string;
 };
+
+// 隊伍聊天室（v2.6 F6）：parent_id 空的是主貼文；deleted_at 有值代表已刪除（body 清空、留下殼）。
+export type MessageKind = "general" | "note" | "tactic";
+export type Message = {
+  id: string; team_id: string; author_id: string | null; parent_id: string | null; kind: MessageKind;
+  body: string; lineup_id: string | null; pinned_at: string | null; edited_at: string | null;
+  deleted_at: string | null; created_at: string;
+};
+// 讀到哪裡（未讀紅點、首頁「有新的置頂訊息」）：只看得到自己的那一列（RLS），沒有＝從來沒讀過。
+export type ChatMeta = { lastReadAt: string | null; unread: number; newPinned: boolean };
+
 export type TeamData = {
   team: Team; me: Membership; members: Membership[]; profiles: Profile[]; players: Player[]; ratings: Rating[];
-  fixtures: Fixture[]; duties: Duty[]; guards: Guard[]; matches: Match[]; attendance: Attendance[];
+  fixtures: Fixture[]; duties: Duty[]; guards: Guard[]; matches: Match[]; attendance: Attendance[]; chat: ChatMeta;
 };
 
 // 只選需要的欄位（coach_codes 的 salt、code_hash 根本沒有開放，select * 會被拒絕）
@@ -63,6 +74,7 @@ const COLS = {
   contact: "id, user_id, category, body, page, status, created_at",
   match: "id, team_id, opponent, kickoff, meet_at, location, jersey, size, note, our_score, their_score, fixture_id, created_by, created_at, updated_at",
   attendance: "match_id, player_id, team_id, status, note, updated_by, updated_at",
+  message: "id, team_id, author_id, parent_id, kind, body, lineup_id, pinned_at, edited_at, deleted_at, created_at",
 };
 
 // 欄位清單是變數（COLS），supabase-js 沒辦法從字串推出型別，所以在這裡統一轉成我們自己定義的型別。
@@ -121,13 +133,89 @@ export async function getTeamData(teamId: string, userId: string): Promise<TeamD
   if (!me) return null;
   const ids = ms.map((m) => m.user_id);
   const profiles = must<Profile[]>(await db.from("profiles").select(COLS.profile).in("user_id", ids), "成員名稱");
+  const chat = await getChatMeta(teamId, userId);
   return {
     team: team.data as unknown as Team, me, members: ms, profiles,
     players: must<Player[]>(players, "球員"), ratings: must<Rating[]>(ratings, "能力自評"),
     fixtures: must<Fixture[]>(fixtures, "賽程"), duties: must<Duty[]>(duties, "裁判任務"),
     guards: must<Guard[]>(guards, "封鎖狀態"),
     matches: must<Match[]>(matches, "比賽"), attendance: must<Attendance[]>(attendance, "出席登記"),
+    chat,
   };
+}
+
+/** 未讀數和「有沒有新置頂」：給側邊欄紅點、首頁待辦用（不用載整個聊天室才知道）。 */
+async function getChatMeta(teamId: string, userId: string): Promise<ChatMeta> {
+  const db = supabase();
+  const readRes = await db.from("chat_reads").select("last_read_at").eq("team_id", teamId).eq("user_id", userId).maybeSingle();
+  if (readRes.error) throw new Error(`讀取聊天室已讀狀態失敗：${readRes.error.message}`);
+  const lastReadAt = (readRes.data as { last_read_at: string } | null)?.last_read_at ?? null;
+  const since = lastReadAt ?? "1970-01-01T00:00:00Z";
+  const [unreadRes, pinnedRes] = await Promise.all([
+    db.from("messages").select("id", { count: "exact", head: true })
+      .eq("team_id", teamId).is("deleted_at", null).neq("author_id", userId).gt("created_at", since),
+    db.from("messages").select("id", { count: "exact", head: true })
+      .eq("team_id", teamId).is("deleted_at", null).not("pinned_at", "is", null).gt("pinned_at", since),
+  ]);
+  if (unreadRes.error) throw new Error(`讀取聊天室未讀數失敗：${unreadRes.error.message}`);
+  if (pinnedRes.error) throw new Error(`讀取聊天室置頂狀態失敗：${pinnedRes.error.message}`);
+  return { lastReadAt, unread: unreadRes.count ?? 0, newPinned: (pinnedRes.count ?? 0) > 0 };
+}
+
+// ---------- 隊伍聊天室（v2.6 F6）----------
+/** 這一隊全部的訊息（含已刪除的殼，回覆才看得懂上下文），照發文時間舊到新。 */
+export async function getMessages(teamId: string): Promise<Message[]> {
+  return must<Message[]>(await supabase().from("messages").select(COLS.message).eq("team_id", teamId)
+    .order("created_at", { ascending: true }), "聊天室訊息");
+}
+
+/** 即時訂閱這一隊的訊息變化（新發文、編輯、刪除、置頂）；回傳取消訂閱的函式。 */
+export function subscribeMessages(teamId: string, onChange: () => void): () => void {
+  const channel = supabase().channel(`messages-${teamId}`)
+    .on("postgres_changes", { event: "*", schema: "public", table: "messages", filter: `team_id=eq.${teamId}` }, onChange)
+    .subscribe();
+  return () => { supabase().removeChannel(channel); };
+}
+
+export async function postMessage(team: string, body: string, kind: MessageKind = "general",
+  parent?: string | null, lineup?: string | null): Promise<RpcResult & { id?: string }> {
+  return (await rpc("post_message", { team, body, kind, parent: parent ?? null, lineup: lineup ?? null })) as RpcResult & { id?: string };
+}
+
+export async function editMessage(message: string, body: string): Promise<RpcResult> {
+  return rpc("edit_message", { message, body });
+}
+
+export async function deleteMessage(message: string): Promise<RpcResult> {
+  return rpc("delete_message", { message });
+}
+
+export async function setPinned(message: string, pinned: boolean): Promise<RpcResult> {
+  return rpc("set_pinned", { message, pinned });
+}
+
+export async function markChatRead(team: string): Promise<RpcResult> {
+  return rpc("mark_chat_read", { team });
+}
+
+/** 球隊管理員：有沒有設定 Discord 通知（網址本身永遠不會傳到瀏覽器）。 */
+export async function getChatDiscord(team: string): Promise<RpcResult & { configured?: boolean; updated_at?: string | null }> {
+  return (await rpc("get_chat_discord", { team })) as RpcResult & { configured?: boolean; updated_at?: string | null };
+}
+
+/** url 傳空字串 = 關掉通知。 */
+export async function setChatDiscord(team: string, url: string): Promise<RpcResult & { configured?: boolean }> {
+  return (await rpc("set_chat_discord", { team, url })) as RpcResult & { configured?: boolean };
+}
+
+/** 管理專區「在聊天室提醒還沒填能力表的人」：發一則置頂筆記，列出名字（F9）。 */
+export async function remindMissingRatings(team: string, names: string[]): Promise<RpcResult & { id?: string }> {
+  if (!names.length) return { status: "invalid", detail: "目前沒有人還沒填能力表" };
+  const body = `能力表還沒填的人：${names.join("、")}。記得抽空填一下，謝謝！`;
+  const posted = await postMessage(team, body, "note");
+  if (posted.status !== "ok" || !posted.id) return posted;
+  const pinned = await setPinned(posted.id, true);
+  return pinned.status === "ok" ? posted : { ...pinned, id: posted.id };
 }
 
 export async function getCoachCodes(teamId: string): Promise<CoachCode[]> {

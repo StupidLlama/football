@@ -2,7 +2,11 @@
 // 管理專區：能力表進度、成員（認領確認、解除封鎖、移出）、Team ID 與管理員碼、球隊設定。
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { actions, getCoachCodes, updateTeam, type CoachCode, type Membership } from "@/lib/api";
+import {
+  actions, getChatDiscord, getCoachCodes, remindMissingRatings, setChatDiscord, updateTeam,
+  type CoachCode, type Membership,
+} from "@/lib/api";
+import { DISCORD_HOOK_URL_RE } from "@/lib/chat";
 import { useAuth } from "@/lib/auth";
 import { message, type RpcResult } from "@/lib/status";
 import { useTeamView } from "@/lib/team";
@@ -46,6 +50,7 @@ function Progress() {
   const v = useTeamView();
   const say = useToast();
   const [error, setError] = useState("");
+  const [reminding, setReminding] = useState(false);
   const done = v.players.filter((p) => p.scores);
   const todo = v.players.filter((p) => !p.scores);
   const unlinked = v.data.members.filter((m) => !m.player_id);
@@ -57,6 +62,13 @@ function Progress() {
     if (r.status === "ok") { await v.reload(); say(`已從名單刪除「${name}」`); } else setError(message(r));
   }
 
+  async function remind() {
+    setReminding(true); setError("");
+    const r = await remindMissingRatings(v.data.team.id, todo.map((p) => p.nickname.trim() || p.name));
+    setReminding(false);
+    if (r.status === "ok") say("已在聊天室發一則置頂提醒"); else setError(message(r));
+  }
+
   return (
     <>
       <div className="kpis">
@@ -65,6 +77,11 @@ function Progress() {
         <div className="kpi"><div className="faint" style={{ fontSize: 14 }}>帳號還沒連到名單</div><div className="v num">{unlinked.length}</div><div className="faint" style={{ fontSize: 13 }}>{v.claims.length} 個認領等你確認</div></div>
       </div>
       <p className="faint" style={{ margin: "12px 0", fontSize: 14 }}>還沒有帳號的人：把 Team ID 傳給他，加入後認領自己就能填。沒有帳號的名字可以從名單刪除（例如離隊、刪除帳號的人），他的能力自評會一起刪掉。</p>
+      {todo.length > 0 && (
+        <button type="button" className="btn btn-line btn-sm" disabled={reminding} onClick={remind} style={{ marginBottom: 12 }}>
+          {reminding ? "發送中…" : "在聊天室提醒還沒填的人"}
+        </button>
+      )}
       {error && <ErrorBox text={error} />}
       <div className="tbl" role="table" aria-label="能力表進度">
         <div className="tr head" role="row" style={{ gridTemplateColumns: cols }}>
@@ -261,14 +278,77 @@ function TeamSettings() {
   }
 
   return (
-    <form onSubmit={save} className="panel pad" style={{ maxWidth: 560, display: "flex", flexDirection: "column", gap: 12 }}>
+    <div className="stack" style={{ gap: 16 }}>
+      <form onSubmit={save} className="panel pad" style={{ maxWidth: 560, display: "flex", flexDirection: "column", gap: 12 }}>
+        {error && <ErrorBox text={error} />}
+        <label className="label">隊伍名稱<input className="field" value={name} onChange={(e) => setName(e.target.value)} maxLength={60} required /></label>
+        <label className="label">賽季（例如 2026-27）<input className="field" value={season} onChange={(e) => setSeason(e.target.value)} maxLength={20} /></label>
+        <label className="label">聯賽賽程表上的隊名（例如「資訊」，用來找出我們隊的比賽和裁判任務）
+          <input className="field" value={league} onChange={(e) => setLeague(e.target.value)} maxLength={20} />
+        </label>
+        <button type="submit" className="btn btn-main" disabled={busy} style={{ alignSelf: "flex-start" }}>{busy ? "儲存中…" : "儲存"}</button>
+      </form>
+      <ChatDiscordSettings />
+    </div>
+  );
+}
+
+function ChatDiscordSettings() {
+  const v = useTeamView();
+  const say = useToast();
+  const team = v.data.team.id;
+  const [state, setState] = useState<{ configured: boolean; updatedAt: string | null } | null>(null);
+  const [url, setUrl] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const load = useCallback(() => {
+    getChatDiscord(team).then((r) => {
+      if (r.status === "ok") setState({ configured: !!r.configured, updatedAt: r.updated_at ?? null });
+      else setError(message(r));
+    });
+  }, [team]);
+  useEffect(() => { load(); }, [load]);
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    const trimmed = url.trim();
+    if (!DISCORD_HOOK_URL_RE.test(trimmed)) { setError("這不是 Discord Webhook 網址"); return; }
+    setBusy(true); setError("");
+    const r = await setChatDiscord(team, trimmed);
+    setBusy(false);
+    if (r.status === "ok") { setUrl(""); load(); say("已設定，之後有新的置頂主貼文會推到 Discord"); } else setError(message(r));
+  }
+
+  async function clear() {
+    setBusy(true); setError("");
+    const r = await setChatDiscord(team, "");
+    setBusy(false);
+    if (r.status === "ok") { load(); say("已關閉 Discord 通知"); } else setError(message(r));
+  }
+
+  return (
+    <div className="panel pad stack" style={{ gap: 12, maxWidth: 560 }}>
+      <p style={{ margin: 0, fontWeight: 700, fontSize: 18 }}>聊天室的 Discord 通知</p>
+      <p className="faint" style={{ margin: 0, fontSize: 13 }}>
+        設定後，聊天室有新的主貼文（不包含回覆）會推到這個 Discord 頻道；沒設定的話只有網站裡的紅點提醒。網址設定後不會再顯示，只能重新貼上覆蓋。
+      </p>
       {error && <ErrorBox text={error} />}
-      <label className="label">隊伍名稱<input className="field" value={name} onChange={(e) => setName(e.target.value)} maxLength={60} required /></label>
-      <label className="label">賽季（例如 2026-27）<input className="field" value={season} onChange={(e) => setSeason(e.target.value)} maxLength={20} /></label>
-      <label className="label">聯賽賽程表上的隊名（例如「資訊」，用來找出我們隊的比賽和裁判任務）
-        <input className="field" value={league} onChange={(e) => setLeague(e.target.value)} maxLength={20} />
-      </label>
-      <button type="submit" className="btn btn-main" disabled={busy} style={{ alignSelf: "flex-start" }}>{busy ? "儲存中…" : "儲存"}</button>
-    </form>
+      {state === null && <p className="faint">讀取中…</p>}
+      {state && (
+        <p className="muted" style={{ margin: 0, fontSize: 14 }}>
+          目前：{state.configured ? `已設定${state.updatedAt ? `（${dateLabel(state.updatedAt)} 更新）` : ""}` : "尚未設定"}
+        </p>
+      )}
+      <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <label className="label">Webhook 網址
+          <input className="field" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://discord.com/api/webhooks/..." />
+        </label>
+        <div className="chips">
+          <button type="submit" className="btn btn-main btn-sm" disabled={busy || !url.trim()}>{busy ? "儲存中…" : "設定"}</button>
+          {state?.configured && <ConfirmButton label="關閉通知" confirm="確定關閉 Discord 通知？" className="btn btn-line btn-sm" disabled={busy} onConfirm={clear} />}
+        </div>
+      </form>
+    </div>
   );
 }

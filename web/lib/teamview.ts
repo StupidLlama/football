@@ -1,6 +1,6 @@
 // 把一支球隊的原始資料（TeamData）整理成畫面要用的樣子：每位球員的最新自評、平均、適合度、
 // 全隊平均、我是誰、比賽結果、裁判任務。純計算，不碰資料庫，node --test 可以直接測。
-import type { Duty, Fixture, Membership, Player, TeamData } from "./api.ts";
+import type { ChatMeta, Duty, Fixture, Membership, Player, TeamData } from "./api.ts";
 import {
   abilities, average, categoryScores, fitness, latestByPlayer, recommended, teamAverage, type Rules, type Scores,
 } from "./rating.ts";
@@ -30,6 +30,7 @@ export type TeamView = {
   nameOf: (userId: string) => string;
   matches: MatchView[];              // 我們隊的比賽（照時間）
   duties: DutyView[];                // 裁判任務（照時間）
+  chat: ChatMeta;                    // 聊天室未讀數、有沒有新置頂
 };
 
 const WEEK = ["日", "一", "二", "三", "四", "五", "六"];
@@ -103,7 +104,7 @@ export function buildTeamView(data: TeamData, rules: Rules): TeamView {
     data, players, rated, teamScores, teamCat, teamAvg: mean(rated.map((p) => p.avg)),
     me: data.me, myPlayer, isCoach: data.me.role === "coach",
     claims: data.members.filter((m) => !m.player_id && (m.claim_player_id || m.claim_new_name)),
-    nameOf, matches, duties,
+    nameOf, matches, duties, chat: data.chat,
   };
 }
 

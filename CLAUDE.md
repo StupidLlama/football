@@ -59,6 +59,8 @@ docs/V2_1_SETUP.md         v2.1 上線步驟（帳號系統、Google 登入設�
 docs/V2_2_SETUP.md         v2.2 上線步驟（0004 migration、web/.env.local、npm、Vercel 部署、手機驗收）
 docs/V2_2_1_SETUP.md       v2.2.1 上線步驟（0005、Discord Webhook、Vercel 環境變數、Google 登入正式版）
 docs/V2_3_SETUP.md         v2.3 上線步驟（0006、手機驗收、合併到 main、打標籤）
+docs/V2_5_SETUP.md         v2.5 上線步驟（0008、比賽列表與出賽登記驗收、合併到 main、打標籤）
+docs/V2_6_SETUP.md         v2.6 上線步驟（0009、聊天室與 Discord 通知驗收、合併到 main、打標籤）
 docs/SECURITY.md           金鑰保管、換金鑰、個資外洩處理順序
 docs/HANDOFF.md            交接說明：上一版做了什麼、下一版要做什麼、環境的坑（新工作階段先讀它）
 ```
@@ -159,8 +161,10 @@ py web/scripts/sync_config.py              # 改了 config/settings.toml 的能�
 - v2.2 / v2.2.1：已上線（見 `docs/V2_2_1_SETUP.md` 的剩餘事項：Google 登入正式版、v2.2.1 標籤）。
 - v2.3：已上線（main，從來沒打過 GitHub 標籤，不影響功能，有空再補）。還沒用真實資料測過：兩位球員比較的變形動畫、隊友看別人的生涯、兩個時間點比較。
 - v2.4 組隊（F3）：**已上線（main，標籤 `v2.4.1`）**。
-- **v2.5 比賽列表＋出賽登記（F7）：程式已寫完在 `v2.5` 分支，還沒合併到 main、還沒上線。** 0008 migration 和 rls_test 使用者已經在 Supabase 執行過、通過。步驟和驗收清單在 `docs/V2_5_SETUP.md`（本機測試 → 桌機/手機驗收 → 合併到 main → 打標籤）。因為沙盒連不到 npm，`npm run typecheck`／`npm test`／手機實測、真實瀏覽器測試都還要在使用者電腦上做一次（連結電腦後可以用 Claude in Chrome 直接操作使用者的 `localhost:3000`，`device_bash` 是獨立 VM、不是使用者電腦，不能拿來跑 `npm`／`pytest`）。
-- 下一版 v2.6：隊伍聊天室（F6）；之後語言設定（多語系）。
+- **v2.5 比賽列表＋出賽登記（F7）：程式已寫完在 `v2.5` 分支，還沒合併到 main、還沒上線。** 0008 migration 和 rls_test 使用者已經在 Supabase 執行過、通過。步驟和驗收清單在 `docs/V2_5_SETUP.md`（本機測試 → 桌機/手機驗收 → 合併到 main → 打標籤）。
+- **v2.6 隊伍聊天室（F6）：程式已寫完在 `v2.6` 分支，還沒合併到 main、還沒上線。** 0009 migration 和 rls_test 使用者已經在 Supabase 執行過、通過（`RLS OK`）。沙盒這次跑過 `pytest` 和 `node --test`（不需要 `node_modules`）全部通過，但 `npm run typecheck`、兩分頁即時更新、手機版、Discord Webhook 的真實測試都還沒做。步驟和驗收清單在 `docs/V2_6_SETUP.md`。
+- 這兩版都因為沙盒連不到 npm registry（`npm install` 會被 403 擋掉），`npm run typecheck`／`npm test`（真的裝了套件之後）／手機實測、真實瀏覽器測試都要在使用者電腦上做一次（連結電腦後可以用 Claude in Chrome 直接操作使用者的 `localhost:3000`，`device_bash` 是獨立 VM、不是使用者電腦，不能拿來跑 `npm`／`pytest`）。
+- 下一版 v2.7：賽季進步追蹤（F8）；之後語言設定（多語系）。
 - 使用者問過「球場上能不能自由擺放（不限定 11 個位置框）」，討論後決定 v2.4.1 先不做，先維持「拖到固定位置框互換」。有空可以再提出來討論要不要做。
 
 - 使用者之後會裝插畫風格的外掛，再加入手繪 / 人性化的視覺元素。

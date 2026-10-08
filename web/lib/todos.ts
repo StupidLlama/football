@@ -40,6 +40,9 @@ export function todosFor(v: TeamView, teamId: string, isAdmin: boolean, now = ne
     const match = d.fixture ? `${d.fixture.home} vs ${d.fixture.away}` : "";
     out.push({ key: "duty", title: `你是${d.role}`, detail: `${match}${mine.length > 1 ? `，之後還有 ${mine.length - 1} 場` : ""}`, href: `${base}/home`, action: "看時間", tone: "warn" });
   }
+  if (v.chat.newPinned) {
+    out.push({ key: "chat_pinned", title: "有新的置頂訊息", detail: "聊天室有新的筆記或戰術", href: `${base}/chat`, action: "去看看", tone: "warn" });
+  }
   if (v.myPlayer?.scores) {
     out.push({ key: "refill", title: "能力表已經填好了", detail: "練了一陣子有進步，可以隨時重填（會保留舊的紀錄）", href: `${base}/form`, action: "重新填", tone: "info" });
   }

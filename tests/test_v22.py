@@ -57,7 +57,7 @@ def test_selected_columns_exist():
     cols = table_columns()
     table_of = {"team": "teams", "membership": "memberships", "player": "players", "rating": "ability_ratings",
                 "profile": "profiles", "guard": "coach_code_guard", "code": "coach_codes", "fixture": "fixtures", "duty": "duties",
-                "contact": "contact_messages", "match": "matches", "attendance": "attendance"}
+                "contact": "contact_messages", "match": "matches", "attendance": "attendance", "message": "messages"}
     block = re.search(r"const COLS = \{(.*?)\n\};", API, re.S).group(1)
     found = dict(re.findall(r'(\w+): "([^"]+)"', block))
     assert set(found) == set(table_of)

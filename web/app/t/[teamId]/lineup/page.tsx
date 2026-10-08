@@ -91,7 +91,11 @@ export default function LineupPage() {
   };
   useEffect(() => {
     if (rows !== null && currentId === null && Object.keys(picks).length === 0) {
-      const fromUrl = new URLSearchParams(window.location.search).get("match");
+      const params = new URLSearchParams(window.location.search);
+      // ?open= 一組既有陣容的 id（例如從聊天室的附件連過來）：直接打開那一組
+      const openRow = params.get("open") ? rows.find((r) => r.id === params.get("open")) ?? null : null;
+      if (openRow) { loadRow(openRow); return; }
+      const fromUrl = params.get("match");
       const m = fromUrl && v.data.matches.some((x) => x.id === fromUrl) ? fromUrl : null;
       setMatchId(m);
       freshLineup(m);
