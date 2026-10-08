@@ -10,7 +10,7 @@
 ## 這個專案是什麼
 
 1. **球員卡網站**（已完成、已部署）：從 Google 表單讀球隊球員的自評能力，顯示雷達圖、適合位置球場圖、球員比較。
-   - v2 新網站（Next.js，在 `web/`）：https://football-analysis-potato.vercel.app（Vercel，Root Directory = `web`，push 到 main 自動重新部署）；正在取代舊網站，兩個並存到 v2.8。
+   - v2 新網站（Next.js，在 `web/`）：https://football-analysis-potato.vercel.app（Vercel，Root Directory = `web`，push 到 main 自動重新部署）；正在取代舊網站，兩個並存到 v2.9。
    - 正式網站：https://football-analysis-potato.streamlit.app（有隊伍密碼）
    - GitHub：StupidLlama/football（push 到 main 會自動重新部署）
 2. **足球比賽影片分析**（軟工課專題，規劃中）：影片 → 辨識 → 數據 → 圖表。
@@ -42,11 +42,11 @@ infra/ui/                  theme.py（CSS、圖例）、common.py（共用）、
 web/                       v2.2 Next.js 網站（Tools shell，TypeScript）：瀏覽器直接連 Supabase（supabase-js），動作呼叫資料庫函式
   app/                     頁面：首頁、login、join、teams（選球隊）、settings、t/[teamId]/（我的、home、players、players/[playerId]、form 能力表、claim、coach 管理專區、lineup/matches/practice 即將推出）；v2.2.1：consent（同意頁）、privacy、terms、contact、api/contact/route.ts（伺服器端，轉發到 Discord）
   components/              共用元件：ui.tsx（雷達圖＋滑鼠移上去顯示分數、標籤、KPI、提示訊息、頁尾）、anim.tsx（useTween、AnimatedNumber：圖表動畫，尊重「減少動態效果」）、line-chart.tsx（生涯趨勢折線圖）、career.tsx（球員報告的生涯分頁）、shell.tsx（側邊欄）、guard.tsx（RequireLogin：要登入＋同意最新政策）、doc.tsx（政策頁版面）、position-picker.tsx…
-  lib/                     rating.ts（= domain/rating.py 的 TS 版，純計算）、teamview.ts、todos.ts、positions.ts、career.ts（生涯時間線）、compare.ts（同位置平均、進步退步）、anim.ts（緩動、插值）（純計算）；api.ts（所有 Supabase 查詢與 rpc）、policies.ts（POLICY_VERSION、網站管理員、資料存放地區）、status.ts（狀態訊息，跟 backend/accounts.py 一樣）、auth.tsx、team.tsx
+  lib/                     rating.ts（= domain/rating.py 的 TS 版，純計算）、teamview.ts、todos.ts、positions.ts、career.ts（生涯時間線）、compare.ts（同位置平均、進步退步）、anim.ts（緩動、插值）、roster.ts（名單檢查：背號、隊長不重複）（純計算）；api.ts（所有 Supabase 查詢與 rpc）、policies.ts（POLICY_VERSION、網站管理員、資料存放地區）、status.ts（狀態訊息，跟 backend/accounts.py 一樣）、auth.tsx、team.tsx
   lib/config.json          由 config/settings.toml 產生：py web/scripts/sync_config.py（不要手改）
   tests/                   node --test 的計算測試（npm test）
 backend/                   v2 後端（Tools shell）：main.py（FastAPI）、accounts.py（v2.1 帳號 API：加入、教練碼、認領、教練管理）、db.py（as_user = 用使用者身分查詢，RLS 生效）、auth.py（驗證 Supabase JWT）、importer.py（v1 資料匯入）、scripts/（migrate、rls_check）；v2.2 起網站不經過這個 API
-supabase/migrations/       v2 資料表與 RLS 的 SQL，編號只能往後加（0004_web.sql：網站用的資料表權限、submit_self_rating；0005_privacy.sql：同意紀錄、刪除帳號、下載資料、聯絡訊息；0006_career.sql：生涯開關 career_shared、set_career_shared、get_career）；supabase/tests/ 是權限測試
+supabase/migrations/       v2 資料表與 RLS 的 SQL，編號只能往後加（0010_roster.sql：球隊管理員新增球員、改姓名／背號／隊長；0004_web.sql：網站用的資料表權限、submit_self_rating；0005_privacy.sql：同意紀錄、刪除帳號、下載資料、聯絡訊息；0006_career.sql：生涯開關 career_shared、set_career_shared、get_career）；supabase/tests/ 是權限測試
 config/settings.toml       能力分類、表單欄位、位置適合度權重、回饋網址
 config/formations.toml     11 人制、8 人制陣型（位置、座標）
 config/performance.toml    比賽表現評分的維度與各位置權重（v4 才用）
@@ -61,6 +61,7 @@ docs/V2_2_1_SETUP.md       v2.2.1 上線步驟（0005、Discord Webhook、Vercel
 docs/V2_3_SETUP.md         v2.3 上線步驟（0006、手機驗收、合併到 main、打標籤）
 docs/V2_5_SETUP.md         v2.5 上線步驟（0008、比賽列表與出賽登記驗收、合併到 main、打標籤）
 docs/V2_6_SETUP.md         v2.6 上線步驟（0009、聊天室與 Discord 通知驗收、合併到 main、打標籤）
+docs/V2_6_1_SETUP.md       v2.6.1 上線步驟（0010、名單管理、管理專區開放輸入管理員碼）
 docs/SECURITY.md           金鑰保管、換金鑰、個資外洩處理順序
 docs/HANDOFF.md            交接說明：上一版做了什麼、下一版要做什麼、環境的坑（新工作階段先讀它）
 ```
@@ -161,10 +162,10 @@ py web/scripts/sync_config.py              # 改了 config/settings.toml 的能�
 - v2.2 / v2.2.1：已上線（見 `docs/V2_2_1_SETUP.md` 的剩餘事項：Google 登入正式版、v2.2.1 標籤）。
 - v2.3：已上線（main，從來沒打過 GitHub 標籤，不影響功能，有空再補）。還沒用真實資料測過：兩位球員比較的變形動畫、隊友看別人的生涯、兩個時間點比較。
 - v2.4 組隊（F3）：**已上線（main，標籤 `v2.4.1`）**。
-- **v2.5 比賽列表＋出賽登記（F7）：程式已寫完在 `v2.5` 分支，還沒合併到 main、還沒上線。** 0008 migration 和 rls_test 使用者已經在 Supabase 執行過、通過。步驟和驗收清單在 `docs/V2_5_SETUP.md`（本機測試 → 桌機/手機驗收 → 合併到 main → 打標籤）。
-- **v2.6 隊伍聊天室（F6）：程式已寫完在 `v2.6` 分支，還沒合併到 main、還沒上線。** 0009 migration 和 rls_test 使用者已經在 Supabase 執行過、通過（`RLS OK`）。沙盒這次跑過 `pytest` 和 `node --test`（不需要 `node_modules`）全部通過，但 `npm run typecheck`、兩分頁即時更新、手機版、Discord Webhook 的真實測試都還沒做。步驟和驗收清單在 `docs/V2_6_SETUP.md`。
-- 這兩版都因為沙盒連不到 npm registry（`npm install` 會被 403 擋掉），`npm run typecheck`／`npm test`（真的裝了套件之後）／手機實測、真實瀏覽器測試都要在使用者電腦上做一次（連結電腦後可以用 Claude in Chrome 直接操作使用者的 `localhost:3000`，`device_bash` 是獨立 VM、不是使用者電腦，不能拿來跑 `npm`／`pytest`）。
-- 下一版 v2.7：賽季進步追蹤（F8）；之後語言設定（多語系）。
+- v2.5 比賽列表＋出賽登記（F7）、v2.6 隊伍聊天室（F6）：**已合併到 main、已上線**（標籤 `v2.5`、`v2.6`）。v2.6 標籤打在 `8c7e177`，之後修的一行 Discord 提示文字放進 v2.6.1 一起上線。
+- **v2.6.1 名單管理（SPEC F6.1）：程式已寫完在 `v2.6.1` 分支，還沒合併到 main。** 新的 `0010_roster.sql` 還沒在 Supabase 執行。沙盒在本機 PostgreSQL 16 跑過 0001–0010 + `rls_test.sql`（`RLS OK`），`node --test` 全部通過；`npm run typecheck`、完整 `pytest`（要 `pandas`）、瀏覽器和手機驗收要在使用者電腦上做。步驟在 `docs/V2_6_1_SETUP.md`。
+- 沙盒連不到 npm registry（`npm install` 403）、也沒有 `pandas`；但有 PostgreSQL 16（`service postgresql start`，照 `local_shim.sql` → migrations → `rls_test.sql` 的順序用 `psql` 跑）和全域 `tsc`（沒有 React 型別，只能粗略檢查）。真實瀏覽器測試可以用 Claude in Chrome 操作使用者的 `localhost:3000`（`device_bash` 是獨立 VM、不是使用者電腦）。
+- 版本順序（2026-10-08 調整）：**v2.7 練習行事曆與出席（F11）＋ AI 匯入練習**（網站不串 AI：網站產生給 AI 的指令 → 使用者貼給自己的 AI → AI 回固定格式 → 貼回網站解析、預覽、確認）；v2.8 賽季進步追蹤（F8）；v2.9 意見回饋、全隊上線、舊網站退役；之後語言設定（多語系）。
 - 使用者問過「球場上能不能自由擺放（不限定 11 個位置框）」，討論後決定 v2.4.1 先不做，先維持「拖到固定位置框互換」。有空可以再提出來討論要不要做。
 
 - 使用者之後會裝插畫風格的外掛，再加入手繪 / 人性化的視覺元素。

@@ -1,20 +1,24 @@
 "use client";
-// 管理專區：能力表進度、成員（認領確認、解除封鎖、移出）、Team ID 與管理員碼、球隊設定。
+// 管理專區：能力表進度、球員名單（新增、改姓名／背號／隊長）、成員（認領確認、解除封鎖、移出）、
+// Team ID 與管理員碼、球隊設定。還不是球隊管理員的人進來只看到「輸入管理員碼」（v2.6.1）。
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import {
-  actions, getChatDiscord, getCoachCodes, remindMissingRatings, setChatDiscord, updateTeam,
+  actions, addPlayer, editPlayer, getChatDiscord, getCoachCodes, remindMissingRatings, setChatDiscord, updateTeam,
   type CoachCode, type Membership,
 } from "@/lib/api";
 import { DISCORD_HOOK_URL_RE } from "@/lib/chat";
+import { BADGE_LABEL, rosterProblem, sortRoster, type Badge } from "@/lib/roster";
 import { useAuth } from "@/lib/auth";
 import { message, type RpcResult } from "@/lib/status";
 import { useTeamView } from "@/lib/team";
 import { ConfirmButton } from "@/components/confirm-button";
-import { dateLabel, ErrorBox, RoleBadge, Soon, useToast } from "@/components/ui";
+import { CaptainBadge, dateLabel, ErrorBox, RoleBadge, Soon, useToast } from "@/components/ui";
 
-type Tab = "progress" | "members" | "codes" | "team";
-const TABS: [Tab, string][] = [["progress", "能力表進度"], ["members", "成員"], ["codes", "Team ID 與管理員碼"], ["team", "球隊設定"]];
+type Tab = "progress" | "roster" | "members" | "codes" | "team";
+const TABS: [Tab, string][] = [
+  ["progress", "能力表進度"], ["roster", "球員名單"], ["members", "成員"], ["codes", "Team ID 與管理員碼"], ["team", "球隊設定"],
+];
 
 export default function CoachPage() {
   const v = useTeamView();
@@ -25,7 +29,7 @@ export default function CoachPage() {
     if (TABS.some(([k]) => k === t)) setTab(t as Tab);
   }, []);
   const isAdmin = !!auth.profile?.is_admin;
-  if (!v.isCoach && !isAdmin) return <p className="panel muted pad">這一頁只有球隊管理員看得到。</p>;
+  if (!v.isCoach && !isAdmin) return <Redeem />;
 
   return (
     <>
@@ -39,10 +43,171 @@ export default function CoachPage() {
         <span className="tabbtn" aria-disabled="true" style={{ cursor: "default" }}>排裁判 <Soon /></span>
       </div>
       {tab === "progress" && <Progress />}
+      {tab === "roster" && <Roster />}
       {tab === "members" && <Members isAdmin={isAdmin} />}
       {tab === "codes" && <Codes />}
       {tab === "team" && <TeamSettings />}
+      {v.isCoach && (
+        <p className="faint" style={{ margin: "32px 0 0", fontSize: 13 }}>
+          你是這一隊的球隊管理員。要讓其他人也變成球隊管理員：到「Team ID 與管理員碼」產生管理員碼私訊給他，他在這一頁輸入就可以。
+        </p>
+      )}
     </>
+  );
+}
+
+// 還不是球隊管理員：輸入管理員碼升級。輸錯 5 次會被封鎖（資料庫 redeem_coach_code 處理）。
+function Redeem() {
+  const v = useTeamView();
+  const say = useToast();
+  const [code, setCode] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const banned = v.data.guards.some((g) => g.user_id === v.me.user_id && g.banned_at);
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    if (!code.trim()) return;
+    setBusy(true); setError("");
+    const r = await actions.redeem(v.data.team.id, code.trim());
+    setBusy(false);
+    if (r.status === "ok" || r.status === "already_coach") { setCode(""); await v.reload(); say("你現在是球隊管理員了"); }
+    else setError(message(r));
+  }
+
+  return (
+    <>
+      <h1 className="hide-sm" style={{ margin: "0 0 12px", fontSize: 30 }}>管理專區</h1>
+      <form onSubmit={submit} className="panel pad stack" style={{ gap: 12, maxWidth: 560 }}>
+        <p style={{ margin: 0, fontWeight: 700, fontSize: 18 }}>成為球隊管理員</p>
+        <p className="faint" style={{ margin: 0, fontSize: 14 }}>
+          球隊管理員可以確認認領、新增和編輯球員、建立比賽、發公告。跟現在的球隊管理員要一組「管理員碼」，貼在下面就能升級；
+          隊長、副隊長的標記不會受影響。
+        </p>
+        {banned
+          ? <ErrorBox text="管理員碼輸錯太多次，已被封鎖；請找這一隊的球隊管理員到「成員」解除" />
+          : (
+            <>
+              {error && <ErrorBox text={error} />}
+              <label className="label">管理員碼
+                <input className="field num" value={code} onChange={(e) => setCode(e.target.value)} maxLength={40}
+                  autoComplete="off" autoCapitalize="characters" placeholder="XXXXX-XXXXX" style={{ letterSpacing: "0.06em" }} />
+              </label>
+              <button type="submit" className="btn btn-main" disabled={busy || !code.trim()} style={{ alignSelf: "flex-start" }}>
+                {busy ? "確認中…" : "升級成球隊管理員"}
+              </button>
+            </>
+          )}
+      </form>
+    </>
+  );
+}
+
+// 球員名單：新增球員、改姓名／背號／隊長。同隊背號、隊長、副隊長不能重複（瀏覽器先擋，資料庫再擋一次）。
+function Roster() {
+  const v = useTeamView();
+  const say = useToast();
+  const [editing, setEditing] = useState<string | null>(null);   // 正在編輯的球員 id；"new" = 新增
+  const rows = sortRoster(v.players);
+  const accountName = (id: string | null) => (id ? v.nameOf(id) : null);
+
+  return (
+    <>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+        <h2 style={{ margin: 0, fontSize: 20 }}>球員名單（{rows.length}）</h2>
+        {editing !== "new" && <button type="button" className="btn btn-main btn-sm" onClick={() => setEditing("new")}>＋ 新增球員</button>}
+      </div>
+      <p className="faint" style={{ margin: "0 0 12px", fontSize: 14 }}>
+        新增的球員還沒有帳號；他加入球隊後在「找到自己」認領這個名字，你確認後就連起來了。暱稱、位置、慣用腳由球員自己填。
+      </p>
+      {editing === "new" && (
+        <PlayerForm rows={rows} onCancel={() => setEditing(null)}
+          onSave={async (input) => {
+            const r = await addPlayer(v.data.team.id, input.name.trim(), input.jersey, input.badge);
+            if (r.status !== "ok") return message(r);
+            await v.reload(); setEditing(null); say(`已新增「${input.name.trim()}」`); return null;
+          }} />
+      )}
+      <div className="stack" style={{ gap: 8 }}>
+        {rows.map((p) => editing === p.id ? (
+          <PlayerForm key={p.id} rows={rows} self={p} onCancel={() => setEditing(null)}
+            onSave={async (input) => {
+              const r = await editPlayer(p.id, input.name.trim(), input.jersey, input.badge);
+              if (r.status !== "ok") return message(r);
+              await v.reload(); setEditing(null); say("已儲存"); return null;
+            }} />
+        ) : (
+          <article key={p.id} className="panel" style={{ padding: "10px 16px", display: "flex", flexWrap: "wrap", gap: "6px 12px", alignItems: "center" }}>
+            <span className="num faint" style={{ width: 44 }}>{p.jersey_number ? `#${p.jersey_number}` : "#—"}</span>
+            <span style={{ flex: "1 1 160px", minWidth: 0 }}>
+              <span style={{ display: "inline-flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+                <b>{p.name}</b><CaptainBadge badge={p.badge} />
+                {p.accountId && v.data.members.some((m) => m.user_id === p.accountId && m.role === "coach") && <RoleBadge coach />}
+              </span>
+              <span className="faint" style={{ display: "block", fontSize: 13 }}>
+                {p.accountId ? `帳號：${accountName(p.accountId)}` : "還沒有帳號"}
+              </span>
+            </span>
+            <button type="button" className="btn btn-line btn-sm" disabled={editing !== null} onClick={() => setEditing(p.id)}>編輯</button>
+          </article>
+        ))}
+      </div>
+    </>
+  );
+}
+
+function PlayerForm({ rows, self, onSave, onCancel }: {
+  rows: { id: string; name: string; jersey_number: string | null; badge: Badge }[];
+  self?: { id: string; name: string; jersey_number: string | null; badge: Badge };
+  onSave: (input: { name: string; jersey: string; badge: Badge }) => Promise<string | null>;
+  onCancel: () => void;
+}) {
+  const [name, setName] = useState(self?.name ?? "");
+  const [jersey, setJersey] = useState(self?.jersey_number ?? "");
+  const [badge, setBadge] = useState<Badge>(self?.badge ?? null);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    const input = { name, jersey, badge };
+    const problem = rosterProblem(rows, input, self);
+    if (problem) { setError(problem); return; }
+    setBusy(true); setError("");
+    const err = await onSave(input);
+    setBusy(false);
+    if (err) setError(err);
+  }
+
+  return (
+    <form onSubmit={submit} className="panel pad stack" style={{ gap: 12, marginBottom: 8, borderColor: "#3B82F6" }}>
+      <p style={{ margin: 0, fontWeight: 700 }}>{self ? `編輯「${self.name}」` : "新增球員"}</p>
+      {error && <ErrorBox text={error} />}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
+        <label className="label" style={{ flex: "2 1 180px" }}>姓名
+          <input className="field" value={name} onChange={(e) => setName(e.target.value)} maxLength={40} required autoFocus />
+        </label>
+        <label className="label" style={{ flex: "1 1 90px" }}>背號（可空白）
+          <input className="field num" value={jersey} onChange={(e) => setJersey(e.target.value)} inputMode="numeric" maxLength={3} />
+        </label>
+      </div>
+      <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
+        <legend className="label" style={{ marginBottom: 6 }}>隊長標記</legend>
+        <div className="chips" role="radiogroup">
+          {([null, "C", "VC"] as Badge[]).map((b) => (
+            <button key={b ?? "none"} type="button" role="radio" aria-checked={badge === b}
+              className={badge === b ? "btn btn-main btn-sm" : "btn btn-line btn-sm"} onClick={() => setBadge(b)}>
+              {b ? BADGE_LABEL[b] : "無"}
+            </button>
+          ))}
+        </div>
+      </fieldset>
+      <p className="faint" style={{ margin: 0, fontSize: 13 }}>隊長、副隊長各只能有一位；要換人，先把原本那位改成「無」。隊長也可以同時是球隊管理員。</p>
+      <div className="chips">
+        <button type="submit" className="btn btn-main btn-sm" disabled={busy}>{busy ? "儲存中…" : self ? "儲存" : "新增"}</button>
+        <button type="button" className="btn btn-line btn-sm" disabled={busy} onClick={onCancel}>取消</button>
+      </div>
+    </form>
   );
 }
 

@@ -23,7 +23,8 @@ export function navItems(teamId: string, v: TeamView, isAdmin: boolean): NavItem
     { href: `${base}/chat`, label: "聊天室", icon: "✉", badge: v.chat.unread },
     { href: `${base}/practice`, label: "練習", icon: "◆", soon: "之後" },
   ];
-  if (v.isCoach || isAdmin) items.push({ href: `${base}/coach`, label: "管理專區", icon: "✦", badge: v.claims.length });
+  // v2.6.1：所有人都看得到「管理專區」；一般球員進去只有「輸入管理員碼」，變成球隊管理員後才有管理工具
+  items.push({ href: `${base}/coach`, label: "管理專區", icon: "✦", badge: v.isCoach || isAdmin ? v.claims.length : 0 });
   return items;
 }
 

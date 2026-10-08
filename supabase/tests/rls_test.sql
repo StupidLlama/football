@@ -911,5 +911,64 @@ select pg_temp.expect((select count(*) from public.messages where body like '洗
 select pg_temp.expect((select count(*) from public.messages where author_id = '00000000-0000-0000-0000-000000000015'), 0,
                       '刪帳號後訊息沒有作者');
 
+-- ============================================================
+-- v2.6.1 名單管理（add_player、edit_player）
+-- ============================================================
+set local role authenticated;
+-- 球員：不能新增、不能改別人（也不能改自己）的姓名／背號／隊長
+select pg_temp.login('00000000-0000-0000-0000-00000000000a');
+select pg_temp.st(public.add_player('10000000-0000-0000-0000-00000000000a', '偷加的人'), 'forbidden', '球員新增球員');
+select pg_temp.st(public.edit_player('20000000-0000-0000-0000-0000000000a1', '我自己', '10', 'C'), 'forbidden', '球員改自己的背號和隊長');
+select pg_temp.must_fail('select public.roster_problem(null, null, null, null, null, null, null, null)', '登入的人直接呼叫名單檢查函式');
+
+-- 球隊管理員：新增、改名、背號、隊長；擋重複
+select pg_temp.login('00000000-0000-0000-0000-00000000000d');
+select set_config('test.np', public.add_player('10000000-0000-0000-0000-00000000000a', '  新球員甲  ', '07', 'C') ->> 'id', true);
+select pg_temp.expect((select count(*) from public.players where id = current_setting('test.np')::uuid
+                         and name = '新球員甲' and jersey_number = '7' and badge = 'C'), 1, '管理員新增球員（背號 07 存成 7）');
+select pg_temp.st(public.add_player('10000000-0000-0000-0000-00000000000a', '新球員甲'), 'taken', '新增重複的名字');
+select pg_temp.st(public.add_player('10000000-0000-0000-0000-00000000000a', '新球員乙', '7'), 'taken', '新增重複的背號');
+select pg_temp.st(public.add_player('10000000-0000-0000-0000-00000000000a', '新球員乙', null, 'C'), 'taken', '新增第二位隊長');
+select pg_temp.st(public.add_player('10000000-0000-0000-0000-00000000000a', '新球員乙', '十號'), 'invalid', '背號不是數字');
+select pg_temp.st(public.add_player('10000000-0000-0000-0000-00000000000a', '新球員乙', null, 'X'), 'invalid', '亂填隊長標記');
+select pg_temp.st(public.add_player('10000000-0000-0000-0000-00000000000a', '   '), 'invalid', '新增空白名字');
+select set_config('test.np2', public.add_player('10000000-0000-0000-0000-00000000000a', '新球員乙', '', 'VC') ->> 'id', true);
+select pg_temp.expect((select count(*) from public.players where id = current_setting('test.np2')::uuid
+                         and jersey_number is null and badge = 'VC'), 1, '背號空白 = 還沒決定、新增副隊長');
+select pg_temp.st(public.edit_player(current_setting('test.np2')::uuid, '新球員乙', '7', 'VC'), 'taken', '改成別人的背號');
+select pg_temp.st(public.edit_player(current_setting('test.np2')::uuid, '新球員乙', null, 'C'), 'taken', '改成第二位隊長');
+-- 隊長交接：先拿掉原本的，再給新的
+select pg_temp.st(public.edit_player(current_setting('test.np')::uuid, '新球員甲', '7', null), 'ok', '拿掉隊長');
+select pg_temp.st(public.edit_player(current_setting('test.np2')::uuid, '新球員乙', '10', 'C'), 'ok', '交接隊長、改背號');
+select pg_temp.st(public.edit_player(current_setting('test.np2')::uuid, '新球員乙', '10', 'C'), 'ok', '沒改東西再存一次');
+-- 已經連到帳號的球員也能改（姓名、背號、隊長）；同一個人可以是隊長也是球隊管理員（兩個欄位互不相干）
+select pg_temp.st(public.edit_player('20000000-0000-0000-0000-0000000000a1', '球員A1改名', '99', 'VC'), 'ok', '改已連帳號的球員');
+reset role;
+update public.memberships set role = 'coach'
+ where team_id = '10000000-0000-0000-0000-00000000000a' and user_id = '00000000-0000-0000-0000-00000000000a';
+select pg_temp.expect((select count(*) from public.players p join public.memberships m on m.player_id = p.id
+                        where p.id = '20000000-0000-0000-0000-0000000000a1' and p.badge = 'VC' and m.role = 'coach'), 1,
+                      '副隊長同時是球隊管理員');
+update public.memberships set role = 'player'
+ where team_id = '10000000-0000-0000-0000-00000000000a' and user_id = '00000000-0000-0000-0000-00000000000a';
+-- 舊資料本來就重複時（v1 匯入）：只改名字不會被擋
+update public.players set jersey_number = '99' where id = current_setting('test.np')::uuid;
+set local role authenticated;
+select pg_temp.login('00000000-0000-0000-0000-00000000000d');
+select pg_temp.st(public.edit_player(current_setting('test.np')::uuid, '新球員甲改名', '99', null), 'ok', '舊資料背號重複、只改名字');
+
+-- 別隊：不能新增、改不到（連有沒有這個人都不知道）；c 在 B 隊是管理員也一樣
+select pg_temp.login('00000000-0000-0000-0000-00000000000c');
+select pg_temp.st(public.add_player('10000000-0000-0000-0000-00000000000a', '亂入'), 'forbidden', 'A 隊球員（B 隊管理員）新增 A 隊球員');
+select pg_temp.st(public.edit_player('20000000-0000-0000-0000-0000000000b1', '球員B1', '5', null), 'ok', 'B 隊管理員改 B 隊球員');
+select pg_temp.login('00000000-0000-0000-0000-000000000014');
+select pg_temp.st(public.edit_player(current_setting('test.np')::uuid, '亂改', null, null), 'not_found', '別隊改 A 隊球員');
+select pg_temp.st(public.add_player('10000000-0000-0000-0000-00000000000a', '亂入'), 'forbidden', '別隊新增 A 隊球員');
+reset role;
+set local role anon;
+select pg_temp.must_fail($q$select public.add_player('10000000-0000-0000-0000-00000000000a', 'x')$q$, '沒登入新增球員');
+select pg_temp.must_fail($q$select public.edit_player('20000000-0000-0000-0000-0000000000a1', 'x')$q$, '沒登入改球員');
+reset role;
+
 select 'RLS OK' as result;
 rollback;

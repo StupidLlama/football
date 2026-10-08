@@ -231,6 +231,16 @@ export async function updateMyPlayer(playerId: string, fields: Partial<Pick<Play
   if (!r.data || r.data.length === 0) throw new Error("沒有權限修改這位球員");
 }
 
+/** 球隊管理員新增名單上的球員（v2.6.1）。背號空白 = 還沒決定；badge 是 "C" / "VC" / null。 */
+export async function addPlayer(team: string, name: string, jersey: string, badge: "C" | "VC" | null): Promise<RpcResult & { id?: string }> {
+  return (await rpc("add_player", { team, name, jersey, badge })) as RpcResult & { id?: string };
+}
+
+/** 球隊管理員改球員的姓名、背號、隊長／副隊長（v2.6.1）。同隊背號、隊長、副隊長不能重複，資料庫會擋。 */
+export async function editPlayer(player: string, name: string, jersey: string, badge: "C" | "VC" | null): Promise<RpcResult> {
+  return rpc("edit_player", { player, name, jersey, badge });
+}
+
 // ---------- 動作（資料庫函式）----------
 export async function rpc(name: string, args: Record<string, unknown>): Promise<RpcResult> {
   const r = await supabase().rpc(name, args);
