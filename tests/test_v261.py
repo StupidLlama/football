@@ -76,3 +76,5 @@ def test_management_page_open_to_everyone_with_redeem():
     assert "if (!v.isCoach && !isAdmin) return <Redeem />;" in COACH_PAGE
     assert "actions.redeem(" in COACH_PAGE
     assert '["roster", "球員名單"]' in COACH_PAGE
+    # 網站管理員不是這一隊的球隊管理員時（例如被取消過），也要看得到輸入管理員碼（v2.6.2）
+    assert "{!v.isCoach && isAdmin && <div style={{ marginTop: 32 }}><Redeem compact /></div>}" in COACH_PAGE

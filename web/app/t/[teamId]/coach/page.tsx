@@ -47,6 +47,8 @@ export default function CoachPage() {
       {tab === "members" && <Members isAdmin={isAdmin} />}
       {tab === "codes" && <Codes />}
       {tab === "team" && <TeamSettings />}
+      {/* 網站管理員看得到所有球隊的管理工具，但不一定是這一隊的球隊管理員（例如被取消過）：一樣可以用管理員碼升級 */}
+      {!v.isCoach && isAdmin && <div style={{ marginTop: 32 }}><Redeem compact /></div>}
       {v.isCoach && (
         <p className="faint" style={{ margin: "32px 0 0", fontSize: 13 }}>
           你是這一隊的球隊管理員。要讓其他人也變成球隊管理員：到「Team ID 與管理員碼」產生管理員碼私訊給他，他在這一頁輸入就可以。
@@ -57,7 +59,7 @@ export default function CoachPage() {
 }
 
 // 還不是球隊管理員：輸入管理員碼升級。輸錯 5 次會被封鎖（資料庫 redeem_coach_code 處理）。
-function Redeem() {
+function Redeem({ compact = false }: { compact?: boolean }) {
   const v = useTeamView();
   const say = useToast();
   const [code, setCode] = useState("");
@@ -77,9 +79,9 @@ function Redeem() {
 
   return (
     <>
-      <h1 className="hide-sm" style={{ margin: "0 0 12px", fontSize: 30 }}>管理專區</h1>
+      {!compact && <h1 className="hide-sm" style={{ margin: "0 0 12px", fontSize: 30 }}>管理專區</h1>}
       <form onSubmit={submit} className="panel pad stack" style={{ gap: 12, maxWidth: 560 }}>
-        <p style={{ margin: 0, fontWeight: 700, fontSize: 18 }}>成為球隊管理員</p>
+        <p style={{ margin: 0, fontWeight: 700, fontSize: 18 }}>{compact ? "你是網站管理員，但還不是這一隊的球隊管理員" : "成為球隊管理員"}</p>
         <p className="faint" style={{ margin: 0, fontSize: 14 }}>
           球隊管理員可以確認認領、新增和編輯球員、建立比賽、發公告。跟現在的球隊管理員要一組「管理員碼」，貼在下面就能升級；
           隊長、副隊長的標記不會受影響。
