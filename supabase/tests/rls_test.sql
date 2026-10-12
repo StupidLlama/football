@@ -1153,5 +1153,129 @@ reset role;
 select pg_temp.expect((select count(*) from public.practice_attendance where player_id = '20000000-0000-0000-0000-0000000000a4'), 0,
                       '刪帳號後練習出席不見');
 
+-- ============ v2.8 賽季：開新賽季、舊賽季唯讀、進步資料 ============
+-- 21 = S 隊球隊管理員（沒連名單）、22 = S 隊球員（連到 s1）、23 = 外人
+insert into auth.users (id, email) values
+  ('00000000-0000-0000-0000-000000000021', 'rls-21@example.test'),
+  ('00000000-0000-0000-0000-000000000022', 'rls-22@example.test'),
+  ('00000000-0000-0000-0000-000000000023', 'rls-23@example.test');
+insert into public.teams (id, name, season) values ('10000000-0000-0000-0000-000000000051', 'S 隊', '2026 秋');
+insert into public.players (id, team_id, name, jersey_number, badge) values
+  ('20000000-0000-0000-0000-000000000051', '10000000-0000-0000-0000-000000000051', '球員S1', '7', null),
+  ('20000000-0000-0000-0000-000000000052', '10000000-0000-0000-0000-000000000051', '球員S2', '9', 'C');
+insert into public.memberships (team_id, user_id, role, player_id) values
+  ('10000000-0000-0000-0000-000000000051', '00000000-0000-0000-0000-000000000021', 'coach', null),
+  ('10000000-0000-0000-0000-000000000051', '00000000-0000-0000-0000-000000000022', 'player', '20000000-0000-0000-0000-000000000051');
+insert into public.ability_ratings (team_id, player_id, scores, submitted_at) values
+  ('10000000-0000-0000-0000-000000000051', '20000000-0000-0000-0000-000000000051', '{"pace": 2}', now() - interval '60 days'),
+  ('10000000-0000-0000-0000-000000000051', '20000000-0000-0000-0000-000000000051', '{"pace": 3}', now() - interval '30 days');
+select set_config('test.s1code', (select code from public.teams where id = '10000000-0000-0000-0000-000000000051'), true);
+
+set local role authenticated;
+-- 誰能開新賽季
+select pg_temp.login('00000000-0000-0000-0000-000000000022');
+select pg_temp.st(public.start_new_season('10000000-0000-0000-0000-000000000051', '2027 春'), 'forbidden', '球員開新賽季');
+select pg_temp.login('00000000-0000-0000-0000-000000000023');
+select pg_temp.st(public.start_new_season('10000000-0000-0000-0000-000000000051', '2027 春'), 'not_found', '外人開新賽季');
+select pg_temp.login('00000000-0000-0000-0000-000000000021');
+select pg_temp.st(public.start_new_season('10000000-0000-0000-0000-000000000051', '2026 秋'), 'invalid', '新賽季跟這一季同名');
+select pg_temp.st(public.start_new_season('10000000-0000-0000-0000-000000000051', '  '), 'invalid', '新賽季沒有名稱');
+-- 開新賽季：背號不帶、隊長標記帶，發聊天室通知
+select pg_temp.st(j, 'ok', '球隊管理員開新賽季'), set_config('test.s2', j ->> 'team_id', true)
+  from (select public.start_new_season('10000000-0000-0000-0000-000000000051', '2027 春', null, false, true,
+                                       '新賽季開始了，請重填能力表', false) j) x;
+select pg_temp.st(public.start_new_season('10000000-0000-0000-0000-000000000051', '2027 秋'), 'archived', '舊賽季再開一次新賽季');
+reset role;
+select pg_temp.expect((select count(*) from public.teams where id = '10000000-0000-0000-0000-000000000051' and archived_at is not null), 1, '舊賽季封存');
+select pg_temp.expect((select count(*) from public.teams t, public.teams o
+                        where t.id = current_setting('test.s2')::uuid and o.id = '10000000-0000-0000-0000-000000000051'
+                          and t.lineage_id = o.lineage_id and t.prev_team_id = o.id and t.season = '2027 春'
+                          and t.code <> o.code), 1, '新賽季同一個系列、新的 Team ID');
+select pg_temp.expect((select count(*) from public.players where team_id = current_setting('test.s2')::uuid), 2, '名單帶過去');
+select pg_temp.expect((select count(*) from public.players where team_id = current_setting('test.s2')::uuid
+                        and prev_player_id = '20000000-0000-0000-0000-000000000052' and jersey_number is null and badge = 'C'), 1,
+                      '背號不帶、隊長標記帶');
+select pg_temp.expect((select count(*) from public.memberships m join public.players p on p.id = m.player_id
+                        where m.team_id = current_setting('test.s2')::uuid and m.user_id = '00000000-0000-0000-0000-000000000022'
+                          and p.prev_player_id = '20000000-0000-0000-0000-000000000051'), 1, '帳號帶過去、連到新的自己');
+select pg_temp.expect((select count(*) from public.memberships where team_id = current_setting('test.s2')::uuid
+                        and user_id = '00000000-0000-0000-0000-000000000021' and role = 'coach'), 1, '球隊管理員身分帶過去');
+select pg_temp.expect((select count(*) from public.ability_ratings where team_id = current_setting('test.s2')::uuid), 0, '能力表不複製');
+select pg_temp.expect((select count(*) from public.messages where team_id = current_setting('test.s2')::uuid and kind = 'note'), 1, '新賽季聊天室有通知');
+select set_config('test.n51', (select id::text from public.players where prev_player_id = '20000000-0000-0000-0000-000000000051'), true);
+select set_config('test.n52', (select id::text from public.players where prev_player_id = '20000000-0000-0000-0000-000000000052'), true);
+-- 給後面測試用的舊賽季練習（用管理者身分，封存後也建得進去 → 證明守門員只擋登入的人）
+set local app.allow_archived = 'on';
+insert into public.practices (id, team_id, starts_at, ends_at) values
+  ('60000000-0000-0000-0000-000000000051', '10000000-0000-0000-0000-000000000051', now() + interval '5 days', now() + interval '5 days 2 hours');
+set local app.allow_archived = 'off';
+
+set local role authenticated;
+-- 舊賽季唯讀：球員、球隊管理員都改不了
+select pg_temp.login('00000000-0000-0000-0000-000000000022');
+select pg_temp.must_fail($q$select public.submit_self_rating('10000000-0000-0000-0000-000000000051', '{"pace": 4}')$q$, '舊賽季填能力表');
+select pg_temp.must_fail($q$select public.set_practice_attendance('60000000-0000-0000-0000-000000000051', 'in')$q$, '舊賽季登記練習');
+select pg_temp.must_fail($q$select public.post_message('10000000-0000-0000-0000-000000000051', '還在嗎')$q$, '舊賽季聊天室發文');
+select pg_temp.must_fail($q$update public.players set nickname = '改' where id = '20000000-0000-0000-0000-000000000051'$q$, '舊賽季改自己的介紹');
+select pg_temp.st(public.mark_chat_read('10000000-0000-0000-0000-000000000051'), 'ok', '舊賽季看聊天室（記錄讀到哪裡）');
+select pg_temp.st(public.submit_self_rating(current_setting('test.s2')::uuid, '{"pace": 4}'), 'ok', '新賽季填能力表');
+select pg_temp.login('00000000-0000-0000-0000-000000000021');
+select pg_temp.must_fail($q$select public.save_practice('10000000-0000-0000-0000-000000000051', null, now() + interval '1 day', now() + interval '1 day 2 hours')$q$, '舊賽季新增練習');
+select pg_temp.must_fail($q$select public.save_match('10000000-0000-0000-0000-000000000051', null, '對手', now() + interval '1 day')$q$, '舊賽季新增比賽');
+select pg_temp.must_fail($q$select public.delete_practice('60000000-0000-0000-0000-000000000051')$q$, '舊賽季刪練習');
+select pg_temp.must_fail($q$update public.teams set name = '改名' where id = '10000000-0000-0000-0000-000000000051'$q$, '舊賽季改隊名');
+select pg_temp.must_fail($q$select public.add_player('10000000-0000-0000-0000-000000000051', '新人')$q$, '舊賽季加球員');
+select pg_temp.must_fail($q$select public.create_coach_code('10000000-0000-0000-0000-000000000051')$q$, '舊賽季產生管理員碼');
+-- 「上一季的自己」只能由開新賽季設定
+select pg_temp.must_fail(format($q$insert into public.players (team_id, name, prev_player_id) values (%L, '假的', '20000000-0000-0000-0000-000000000051')$q$,
+                                current_setting('test.s2')), '直接新增球員並指定上一季');
+select pg_temp.must_fail(format($q$update public.players set prev_player_id = null where id = %L$q$, current_setting('test.n52')),
+                         '直接改上一季的連結');
+select pg_temp.st(public.add_player(current_setting('test.s2')::uuid, '新賽季新人'), 'ok', '新賽季加球員');
+
+-- 進步資料：同系列自動串起來
+select pg_temp.login('00000000-0000-0000-0000-000000000022');
+select pg_temp.st(j, 'ok', '隊友看進步'),
+       pg_temp.expect(jsonb_array_length(j -> 'seasons'), 2, '進步有兩季'),
+       pg_temp.expect(jsonb_array_length(j -> 'seasons' -> 0 -> 'ratings'), 2, '第一季兩份能力表'),
+       pg_temp.expect(jsonb_array_length(j -> 'seasons' -> 1 -> 'ratings'), 1, '第二季一份能力表')
+  from (select public.get_progress(current_setting('test.s2')::uuid, current_setting('test.n51')::uuid) j) x;
+select pg_temp.st(j, 'ok', '在舊賽季看也看得到新賽季'),
+       pg_temp.expect(jsonb_array_length(j -> 'seasons'), 2, '從舊賽季看也是兩季')
+  from (select public.get_progress('10000000-0000-0000-0000-000000000051', '20000000-0000-0000-0000-000000000051') j) x;
+select pg_temp.st(public.get_team_progress(current_setting('test.s2')::uuid), 'forbidden', '球員看全隊進步');
+select pg_temp.st(public.get_progress(current_setting('test.s2')::uuid, '20000000-0000-0000-0000-0000000000a1'), 'not_found', '拿別隊的球員來查');
+select pg_temp.login('00000000-0000-0000-0000-000000000021');
+select pg_temp.st(j, 'ok', '球隊管理員看全隊進步'),
+       pg_temp.expect(jsonb_array_length(j -> 'players'), 3, '全隊三個人（含新賽季新人）')
+  from (select public.get_team_progress(current_setting('test.s2')::uuid) j) x;
+-- 外人：看不到；用舊 Team ID 加不進來；用新 Team ID 加入後就看得到這個系列的進步
+select pg_temp.login('00000000-0000-0000-0000-000000000023');
+select pg_temp.st(public.get_progress(current_setting('test.s2')::uuid, current_setting('test.n51')::uuid), 'not_member', '外人看進步');
+select pg_temp.st(public.get_team_progress(current_setting('test.s2')::uuid), 'not_member', '外人看全隊進步');
+select pg_temp.st(public.join_team(current_setting('test.s1code')), 'archived', '用舊賽季的 Team ID 加入');
+select pg_temp.expect((select count(*) from public.teams where id = '10000000-0000-0000-0000-000000000051'), 0, '加不進去就看不到舊賽季');
+select pg_temp.login('00000000-0000-0000-0000-000000000022');
+select pg_temp.st(public.join_team(current_setting('test.s1code')), 'already_member', '舊賽季的成員用舊 Team ID 回去看');
+reset role;
+-- 直接呼叫內部工具不行
+set local role authenticated;
+select pg_temp.must_fail($q$select public.progress_chain('20000000-0000-0000-0000-000000000051')$q$, '直接呼叫 progress_chain');
+reset role;
+set local role anon;
+select pg_temp.must_fail($q$select public.get_progress('10000000-0000-0000-0000-000000000051', '20000000-0000-0000-0000-000000000051')$q$, '沒登入看進步');
+select pg_temp.must_fail($q$select public.start_new_season('10000000-0000-0000-0000-000000000051', 'x')$q$, '沒登入開新賽季');
+reset role;
+
+-- 刪帳號：舊賽季裡自己的能力表也刪得掉、介紹清空
+set local role authenticated;
+select pg_temp.login('00000000-0000-0000-0000-000000000022');
+select pg_temp.st(public.delete_my_account(), 'ok', '有舊賽季資料的人刪帳號');
+reset role;
+select pg_temp.expect((select count(*) from public.ability_ratings where player_id in
+                        ('20000000-0000-0000-0000-000000000051', current_setting('test.n51')::uuid)), 0, '刪帳號後兩季的能力表都不見');
+select pg_temp.expect((select count(*) from public.teams where id = '10000000-0000-0000-0000-000000000051' and archived_at is not null), 1,
+                      '刪帳號後舊賽季還是封存');
+
 select 'RLS OK' as result;
 rollback;
