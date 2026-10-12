@@ -98,3 +98,63 @@ def test_rls_test_covers_v28():
     for label in ("球隊管理員開新賽季", "舊賽季填能力表", "舊賽季新增練習", "用舊賽季的 Team ID 加入",
                   "隊友看進步", "球員看全隊進步", "外人看進步", "直接改上一季的連結", "有舊賽季資料的人刪帳號"):
         assert label in RLS_TEST, label
+
+
+# ---------------------------------------------------------------- 網站 ↔ 資料庫對得起來
+WEB = ROOT / "web"
+
+
+def _w(rel: str) -> str:
+    return (WEB / rel).read_text(encoding="utf-8")
+
+
+def test_web_rpc_names_and_args_match_0012():
+    api = _w("lib/api.ts")
+    for name in ("get_progress", "get_team_progress", "start_new_season"):
+        assert f'rpc("{name}"' in api, name
+    # 參數名稱要跟函式簽名一樣
+    sig = re.search(r"function public\.start_new_season\((.*?)\)\s*returns", MIG12, re.S).group(1)
+    for arg in ("team", "season", "team_name", "keep_jersey", "keep_badge", "notice", "to_discord"):
+        assert re.search(rf"\b{arg}\b", sig), arg
+        assert f"{arg}:" in api[api.index('rpc("start_new_season"'):][:400], arg
+
+
+def test_web_team_columns_exist_in_migration():
+    api = _w("lib/api.ts")
+    cols = re.search(r'team: "([^"]+)"', api).group(1)
+    for c in ("lineage_id", "prev_team_id", "archived_at", "created_at"):
+        assert c in cols and (c in MIG12 or c == "created_at"), c
+
+
+def test_archived_status_message_in_both_places():
+    assert '"archived"' in _w("lib/status.ts") or "archived:" in _w("lib/status.ts")
+    assert '"archived"' in (ROOT / "backend" / "accounts.py").read_text(encoding="utf-8")
+
+
+def test_archived_is_read_only_in_ui():
+    # 舊賽季：出席按鈕、發文框、能力表、我的頁的編輯區都不能用
+    assert "archived" in _w("components/attendance-buttons.tsx")
+    assert "archived" in _w("components/chat-composer.tsx")
+    assert "v.archived" in _w("app/t/[teamId]/form/page.tsx")
+    assert "!v.archived" in _w("app/t/[teamId]/page.tsx")
+    # 資料庫擋下來的錯誤要翻成中文，不是「連線或權限錯誤」
+    assert "season_archived" in _w("lib/api.ts") and "season_archived" in MIG12
+
+
+def test_attendance_rate_only_for_self_and_managers():
+    page = _w("app/t/[teamId]/players/[playerId]/page.tsx")
+    assert "R.id === v.me.player_id || v.isCoach" in page
+    panel = _w("components/season-panel.tsx")
+    assert "getTeamProgress" in panel and "teamRates" in panel
+    assert "if (!v.isCoach) return null" in panel      # 開新賽季只有球隊管理員
+
+
+def test_policy_version_bumped_for_v28():
+    assert 'POLICY_VERSION = "2026-10-13"' in _w("lib/policies.ts")
+    assert "賽季進步" in _w("app/privacy/page.tsx")
+
+
+def test_v28_update_entry():
+    updates = _w("lib/updates.ts")
+    assert 'version: "v2.8"' in updates and updates.index('version: "v2.8"') < updates.index('version: "v2.7.1"')
+    assert re.search(r'version: "v2\.8".*?big: true', updates, re.S)

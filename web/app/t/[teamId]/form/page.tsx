@@ -33,6 +33,14 @@ export default function FormPage() {
       </div>
     );
   }
+  if (v.archived) {
+    return (
+      <div className="panel pad" style={{ maxWidth: 640 }}>
+        <h1 style={{ margin: "0 0 4px", fontSize: 26 }}>能力表</h1>
+        <p className="muted" style={{ margin: 0 }}>這是舊賽季，不能再填能力表。請到最新的賽季填；這一季的能力表都還在，可以在球員報告的「進步」分頁看。</p>
+      </div>
+    );
+  }
   return <AbilityForm p={p} teamId={teamId} key={p.id} />;
 }
 

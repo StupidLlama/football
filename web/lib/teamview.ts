@@ -26,6 +26,7 @@ export type TeamView = {
   me: Membership;
   myPlayer: PlayerView | null;
   isCoach: boolean;
+  archived: boolean;                 // v2.8：舊賽季（只能看）
   claims: Membership[];              // 等球隊管理員確認的認領
   nameOf: (userId: string) => string;
   matches: MatchView[];              // 我們隊的比賽（照時間）
@@ -102,7 +103,7 @@ export function buildTeamView(data: TeamData, rules: Rules): TeamView {
   const myPlayer = players.find((p) => p.id === data.me.player_id) ?? null;
   return {
     data, players, rated, teamScores, teamCat, teamAvg: mean(rated.map((p) => p.avg)),
-    me: data.me, myPlayer, isCoach: data.me.role === "coach",
+    me: data.me, myPlayer, isCoach: data.me.role === "coach", archived: !!data.team.archived_at,
     claims: data.members.filter((m) => !m.player_id && (m.claim_player_id || m.claim_new_name)),
     nameOf, matches, duties, chat: data.chat,
   };

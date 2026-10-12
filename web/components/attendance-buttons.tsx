@@ -2,6 +2,7 @@
 // 出席／請假：手機用的大按鈕，一鍵完成。再點一次已選的那顆＝清掉（變回還沒回覆）。
 import { useState } from "react";
 import type { AttendanceAnswer } from "@/lib/api";
+import { useTeam } from "@/lib/team";
 
 export function AttendanceButtons({ answer, locked, onAnswer, what = "比賽" }: {
   answer: AttendanceAnswer | null; locked: boolean; onAnswer: (next: AttendanceAnswer | null) => Promise<void>;
@@ -9,12 +10,21 @@ export function AttendanceButtons({ answer, locked, onAnswer, what = "比賽" }:
   what?: "比賽" | "練習";
 }) {
   const [busy, setBusy] = useState(false);
+  const archived = !!useTeam().view?.archived;   // 舊賽季：只能看
 
   const tap = async (want: AttendanceAnswer) => {
-    if (busy || locked) return;
+    if (busy || locked || archived) return;
     setBusy(true);
     try { await onAnswer(answer === want ? null : want); } finally { setBusy(false); }
   };
+
+  if (archived) {
+    return (
+      <p className="faint" style={{ margin: 0, fontSize: 13 }}>
+        {answer === "in" ? "出席" : answer === "out" ? "請假" : "沒有回覆"}（舊賽季，只能看）
+      </p>
+    );
+  }
 
   if (locked) {
     return (

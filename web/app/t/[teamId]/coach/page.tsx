@@ -14,11 +14,12 @@ import { message, type RpcResult } from "@/lib/status";
 import { useTeamView } from "@/lib/team";
 import { PanelBack, useDirty, useLeave, useLeaveGuard } from "@/components/back-button";
 import { ConfirmButton } from "@/components/confirm-button";
+import { SeasonPanel } from "@/components/season-panel";
 import { CaptainBadge, dateLabel, ErrorBox, RoleBadge, Soon, useToast } from "@/components/ui";
 
-type Tab = "progress" | "roster" | "members" | "codes" | "team";
+type Tab = "progress" | "roster" | "members" | "codes" | "season" | "team";
 const TABS: [Tab, string][] = [
-  ["progress", "能力表進度"], ["roster", "球員名單"], ["members", "成員"], ["codes", "Team ID 與管理員碼"], ["team", "球隊設定"],
+  ["progress", "能力表進度"], ["roster", "球員名單"], ["members", "成員"], ["codes", "Team ID 與管理員碼"], ["season", "賽季"], ["team", "球隊設定"],
 ];
 
 export default function CoachPage() {
@@ -47,6 +48,7 @@ export default function CoachPage() {
       {tab === "roster" && <Roster />}
       {tab === "members" && <Members isAdmin={isAdmin} />}
       {tab === "codes" && <Codes />}
+      {tab === "season" && <SeasonPanel />}
       {tab === "team" && <TeamSettings />}
       {/* 網站管理員看得到所有球隊的管理工具，但不一定是這一隊的球隊管理員（例如被取消過）：一樣可以用管理員碼升級 */}
       {!v.isCoach && isAdmin && <div style={{ marginTop: 32 }}><Redeem compact /></div>}

@@ -150,3 +150,33 @@ test("全隊出席率表：練習出席率低的排前面，沒數字的排最�
   const rows = teamRates(["good", "bad", "none"], [], [], ps, [patt("a", "good", "in"), patt("a", "none", "out")], now);
   assert.deepEqual(rows.map((r) => r.playerId), ["bad", "good", "none"]);
 });
+
+// ---------------------------------------------------------------- 賽季分組
+import { groupSeasons } from "../lib/seasons.ts";
+import { homeFor } from "../lib/nav.ts";
+
+const T = (id: string, lineage: string, created: string, archived: string | null = null) =>
+  ({ team: { id, lineage_id: lineage, archived_at: archived, created_at: created } });
+
+test("賽季分組：同一個系列收成一組，目前這一季是沒封存的最新一季", () => {
+  const g = groupSeasons([
+    T("old", "L1", "2026-01-01T00:00:00Z", "2026-09-01T00:00:00Z"),
+    T("new", "L1", "2026-09-01T00:00:00Z"),
+    T("other", "L2", "2026-05-01T00:00:00Z"),
+  ]);
+  assert.equal(g.length, 2);
+  assert.equal(g[0].current.team.id, "new");
+  assert.deepEqual(g[0].past.map((x) => x.team.id), ["old"]);
+  assert.equal(g[1].current.team.id, "other");
+});
+
+test("賽季分組：全部都封存（例如被移出新賽季）就用最新的那一季", () => {
+  const g = groupSeasons([T("a", "L", "2026-01-01T00:00:00Z", "2026-05-01T00:00:00Z"), T("b", "L", "2026-05-01T00:00:00Z", "2026-09-01T00:00:00Z")]);
+  assert.equal(g[0].current.team.id, "b");
+});
+
+test("登入後去哪：同一支隊伍的多個賽季直接進最新一季，不同隊才讓人選", () => {
+  assert.equal(homeFor([]), "/join");
+  assert.equal(homeFor([T("old", "L1", "2026-01-01T00:00:00Z", "2026-09-01T00:00:00Z"), T("new", "L1", "2026-09-01T00:00:00Z")]), "/t/new");
+  assert.equal(homeFor([T("a", "L1", "2026-01-01T00:00:00Z"), T("b", "L2", "2026-02-01T00:00:00Z")]), "/teams");
+});

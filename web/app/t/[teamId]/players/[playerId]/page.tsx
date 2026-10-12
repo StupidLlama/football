@@ -11,11 +11,13 @@ import { useTeamView } from "@/lib/team";
 import { Bar, CaptainBadge, dateLabel, Feet, fmt, footText, Kpi, LegendLine, PrefTag, Radar } from "@/components/ui";
 import { AnimatedNumber } from "@/components/anim";
 import { CareerPanel } from "@/components/career";
+import { ProgressPanel } from "@/components/progress";
+import { AttendanceRateCard } from "@/components/attendance-rate";
 
 export default function ReportPage() {
   const { teamId, playerId } = useParams<{ teamId: string; playerId: string }>();
   const v = useTeamView();
-  const [tab, setTab] = useState<"ability" | "pos" | "career" | "match">("ability");
+  const [tab, setTab] = useState<"ability" | "pos" | "progress" | "career" | "match">("ability");
   const [mode, setMode] = useState<"self" | "perf" | "both">("self");
   const R = v.players.find((p) => p.id === playerId);
   const back = <div style={{ marginBottom: 12 }}><BackButton fallback={`/t/${teamId}/players`} /></div>;
@@ -68,7 +70,7 @@ export default function ReportPage() {
         <Kpi label="最強能力" value={best.label} sub={`${best.score} 分，隊內 #${best.rank}`} />
       </div>
       <div className="tabs" role="tablist" aria-label="球員報告" style={{ marginTop: 20 }}>
-        {([["ability", "能力分析"], ["pos", "位置"], ["career", "生涯"], ["match", "比賽數據"]] as const).map(([k, l]) => (
+        {([["ability", "能力分析"], ["pos", "位置"], ["progress", "進步"], ["career", "生涯"], ["match", "比賽數據"]] as const).map(([k, l]) => (
           <button key={k} type="button" role="tab" className="tabbtn" aria-selected={tab === k} onClick={() => setTab(k)}>{l}</button>
         ))}
       </div>
@@ -175,6 +177,11 @@ export default function ReportPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {tab === "progress" && (
+        <ProgressPanel teamId={teamId} playerId={R.id} name={R.name}
+          extra={(R.id === v.me.player_id || v.isCoach) ? <AttendanceRateCard playerId={R.id} /> : null} />
       )}
 
       {tab === "career" && <CareerPanel teamId={teamId} playerId={R.id} name={R.name} />}

@@ -50,7 +50,7 @@ def test_latest_update_matches_claude_md_rule():
     """每版上線要在 lib/updates.ts 最上面加一段（CLAUDE.md 有寫）。"""
     root = WEB.parent
     assert "lib/updates.ts" in (root / "CLAUDE.md").read_text(encoding="utf-8")
-    assert '"v2.7.1"' in _web("lib/updates.ts").split("export const UPDATES")[1][:200]
+    assert '"v2.7.1"' in _web("lib/updates.ts")   # 最新的一版會一直往前，這裡只確認它還留在紀錄裡(最新版的檢查在 test_v28)
 
 
 def test_doc_pages_have_back_button():

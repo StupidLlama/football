@@ -1,7 +1,11 @@
 // 登入後要去哪一頁。
-export function homeFor(teams: { team: { id: string } }[]): string {
+import { groupSeasons, type SeasonTeam } from "./seasons.ts";
+
+/** 同一支隊伍的好幾個賽季算一隊：只有一隊就直接進最新的一季，不用選。 */
+export function homeFor(teams: SeasonTeam[]): string {
   if (teams.length === 0) return "/join";
-  if (teams.length === 1) return `/t/${teams[0].team.id}`;
+  const groups = groupSeasons(teams);
+  if (groups.length === 1) return `/t/${groups[0].current.team.id}`;
   return "/teams";
 }
 
