@@ -158,3 +158,14 @@ def test_v28_update_entry():
     updates = _w("lib/updates.ts")
     assert 'version: "v2.8"' in updates and updates.index('version: "v2.8"') < updates.index('version: "v2.7.1"')
     assert re.search(r'version: "v2\.8".*?big: true', updates, re.S)
+
+
+def test_archived_hides_management_controls():
+    """舊賽季：新增比賽、新增練習、排陣容、管理專區工具都收起來（資料庫也會擋，這裡只是不讓人點）。"""
+    assert "const manage = v.isCoach && !v.archived" in _w("app/t/[teamId]/matches/page.tsx")
+    assert "!v.archived" in _w("app/t/[teamId]/matches/[matchId]/page.tsx")
+    assert "&& !v.archived" in _w("app/t/[teamId]/practice/page.tsx")
+    lineup = _w("app/t/[teamId]/lineup/page.tsx")
+    assert "v.isCoach && !v.archived" in lineup and "!v.archived && (" in lineup
+    coach = _w("app/t/[teamId]/coach/page.tsx")
+    assert 'v.archived ? TABS.filter(([k]) => k === "season")' in coach

@@ -23,7 +23,8 @@ export default function MatchesPage() {
   const [creating, setCreating] = useState(false);
 
   const { upcoming, done } = splitGames(v.data.matches, now);
-  const importable = v.isCoach ? importableFixtures(v.data.fixtures, v.data.matches, v.data.team.league_name, now) : [];
+  const manage = v.isCoach && !v.archived;   // 舊賽季只能看
+  const importable = manage ? importableFixtures(v.data.fixtures, v.data.matches, v.data.team.league_name, now) : [];
   const myId = v.myPlayer?.id ?? null;
   const roster = v.players.length;
   const list = tab === "upcoming" ? upcoming : done;
@@ -44,7 +45,7 @@ export default function MatchesPage() {
     <section className="stack" style={{ gap: 16 }}>
       <header style={{ display: "flex", flexWrap: "wrap", gap: "8px 16px", alignItems: "baseline", justifyContent: "space-between" }}>
         <h1 className="hide-sm" style={{ margin: 0, fontSize: 30 }}>比賽</h1>
-        {v.isCoach && !creating && <button type="button" className="btn btn-main btn-sm" onClick={() => setCreating(true)}>＋ 新增比賽</button>}
+        {manage && !creating && <button type="button" className="btn btn-main btn-sm" onClick={() => setCreating(true)}>＋ 新增比賽</button>}
       </header>
 
       {creating && (
@@ -53,7 +54,7 @@ export default function MatchesPage() {
           onCancel={() => setCreating(false)} />
       )}
 
-      {v.isCoach && importable.length > 0 && (
+      {manage && importable.length > 0 && (
         <details className="panel pad">
           <summary style={{ cursor: "pointer", fontWeight: 700 }}>從系際聯賽賽程帶入（{importable.length}）</summary>
           <p className="faint" style={{ fontSize: 13, margin: "8px 0" }}>
@@ -102,7 +103,7 @@ export default function MatchesPage() {
               {tab === "upcoming" && myId && <AttendanceButtons answer={mine} locked={isLocked(m, now)} onAnswer={(next) => onAnswer(m.id, next)} />}
               <div className="chips">
                 <Link className="btn btn-line btn-sm" href={`/t/${teamId}/matches/${m.id}`}>詳情</Link>
-                {tab === "upcoming" && <Link className="btn btn-line btn-sm" href={`/t/${teamId}/lineup?match=${m.id}`}>去排陣容</Link>}
+                {tab === "upcoming" && !v.archived && <Link className="btn btn-line btn-sm" href={`/t/${teamId}/lineup?match=${m.id}`}>去排陣容</Link>}
               </div>
             </div>
           );

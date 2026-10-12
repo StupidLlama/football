@@ -30,7 +30,7 @@ export default function LineupPage() {
   const { teamId } = useParams<{ teamId: string }>();
   const v = useTeamView();
   const say = useToast();
-  const isCoach = v.isCoach;
+  const isCoach = v.isCoach && !v.archived;   // 舊賽季只能看
   const myId = v.me.user_id;
 
   const [rows, setRows] = useState<LineupRow[] | null>(null);
@@ -246,7 +246,7 @@ export default function LineupPage() {
   if (rows === null) return <Loading />;
 
   const currentRow = rows.find((r) => r.id === currentId) ?? null;
-  const canEdit = !currentRow || (currentRow.kind === "official" ? isCoach : currentRow.owner_id === myId);
+  const canEdit = !v.archived && (!currentRow || (currentRow.kind === "official" ? isCoach : currentRow.owner_id === myId));
   const shortage = lineup ? shortageText(lineup) : null;
   const selectedOption = selected ? lineup?.starters.find((o) => o.slot === selected) ?? null : null;
   const selectedSlotObj = selected ? formation.slots.find((s) => s.code === selected) ?? null : null;
