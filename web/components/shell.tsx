@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { useTeam } from "@/lib/team";
 import type { TeamView } from "@/lib/teamview";
 import { ErrorBox, Footer, Loading, Logo, RoleBadge, Soon } from "./ui";
+import { UpdateDot, UpdatePopup } from "./updates";
 
 type NavItem = { href: string; label: string; icon: string; soon?: string; badge?: number; match?: (p: string) => boolean };
 
@@ -66,6 +67,9 @@ function Bottom({ teamId, path, onGo }: { teamId: string; path: string; onGo?: (
     <div style={{ marginTop: 24, paddingTop: 12, borderTop: "1px solid #22304A", display: "flex", flexDirection: "column", gap: 2 }}>
       <Link className="side-item" href={`/settings?team=${teamId}`} aria-current={path === "/settings" ? "page" : undefined} onClick={onGo}>
         <span aria-hidden="true" className="ico">✱</span><span style={{ flex: 1 }}>設定</span>
+      </Link>
+      <Link className="side-item" href="/updates" onClick={onGo}>
+        <span aria-hidden="true" className="ico">↻</span><span style={{ flex: 1 }}>更新紀錄</span><UpdateDot />
       </Link>
       <button type="button" className="side-item" onClick={async () => { await signOut(); router.replace("/"); }}>
         <span aria-hidden="true" className="ico">←</span><span style={{ flex: 1 }}>登出</span>
@@ -130,6 +134,7 @@ export function TeamShell({ teamId, children }: { teamId: string; children: Reac
           <Footer />
         </main>
       </div>
+      <UpdatePopup />
       {drawer && (
         <div className="drawer">
           <div className="drawer-panel" role="dialog" aria-modal="true" aria-label="主選單">

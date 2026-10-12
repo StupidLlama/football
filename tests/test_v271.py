@@ -31,3 +31,20 @@ def test_lineup_explains_why_size_is_locked():
     """iPad 沒有滑鼠，不能只靠 title 提示：停用時畫面上要有文字。"""
     src = _web("app/t/[teamId]/lineup/page.tsx")
     assert "賽制跟著這場比賽" in src and "不綁定" in src
+
+
+def test_updates_page_and_notice_wired():
+    """更新紀錄：頁面、頁尾和側邊欄入口、大更新視窗只在球隊頁外框出現一次。"""
+    assert "UPDATES.map" in _web("app/updates/page.tsx") and "MarkUpdatesSeen" in _web("app/updates/page.tsx")
+    assert 'href="/updates"' in _web("components/ui.tsx")
+    shell = _web("components/shell.tsx")
+    assert 'href="/updates"' in shell and shell.count("<UpdatePopup />") == 1
+    notice = _web("components/updates.tsx")
+    assert "showModal" in notice and "try {" in notice  # localStorage 讀不到也不能壞掉
+
+
+def test_latest_update_matches_claude_md_rule():
+    """每版上線要在 lib/updates.ts 最上面加一段（CLAUDE.md 有寫）。"""
+    root = WEB.parent
+    assert "lib/updates.ts" in (root / "CLAUDE.md").read_text(encoding="utf-8")
+    assert '"v2.7.1"' in _web("lib/updates.ts").split("export const UPDATES")[1][:200]

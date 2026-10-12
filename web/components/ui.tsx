@@ -1,5 +1,6 @@
 "use client";
 // 共用的小元件：標誌、提示訊息、位置標籤、雷達圖、KPI 卡、即將推出。
+import { UpdateDot } from "./updates";
 import Link from "next/link";
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { lineOf } from "@/lib/positions";
@@ -39,6 +40,7 @@ export function Footer() {
         <Link href="/privacy">隱私權政策</Link>
         <Link href="/terms">服務條款</Link>
         <Link href="/contact">聯絡我們</Link>
+        <Link href="/updates">更新紀錄 <UpdateDot /></Link>
         <span>原始碼公開在 <a href={REPO_URL} target="_blank" rel="noreferrer">GitHub</a>（AGPL-3.0）</span>
       </nav>
     </footer>
