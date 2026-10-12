@@ -169,6 +169,7 @@ py web/scripts/sync_config.py              # 改了 config/settings.toml 的能�
 - **v2.7 練習行事曆與出席（F11）：已上線**（main @ `2cce416`，標籤 `v2.7`，0011 已執行）。上線步驟 `docs/V2_7_SETUP.md`。
 - v2.7.1（小修，分支 `v2.7.1`）：子頁加「‹ 返回」（`components/back-button.tsx`：BackButton 用在比賽詳情、球員報告、從比賽／聊天室進來的組隊；PanelBack＋`useDirty` 用在編輯面板，有改動要二次確認）；組隊頁綁定比賽時用文字說明賽制為什麼不能改（iPad 沒有 hover 提示）。
 - 沙盒連不到 npm registry（`npm install` 403）、也沒有 `pandas`；但有 PostgreSQL 16（`service postgresql start`，照 `local_shim.sql` → migrations → `rls_test.sql` 的順序用 `psql` 跑）和全域 `tsc`（沒有 React 型別，只能粗略檢查）。真實瀏覽器測試可以用 Claude in Chrome 操作使用者的 `localhost:3000`（`device_bash` 是獨立 VM、不是使用者電腦）。
+- **視覺改版放在 v2 最後一版（v2.10，2026-10-12 決定）**，內容見 `docs/SPEC.md` 版本表。示範稿（Logo、A/B/C 三種風格）在使用者的 Design 畫布「Potato 視覺改版示範」；使用者選 C 戰情室、Logo 用 Kaushan Script 版。新 Logo 的球是使用者用 Gemini 生成的圖，改版時再請使用者提供原檔。
 - 版本順序（2026-10-08 調整）：**v2.7 練習行事曆與出席（F11）＋ AI 匯入練習**（網站不串 AI：網站產生給 AI 的指令 → 使用者貼給自己的 AI → AI 回固定格式 → 貼回網站解析、預覽、確認）；v2.8 賽季進步追蹤（F8）；v2.9 意見回饋、全隊上線、舊網站退役；之後語言設定（多語系）。
 - 使用者問過「球場上能不能自由擺放（不限定 11 個位置框）」，討論後決定 v2.4.1 先不做，先維持「拖到固定位置框互換」。有空可以再提出來討論要不要做。
 
