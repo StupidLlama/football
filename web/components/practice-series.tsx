@@ -8,6 +8,7 @@ import { announceText, expandSeries, practiceDays, type SeriesInput } from "@/li
 import { toRpcRows } from "@/lib/practice-import";
 import { message } from "@/lib/status";
 import type { Practice } from "@/lib/api";
+import { PanelBack, useDirty } from "./back-button";
 import { ErrorBox } from "./ui";
 import { NO_NOTIFY, NotifyBoxes, notifyArgs, notifyDone, type Notify } from "./notify-boxes";
 
@@ -31,6 +32,7 @@ export function PracticeSeries({ teamId, existing, lastLocation, today, onSaved,
   const [notify, setNotify] = useState<Notify>(NO_NOTIFY);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const dirty = useDirty([weekdays, from, to, start, end, meet, location, title, content, note, notify]);
 
   const input: SeriesInput = { weekdays, from, to, start, end, meet, location, title, content, note };
   const preview = useMemo(() => expandSeries(input, practiceDays(existing)),
@@ -59,6 +61,7 @@ export function PracticeSeries({ teamId, existing, lastLocation, today, onSaved,
 
   return (
     <form onSubmit={submit} className="panel pad stack" style={{ gap: 12 }}>
+      <PanelBack onBack={onCancel} dirty={dirty} disabled={busy} />
       <h2 style={{ margin: 0, fontSize: 20 }}>建立固定練習</h2>
       <p className="faint" style={{ margin: 0, fontSize: 13 }}>
         會一次建立好一次一次的練習（例如每週二、四到學期末）。之後每一次都可以單獨改時間或地點、單獨記出席。

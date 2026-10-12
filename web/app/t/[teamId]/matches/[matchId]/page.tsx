@@ -6,6 +6,7 @@ import { useState } from "react";
 import { deleteMatch, setAttendance, type AttendanceAnswer } from "@/lib/api";
 import { answerOf, groupPlayers, isLocked, kickoffLabel, meetLabel, scoreLabel } from "@/lib/matches";
 import { useTeamView } from "@/lib/team";
+import { BackButton } from "@/components/back-button";
 import { AttendanceButtons } from "@/components/attendance-buttons";
 import { ConfirmButton } from "@/components/confirm-button";
 import { MatchForm } from "@/components/match-form";
@@ -46,7 +47,7 @@ export default function MatchDetailPage() {
     return (
       <section className="stack" style={{ gap: 16 }}>
         <ErrorBox text="找不到這場比賽，可能已經被刪除了。" />
-        <Link className="btn btn-line btn-sm" href={`/t/${teamId}/matches`} style={{ alignSelf: "flex-start" }}>回比賽列表</Link>
+        <BackButton fallback={`/t/${teamId}/matches`} label="回比賽列表" />
       </section>
     );
   }
@@ -82,6 +83,7 @@ export default function MatchDetailPage() {
 
   return (
     <section className="stack" style={{ gap: 16 }}>
+      <BackButton fallback={`/t/${teamId}/matches`} />
       <header style={{ display: "flex", flexWrap: "wrap", gap: "8px 16px", alignItems: "baseline", justifyContent: "space-between" }}>
         <h1 className="hide-sm" style={{ margin: 0, fontSize: 30 }}>vs {m.opponent}</h1>
         {v.isCoach && (

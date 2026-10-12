@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { saveMatch, type Match } from "@/lib/api";
 import { fromLocalInput, toLocalInput } from "@/lib/matches";
 import { message } from "@/lib/status";
+import { PanelBack, useDirty } from "./back-button";
 import { ErrorBox } from "./ui";
 
 const SIZES = [11, 8] as const;
@@ -22,6 +23,7 @@ export function MatchForm({ teamId, match, onSaved, onCancel }: {
   const [theirScore, setTheirScore] = useState(match?.their_score?.toString() ?? "");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const dirty = useDirty([opponent, kickoff, meetAt, location, jersey, size, note, ourScore, theirScore]);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -47,6 +49,7 @@ export function MatchForm({ teamId, match, onSaved, onCancel }: {
 
   return (
     <form onSubmit={submit} className="panel pad stack" style={{ gap: 12 }}>
+      <PanelBack onBack={onCancel} dirty={dirty} disabled={busy} />
       {error && <ErrorBox text={error} />}
       <label className="label">對手<input className="field" value={opponent} maxLength={40} required
         onChange={(e) => setOpponent(e.target.value)} placeholder="例如：機械系" /></label>
