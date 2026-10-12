@@ -59,3 +59,16 @@ def test_doc_pages_have_back_button():
     assert "<BackButton" in doc
     for rel in ("app/updates/page.tsx", "app/privacy/page.tsx", "app/terms/page.tsx"):
         assert "DocPage" in _web(rel), rel
+
+
+def test_every_editable_page_has_leave_guard():
+    """所有能輸入東西的頁面：有沒儲存的修改時，離開（點連結、重新整理）要先確認。"""
+    for rel in ("app/t/[teamId]/page.tsx", "app/t/[teamId]/coach/page.tsx", "app/t/[teamId]/lineup/page.tsx",
+                "app/settings/page.tsx", "app/contact/page.tsx", "components/chat-composer.tsx", "components/chat-message.tsx"):
+        assert "useLeaveGuard(" in _web(rel), rel
+    src = _web("components/back-button.tsx")
+    assert "beforeunload" in src and 'addEventListener("click"' in src and "stopImmediatePropagation" in src
+    assert "useGuardedAction" in _web("app/t/[teamId]/lineup/page.tsx")
+    # 管理專區的新增／編輯球員、聊天室編輯與發文的取消鍵，也要先確認
+    assert "<PanelBack onBack={leave}" in _web("app/t/[teamId]/coach/page.tsx")
+    assert "onClick={leave}" in _web("components/chat-message.tsx") and "onClick={leave}" in _web("components/chat-composer.tsx")

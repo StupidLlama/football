@@ -5,6 +5,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { CONTACT_CATEGORIES, sendContact } from "@/lib/api";
 import { message } from "@/lib/status";
 import { CONTACT_EMAIL } from "@/lib/policies";
+import { useLeaveGuard } from "@/components/back-button";
 import { RequireLogin } from "@/components/guard";
 import { ErrorBox, Footer } from "@/components/ui";
 
@@ -15,6 +16,7 @@ function Contact() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [sent, setSent] = useState(false);
+  const guard = useLeaveGuard(body.trim() !== "" && !busy);
 
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
@@ -33,6 +35,7 @@ function Contact() {
 
   return (
     <div style={{ maxWidth: 560, margin: "0 auto", padding: "24px 20px 48px" }}>
+      {guard}
       <Link className="btn btn-line btn-sm" href="/teams">返回</Link>
       <h1 style={{ margin: "16px 0 4px", fontSize: 30 }}>聯絡我們</h1>
       <p className="muted" style={{ margin: "0 0 20px" }}>網站壞掉、有建議，或想查詢、刪除你的個資，都可以從這裡告訴網站管理員。</p>

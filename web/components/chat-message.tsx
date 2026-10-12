@@ -2,6 +2,7 @@
 // 一則聊天室貼文：作者、時間、類型標籤、附的陣容、置頂／編輯／刪除、回覆列表。
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
+import { useLeave, useLeaveGuard } from "./back-button";
 import { deleteMessage, editMessage, setPinned, type LineupRow, type Message } from "@/lib/api";
 import { canDeleteMessage, canEditMessage, kindLabel, relativeTime, type Thread } from "@/lib/chat";
 import { message as statusMessage } from "@/lib/status";
@@ -19,6 +20,9 @@ function Row({ m, teamId, myUserId, isCoach, nameOf, lineups, now, onChanged, is
   const [body, setBody] = useState(m.body);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const cancelEdit = () => { setEditing(false); setBody(m.body); setError(""); };
+  const { leave, dialog } = useLeave(editing && body !== m.body, cancelEdit);
+  const guard = useLeaveGuard(editing && body !== m.body);
 
   const author = m.author_id ? nameOf(m.author_id) : "（已離開的成員）";
   const lineup = m.lineup_id ? lineups.find((l) => l.id === m.lineup_id) ?? null : null;
@@ -58,10 +62,11 @@ function Row({ m, teamId, myUserId, isCoach, nameOf, lineups, now, onChanged, is
       {error && <ErrorBox text={error} />}
       {editing ? (
         <div className="stack" style={{ gap: 8 }}>
+          {dialog}{guard}
           <textarea className="field" value={body} onChange={(e) => setBody(e.target.value)} maxLength={2000} rows={isReply ? 2 : 3} autoFocus />
           <div className="chips">
             <button type="button" className="btn btn-main btn-sm" disabled={busy || !body.trim()} onClick={saveEdit}>{busy ? "儲存中…" : "儲存"}</button>
-            <button type="button" className="btn btn-line btn-sm" onClick={() => { setEditing(false); setBody(m.body); setError(""); }}>取消</button>
+            <button type="button" className="btn btn-line btn-sm" onClick={leave}>取消</button>
           </div>
         </div>
       ) : (

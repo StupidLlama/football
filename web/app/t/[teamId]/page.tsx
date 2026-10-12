@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
+import { useLeaveGuard } from "@/components/back-button";
 import { updateMyPlayer } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { ABILITIES, POSITIONS, RULES } from "@/lib/config";
@@ -120,6 +121,9 @@ function EditMine({ p }: { p: PlayerView }) {
   const [weak, setWeak] = useState(p.weak_side);
   const [busy, setBusy] = useState(false);
   const { teamId } = useParams<{ teamId: string }>();
+  // 跟「已儲存的內容」比；儲存後 v.reload() 讓 p 更新，就不算改過
+  const dirty = JSON.stringify([nick, msg, pos, weak]) !== JSON.stringify([p.nickname, p.message, toChoice(p.good_positions, p.bad_positions), p.weak_side]);
+  const guard = useLeaveGuard(dirty);
 
   async function save() {
     setBusy(true);
@@ -137,6 +141,7 @@ function EditMine({ p }: { p: PlayerView }) {
 
   return (
     <section aria-labelledby="me-edit" className="panel pad" style={{ marginTop: 16 }}>
+      {guard}
       <h2 id="me-edit" style={{ margin: "0 0 4px", fontSize: 20 }}>編輯我的介紹</h2>
       <p className="faint" style={{ margin: "0 0 12px", fontSize: 14 }}>隊友會在你的球員報告看到這些。名字、背號、隊長標記要請球隊管理員改。</p>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 12 }}>

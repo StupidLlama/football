@@ -1,6 +1,7 @@
 "use client";
 // 發文／回覆的輸入框。主貼文：球員只能發「一般」，球隊管理員可以選類型、附正式陣容；回覆一律「一般」、沒有附件。
 import { useState } from "react";
+import { useLeave, useLeaveGuard } from "./back-button";
 import { postMessage, type LineupRow, type MessageKind } from "@/lib/api";
 import { message } from "@/lib/status";
 import { ErrorBox } from "./ui";
@@ -18,6 +19,8 @@ export function ChatComposer({ teamId, isCoach, lineups, parentId, onPosted, onC
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const isReply = !!parentId;
+  const { leave, dialog } = useLeave(body.trim() !== "", onCancel ?? (() => {}));
+  const guard = useLeaveGuard(body.trim() !== "" && !busy);
 
   const submit = async () => {
     const text = body.trim();
@@ -36,6 +39,7 @@ export function ChatComposer({ teamId, isCoach, lineups, parentId, onPosted, onC
 
   return (
     <div className={isReply ? "stack" : "panel pad stack"} style={{ gap: 8 }}>
+      {dialog}{guard}
       {error && <ErrorBox text={error} />}
       {!isReply && isCoach && (
         <div className="seg" role="radiogroup" aria-label="訊息類型">
@@ -58,7 +62,7 @@ export function ChatComposer({ teamId, isCoach, lineups, parentId, onPosted, onC
         <button type="button" className="btn btn-main btn-sm" disabled={busy || !body.trim()} onClick={submit}>
           {busy ? "送出中…" : isReply ? "回覆" : "發文"}
         </button>
-        {onCancel && <button type="button" className="btn btn-line btn-sm" onClick={onCancel}>取消</button>}
+        {onCancel && <button type="button" className="btn btn-line btn-sm" onClick={leave}>取消</button>}
       </div>
     </div>
   );

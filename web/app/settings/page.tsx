@@ -10,6 +10,7 @@ import { TEXT_SIZES, setTextSize, textSize } from "@/lib/prefs";
 import { message } from "@/lib/status";
 import { DATA_REGION, POLICY_VERSION } from "@/lib/policies";
 import { RequireLogin } from "@/components/guard";
+import { useLeaveGuard } from "@/components/back-button";
 import { ConfirmButton } from "@/components/confirm-button";
 import { dateLabel, ErrorBox, Footer, RoleBadge, Soon, useToast } from "@/components/ui";
 
@@ -21,6 +22,7 @@ function Settings() {
   const [name, setName] = useState(auth.profile?.display_name ?? "");
   const [size, setSize] = useState("std");
   const [error, setError] = useState("");
+  const guard = useLeaveGuard(name.trim() !== (auth.profile?.display_name ?? "").trim());
 
   useEffect(() => {
     const t = new URLSearchParams(window.location.search).get("team");
@@ -51,6 +53,7 @@ function Settings() {
 
       <section aria-labelledby="s-profile" className="panel" style={{ padding: "20px 24px" }}>
         <h2 id="s-profile" style={{ margin: "0 0 12px", fontSize: 20 }}>個人資料</h2>
+        {guard}
         <form onSubmit={saveName}>
           <label className="label">顯示名稱（隊友在成員名單看到的名字；連到名單後會改顯示名單上的名字）
             <span style={{ display: "flex", gap: 8 }}>
@@ -172,6 +175,7 @@ function AdminCreateTeam({ onCreated }: { onCreated: () => void }) {
   const [error, setError] = useState("");
 
   const [confirming, setConfirming] = useState(false);
+  const guard = useLeaveGuard(!result && (name.trim() !== "" || season.trim() !== "" || league.trim() !== ""));
 
   function review(e: FormEvent) {
     e.preventDefault();
@@ -190,6 +194,7 @@ function AdminCreateTeam({ onCreated }: { onCreated: () => void }) {
 
   return (
     <section aria-labelledby="s-admin" className="panel" style={{ marginTop: 16, padding: "20px 24px", borderColor: "#F5A52466" }}>
+      {guard}
       <h2 id="s-admin" className="accent" style={{ margin: "0 0 4px", fontSize: 20 }}>網站管理員：建立隊伍</h2>
       <p className="faint" style={{ margin: "0 0 12px", fontSize: 14 }}>建立後會給你 Team ID 和第一組管理員碼（7 天有效）。你不會自動加入這一隊。</p>
       {error && <ErrorBox text={error} />}
