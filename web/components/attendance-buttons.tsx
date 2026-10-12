@@ -3,8 +3,10 @@
 import { useState } from "react";
 import type { AttendanceAnswer } from "@/lib/api";
 
-export function AttendanceButtons({ answer, locked, onAnswer }: {
+export function AttendanceButtons({ answer, locked, onAnswer, what = "比賽" }: {
   answer: AttendanceAnswer | null; locked: boolean; onAnswer: (next: AttendanceAnswer | null) => Promise<void>;
+  /** 鎖住時說明裡的名稱：比賽（預設）或練習 */
+  what?: "比賽" | "練習";
 }) {
   const [busy, setBusy] = useState(false);
 
@@ -17,7 +19,7 @@ export function AttendanceButtons({ answer, locked, onAnswer }: {
   if (locked) {
     return (
       <p className="faint" style={{ margin: 0, fontSize: 13 }}>
-        {answer === "in" ? "已登記出席" : answer === "out" ? "已登記請假" : "還沒回覆"}（比賽已經開始，不能再改；需要更正請找球隊管理員）
+        {answer === "in" ? "已登記出席" : answer === "out" ? "已登記請假" : "還沒回覆"}（{what}已經開始，不能再改；需要更正請找球隊管理員）
       </p>
     );
   }

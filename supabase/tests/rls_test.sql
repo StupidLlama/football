@@ -970,5 +970,188 @@ select pg_temp.must_fail($q$select public.add_player('10000000-0000-0000-0000-00
 select pg_temp.must_fail($q$select public.edit_player('20000000-0000-0000-0000-0000000000a1', 'x')$q$, '沒登入改球員');
 reset role;
 
+-- ============================================================
+-- v2.7 練習行事曆與出席（practices、practice_attendance）
+-- ============================================================
+-- 準備：隊友 16 連到新球員 A4（最後測刪帳號）
+insert into auth.users (id, email) values ('00000000-0000-0000-0000-000000000016', 'rls-16@example.test');
+insert into public.players (id, team_id, name) values
+  ('20000000-0000-0000-0000-0000000000a4', '10000000-0000-0000-0000-00000000000a', '球員A4');
+insert into public.memberships (team_id, user_id, role, player_id) values
+  ('10000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-000000000016', 'player', '20000000-0000-0000-0000-0000000000a4');
+create function pg_temp.queued() returns bigint language sql as $$ select count(*) from net.http_request_queue $$;
+create function pg_temp.notes() returns bigint language sql as $$
+  select count(*) from public.messages where team_id = '10000000-0000-0000-0000-00000000000a' and body like '練習通知%' $$;
+
+set local role authenticated;
+-- 球員：不能建立、不能直接寫表
+select pg_temp.login('00000000-0000-0000-0000-00000000000a');
+select pg_temp.st(public.save_practice('10000000-0000-0000-0000-00000000000a', null, now() + interval '2 days', now() + interval '2 days 2 hours'),
+                  'forbidden', '球員建立練習');
+select pg_temp.st(public.save_practices('10000000-0000-0000-0000-00000000000a', '[{"starts_at": "2026-12-01T19:00:00+08:00", "ends_at": "2026-12-01T21:00:00+08:00"}]'),
+                  'forbidden', '球員一次建立一批練習');
+select pg_temp.must_fail($q$insert into public.practices (team_id, starts_at, ends_at)
+                          values ('10000000-0000-0000-0000-00000000000a', now(), now() + interval '1 hour')$q$, '球員直接寫練習表');
+select pg_temp.must_fail('select public.practice_problem(null, null, null, null, null, null, null)', '登入的人直接呼叫練習檢查函式');
+select pg_temp.must_fail('select public.attendance_who(null, null, null, null, null, null, null)', '登入的人直接呼叫出席規則');
+select pg_temp.must_fail($q$select public.practice_announce('10000000-0000-0000-0000-00000000000a', 'x', true, true)$q$, '登入的人直接呼叫練習通知');
+
+-- 球隊管理員：新增、檢查內容
+select pg_temp.login('00000000-0000-0000-0000-00000000000d');
+select set_config('test.pr', public.save_practice('10000000-0000-0000-0000-00000000000a', null, now() + interval '2 days',
+         now() + interval '2 days 2 hours', now() + interval '2 days' - interval '20 minutes', '  操場  ', '', '傳接球、帶水',
+         '') ->> 'id', true);
+select pg_temp.expect((select count(*) from public.practices where id = current_setting('test.pr')::uuid
+                         and location = '操場' and series_id is null), 1, '管理員新增一次練習');
+select pg_temp.st(public.save_practice('10000000-0000-0000-0000-00000000000a', null, now() + interval '2 days', now() + interval '2 days'),
+                  'invalid', '結束時間沒有在開始之後');
+select pg_temp.st(public.save_practice('10000000-0000-0000-0000-00000000000a', null, now() + interval '2 days', now() + interval '2 days 9 hours'),
+                  'invalid', '練習超過 8 小時');
+select pg_temp.st(public.save_practice('10000000-0000-0000-0000-00000000000a', null, now() + interval '2 days', now() + interval '2 days 2 hours',
+                  now() + interval '3 days'), 'invalid', '集合時間在開始之後');
+select pg_temp.st(public.save_practice('10000000-0000-0000-0000-00000000000a', null, now() + interval '5 years', now() + interval '5 years 2 hours'),
+                  'invalid', '年份打錯（太久以後）');
+select pg_temp.st(public.save_practice('10000000-0000-0000-0000-00000000000a', null, now() + interval '2 days', now() + interval '2 days 2 hours',
+                  null, '', repeat('長', 21)), 'invalid', '標題超過 20 字');
+select pg_temp.st(public.save_practice('10000000-0000-0000-0000-00000000000a', current_setting('test.pr')::uuid, now() + interval '2 days',
+                  now() + interval '2 days 3 hours', null, '室內'), 'ok', '管理員改練習');
+select pg_temp.expect((select count(*) from public.practices where id = current_setting('test.pr')::uuid and location = '室內'), 1,
+                      '改完地點變了');
+-- 已經開始的練習（測鎖定用）
+select set_config('test.prpast', public.save_practice('10000000-0000-0000-0000-00000000000a', null, now() - interval '1 hour',
+         now() + interval '1 hour') ->> 'id', true);
+
+-- 一次建立一批：固定練習共用 series_id；有一筆不對就整批不建立，並告訴是第幾筆
+select set_config('test.series', public.save_practices('10000000-0000-0000-0000-00000000000a', jsonb_build_array(
+    jsonb_build_object('starts_at', now() + interval '7 days', 'ends_at', now() + interval '7 days 2 hours', 'location', '操場'),
+    jsonb_build_object('starts_at', now() + interval '9 days', 'ends_at', now() + interval '9 days 2 hours', 'location', '操場'),
+    jsonb_build_object('starts_at', now() + interval '14 days', 'ends_at', now() + interval '14 days 2 hours', 'location', '操場')
+  ), true) ->> 'series_id', true);
+select pg_temp.expect((select count(*) from public.practices where series_id = current_setting('test.series')::uuid), 3,
+                      '固定練習展開成 3 筆、同一個系列');
+select pg_temp.expect((select count(*) from public.practices where team_id = '10000000-0000-0000-0000-00000000000a'), 5, '目前 A 隊的練習數');
+select pg_temp.expect((public.save_practices('10000000-0000-0000-0000-00000000000a', jsonb_build_array(
+    jsonb_build_object('starts_at', now() + interval '20 days', 'ends_at', now() + interval '20 days 2 hours'),
+    jsonb_build_object('starts_at', now() + interval '21 days', 'ends_at', now() + interval '21 days' - interval '1 hour')
+  )) ->> 'row')::bigint, 2, '整批裡第 2 筆不對，回傳第 2 筆');
+select pg_temp.st(public.save_practices('10000000-0000-0000-0000-00000000000a', '[{"starts_at": "下週二晚上", "ends_at": "2026-12-01T21:00:00+08:00"}]'),
+                  'invalid', '時間看不懂');
+select pg_temp.st(public.save_practices('10000000-0000-0000-0000-00000000000a', '[]'), 'invalid', '空的一批');
+select pg_temp.st(public.save_practices('10000000-0000-0000-0000-00000000000a', (select jsonb_agg(jsonb_build_object(
+                    'starts_at', now() + (g || ' days')::interval, 'ends_at', now() + (g || ' days')::interval + interval '1 hour'))
+                    from generate_series(1, 61) g)), 'invalid', '一次超過 60 筆');
+select pg_temp.expect((select count(*) from public.practices where team_id = '10000000-0000-0000-0000-00000000000a'), 5, '失敗的批次一筆都沒有建立');
+
+-- 通知：聊天室、Discord 各自決定（A 隊在聊天室測試裡已經設定了 Discord）
+reset role;
+select set_config('test.q0', pg_temp.queued()::text, true);
+set local role authenticated;
+select pg_temp.login('00000000-0000-0000-0000-00000000000d');
+select pg_temp.st(public.save_practice('10000000-0000-0000-0000-00000000000a', current_setting('test.pr')::uuid, now() + interval '2 days',
+                  now() + interval '2 days 3 hours', null, '室內', '', '', '', '練習通知：只發聊天室', true, false), 'ok', '只發聊天室');
+reset role;
+select pg_temp.expect(pg_temp.notes(), 1, '只發聊天室：多一則筆記');
+select pg_temp.expect(pg_temp.queued() - current_setting('test.q0')::bigint, 0, '只發聊天室：沒有推 Discord');
+set local role authenticated;
+select pg_temp.login('00000000-0000-0000-0000-00000000000d');
+select pg_temp.st(public.save_practice('10000000-0000-0000-0000-00000000000a', current_setting('test.pr')::uuid, now() + interval '2 days',
+                  now() + interval '2 days 3 hours', null, '室內', '', '', '', '練習通知：只推 Discord', false, true), 'ok', '只推 Discord');
+reset role;
+select pg_temp.expect(pg_temp.notes(), 1, '只推 Discord：聊天室沒有多');
+select pg_temp.expect(pg_temp.queued() - current_setting('test.q0')::bigint, 1, '只推 Discord：排進一則');
+select pg_temp.expect((select count(*) from net.http_request_queue
+                        where convert_from(body, 'utf8') like '%/practice%' and convert_from(body, 'utf8') like '%只推 Discord%'), 1,
+                      'Discord 訊息連到練習頁');
+set local role authenticated;
+select pg_temp.login('00000000-0000-0000-0000-00000000000d');
+select pg_temp.st(public.save_practices('10000000-0000-0000-0000-00000000000a', jsonb_build_array(
+    jsonb_build_object('starts_at', now() + interval '30 days', 'ends_at', now() + interval '30 days 2 hours')),
+    false, '練習通知：兩個都要', true, true), 'ok', '兩個都勾');
+select pg_temp.st(public.save_practice('10000000-0000-0000-0000-00000000000a', current_setting('test.pr')::uuid, now() + interval '2 days',
+                  now() + interval '2 days 3 hours', null, '室內', '', '', '', '   ', true, false), 'invalid', '勾了通知但沒寫內容');
+reset role;
+-- 一般貼文照樣會推（d 在這個交易裡已經發太多則，直接寫表模擬另一則主貼文；觸發器一樣會跑）
+insert into public.messages (team_id, author_id, kind, body)
+values ('10000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000a', 'general', '一般貼文照樣會推');
+select pg_temp.expect(pg_temp.notes(), 2, '兩個都勾：聊天室多一則');
+select pg_temp.expect(pg_temp.queued() - current_setting('test.q0')::bigint, 3, '兩個都勾推一則、之後的一般貼文也照樣推');
+
+-- 出席：球員登記自己；開始後鎖住；不能幫隊友；沒認領不行；不能直接寫表
+set local role authenticated;
+select pg_temp.login('00000000-0000-0000-0000-00000000000a');
+select pg_temp.expect((select count(*) from public.practices), 6, '球員看得到本隊的練習');
+select pg_temp.st(public.set_practice_attendance(current_setting('test.pr')::uuid, 'in', '會晚到'), 'ok', '球員登記練習出席');
+select pg_temp.st(public.set_practice_attendance(current_setting('test.pr')::uuid, 'maybe'), 'invalid', '練習出席亂填');
+select pg_temp.st(public.set_practice_attendance(current_setting('test.pr')::uuid, 'in', repeat('字', 41)), 'invalid', '備註超過 40 字');
+select pg_temp.st(public.set_practice_attendance(current_setting('test.pr')::uuid, 'in', '', '20000000-0000-0000-0000-0000000000a2'),
+                  'forbidden', '球員幫隊友登記練習');
+select pg_temp.st(public.set_practice_attendance(current_setting('test.prpast')::uuid, 'out'), 'closed', '練習開始後球員改登記');
+select pg_temp.expect((public.set_practice_attendance(current_setting('test.prpast')::uuid, 'out') ->> 'detail' like '練習%')::int, 1,
+                      '鎖住時說明是練習');
+select pg_temp.must_fail($q$insert into public.practice_attendance (practice_id, player_id, team_id, status)
+                          values (current_setting('test.pr')::uuid, '20000000-0000-0000-0000-0000000000a2', '10000000-0000-0000-0000-00000000000a', 'in')$q$,
+                         '球員直接寫練習出席表');
+select pg_temp.must_fail($q$update public.practice_attendance set status = 'out'$q$, '球員直接改練習出席表');
+select pg_temp.st(public.delete_practice(current_setting('test.pr')::uuid), 'forbidden', '球員刪練習');
+select pg_temp.expect(jsonb_array_length((select t -> 'practice_attendance' from jsonb_array_elements(public.export_my_data() -> 'teams') t
+                                           where t -> 'team' ->> 'id' = '10000000-0000-0000-0000-00000000000a')), 1, '下載資料包含練習出席');
+select pg_temp.login('00000000-0000-0000-0000-00000000000c');
+select pg_temp.st(public.set_practice_attendance(current_setting('test.pr')::uuid, 'in'), 'not_linked', '還沒認領的隊員登記練習');
+
+-- 球隊管理員：開始後也能幫隊友登記、更正；清掉回到還沒回覆
+select pg_temp.login('00000000-0000-0000-0000-00000000000d');
+select pg_temp.st(public.set_practice_attendance(current_setting('test.prpast')::uuid, 'out', '受傷', '20000000-0000-0000-0000-0000000000a2'),
+                  'ok', '開始後管理員幫隊友登記');
+select pg_temp.st(public.set_practice_attendance(current_setting('test.prpast')::uuid, null, '', '20000000-0000-0000-0000-0000000000a2'),
+                  'ok', '管理員清掉登記');
+select pg_temp.expect((select count(*) from public.practice_attendance where practice_id = current_setting('test.prpast')::uuid), 0,
+                      '清掉後沒有紀錄');
+
+-- 刪除：一次，或系列「從這次開始之後」；之前的和出席留著
+select set_config('test.s1', (select id::text from public.practices where series_id = current_setting('test.series')::uuid
+                                order by starts_at limit 1), true);
+select set_config('test.s2', (select id::text from public.practices where series_id = current_setting('test.series')::uuid
+                                order by starts_at offset 1 limit 1), true);
+select pg_temp.st(public.set_practice_attendance(current_setting('test.s1')::uuid, 'in', '', '20000000-0000-0000-0000-0000000000a2'),
+                  'ok', '系列第一次的出席');
+select pg_temp.expect((public.delete_practice(current_setting('test.s2')::uuid, true) ->> 'deleted')::bigint, 2,
+                      '刪掉系列第二次之後的（2 筆）');
+select pg_temp.expect((select count(*) from public.practices where series_id = current_setting('test.series')::uuid), 1,
+                      '系列第一次留著');
+select pg_temp.expect((select count(*) from public.practice_attendance where practice_id = current_setting('test.s1')::uuid), 1,
+                      '系列第一次的出席留著');
+
+-- 網站管理員（不在 A 隊）也能管理
+select pg_temp.login('00000000-0000-0000-0000-00000000000f');
+select pg_temp.st(public.save_practice('10000000-0000-0000-0000-00000000000a', null, now() + interval '40 days', now() + interval '40 days 2 hours'),
+                  'ok', '網站管理員新增練習');
+
+-- 別隊：看不到、建不了、登記不了、刪不了；c 在 B 隊是管理員也一樣不能動 A 隊
+select pg_temp.login('00000000-0000-0000-0000-00000000000c');
+select pg_temp.st(public.save_practice('10000000-0000-0000-0000-00000000000a', null, now() + interval '2 days', now() + interval '2 days 2 hours'),
+                  'forbidden', 'A 隊球員（B 隊管理員）建立 A 隊練習');
+select pg_temp.login('00000000-0000-0000-0000-000000000014');
+select pg_temp.expect((select count(*) from public.practices where team_id = '10000000-0000-0000-0000-00000000000a'), 0, '別隊看 A 隊的練習');
+select pg_temp.expect((select count(*) from public.practice_attendance where team_id = '10000000-0000-0000-0000-00000000000a'), 0, '別隊看 A 隊的練習出席');
+select pg_temp.st(public.save_practice('10000000-0000-0000-0000-00000000000a', null, now() + interval '2 days', now() + interval '2 days 2 hours'),
+                  'not_member', '別隊建立 A 隊練習');
+select pg_temp.st(public.set_practice_attendance(current_setting('test.pr')::uuid, 'in'), 'not_found', '別隊登記 A 隊練習');
+select pg_temp.st(public.delete_practice(current_setting('test.pr')::uuid), 'not_found', '別隊刪 A 隊練習');
+reset role;
+set local role anon;
+select pg_temp.must_fail('select * from public.practices', '沒登入讀練習表');
+select pg_temp.must_fail('select * from public.practice_attendance', '沒登入讀練習出席表');
+select pg_temp.must_fail($q$select public.save_practice('10000000-0000-0000-0000-00000000000a')$q$, '沒登入建立練習');
+reset role;
+
+-- 刪帳號：練習出席跟著刪
+set local role authenticated;
+select pg_temp.login('00000000-0000-0000-0000-000000000016');
+select pg_temp.st(public.set_practice_attendance(current_setting('test.pr')::uuid, 'in'), 'ok', '隊友 16 登記練習');
+select pg_temp.st(public.delete_my_account(), 'ok', '登記過練習的隊友刪帳號');
+reset role;
+select pg_temp.expect((select count(*) from public.practice_attendance where player_id = '20000000-0000-0000-0000-0000000000a4'), 0,
+                      '刪帳號後練習出席不見');
+
 select 'RLS OK' as result;
 rollback;

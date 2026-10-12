@@ -5,6 +5,7 @@ import { supabase } from "./supabase";
 import type { RpcResult } from "./status";
 import type { Scores } from "./rating";
 import type { CareerResult } from "./career";
+import type { PracticeRow } from "./practice-import";
 
 export type Role = "player" | "coach";
 export type Team = { id: string; code: string; name: string; season: string | null; league_name: string | null };
@@ -45,6 +46,18 @@ export type Attendance = {
   updated_by: string | null; updated_at: string;
 };
 
+// 練習行事曆（v2.7 F11）：固定練習在建立時就展開成一筆一筆，同一批共用 series_id。
+// 狀態（即將進行／已結束）不存在這裡，用 starts_at 算（見 lib/practices.ts）。
+export type Practice = {
+  id: string; team_id: string; starts_at: string; ends_at: string; meet_at: string | null;
+  location: string; title: string; content: string; note: string; series_id: string | null;
+  created_by: string | null; created_at: string; updated_at: string;
+};
+export type PracticeAttendance = {
+  practice_id: string; player_id: string; team_id: string; status: AttendanceAnswer; note: string;
+  updated_by: string | null; updated_at: string;
+};
+
 // 隊伍聊天室（v2.6 F6）：parent_id 空的是主貼文；deleted_at 有值代表已刪除（body 清空、留下殼）。
 export type MessageKind = "general" | "note" | "tactic";
 export type Message = {
@@ -57,7 +70,8 @@ export type ChatMeta = { lastReadAt: string | null; unread: number; newPinned: b
 
 export type TeamData = {
   team: Team; me: Membership; members: Membership[]; profiles: Profile[]; players: Player[]; ratings: Rating[];
-  fixtures: Fixture[]; duties: Duty[]; guards: Guard[]; matches: Match[]; attendance: Attendance[]; chat: ChatMeta;
+  fixtures: Fixture[]; duties: Duty[]; guards: Guard[]; matches: Match[]; attendance: Attendance[];
+  practices: Practice[]; practiceAttendance: PracticeAttendance[]; chat: ChatMeta;
 };
 
 // 只選需要的欄位（coach_codes 的 salt、code_hash 根本沒有開放，select * 會被拒絕）
@@ -74,6 +88,8 @@ const COLS = {
   contact: "id, user_id, category, body, page, status, created_at",
   match: "id, team_id, opponent, kickoff, meet_at, location, jersey, size, note, our_score, their_score, fixture_id, created_by, created_at, updated_at",
   attendance: "match_id, player_id, team_id, status, note, updated_by, updated_at",
+  practice: "id, team_id, starts_at, ends_at, meet_at, location, title, content, note, series_id, created_by, created_at, updated_at",
+  practiceAttendance: "practice_id, player_id, team_id, status, note, updated_by, updated_at",
   message: "id, team_id, author_id, parent_id, kind, body, lineup_id, pinned_at, edited_at, deleted_at, created_at",
 };
 
@@ -115,7 +131,7 @@ export async function getMyTeams(userId: string): Promise<MyTeam[]> {
 // ---------- 一支球隊的全部資料 ----------
 export async function getTeamData(teamId: string, userId: string): Promise<TeamData | null> {
   const db = supabase();
-  const [team, members, players, ratings, fixtures, duties, guards, matches, attendance] = await Promise.all([
+  const [team, members, players, ratings, fixtures, duties, guards, matches, attendance, practices, practiceAttendance] = await Promise.all([
     db.from("teams").select(COLS.team).eq("id", teamId).maybeSingle(),
     db.from("memberships").select(COLS.membership).eq("team_id", teamId).order("joined_at", { ascending: true }),
     db.from("players").select(COLS.player).eq("team_id", teamId).order("name", { ascending: true }),
@@ -125,6 +141,8 @@ export async function getTeamData(teamId: string, userId: string): Promise<TeamD
     db.from("coach_code_guard").select(COLS.guard).eq("team_id", teamId),
     db.from("matches").select(COLS.match).eq("team_id", teamId).order("kickoff", { ascending: true }),
     db.from("attendance").select(COLS.attendance).eq("team_id", teamId),
+    db.from("practices").select(COLS.practice).eq("team_id", teamId).order("starts_at", { ascending: true }),
+    db.from("practice_attendance").select(COLS.practiceAttendance).eq("team_id", teamId),
   ]);
   if (team.error) throw new Error(`讀取球隊失敗：${team.error.message}`);
   if (!team.data) return null;   // 不存在，或不是這一隊的成員（RLS 看不到）
@@ -140,6 +158,8 @@ export async function getTeamData(teamId: string, userId: string): Promise<TeamD
     fixtures: must<Fixture[]>(fixtures, "賽程"), duties: must<Duty[]>(duties, "裁判任務"),
     guards: must<Guard[]>(guards, "封鎖狀態"),
     matches: must<Match[]>(matches, "比賽"), attendance: must<Attendance[]>(attendance, "出席登記"),
+    practices: must<Practice[]>(practices, "練習"),
+    practiceAttendance: must<PracticeAttendance[]>(practiceAttendance, "練習出席"),
     chat,
   };
 }
@@ -301,6 +321,45 @@ export async function matchFromFixture(team: string, fixture: string): Promise<R
 export async function setAttendance(match: string, answer: AttendanceAnswer | null, note = "", player?: string | null):
   Promise<RpcResult & { answer?: AttendanceAnswer | null }> {
   return (await rpc("set_attendance", { match, answer, note, player: player ?? null })) as RpcResult & { answer?: AttendanceAnswer | null };
+}
+
+// ---------- 練習行事曆＋出席（v2.7 F11）----------
+export type SavePracticeInput = {
+  team: string; practice?: string | null; startsAt: string; endsAt: string; meetAt?: string | null;
+  location?: string; title?: string; content?: string; note?: string;
+  /** 要發的通知文字；toChat / toDiscord 有勾才會用到 */
+  announce?: string; toChat?: boolean; toDiscord?: boolean;
+};
+/** 通知的結果：chat = 有沒有發到聊天室、discord = 有沒有推到 Discord（沒設定 Webhook 時勾了也只是不推）。 */
+export type AnnounceResult = { chat?: boolean; discord?: boolean };
+
+/** practice 不填 = 新增；填了 = 修改那一次（固定練習裡的一次也只改那一次）。 */
+export async function savePractice(input: SavePracticeInput): Promise<RpcResult & AnnounceResult & { id?: string }> {
+  return (await rpc("save_practice", {
+    team: input.team, practice: input.practice ?? null, starts_at: input.startsAt, ends_at: input.endsAt,
+    meet_at: input.meetAt ?? null, location: input.location ?? "", title: input.title ?? "", content: input.content ?? "",
+    note: input.note ?? "", announce: input.announce ?? "", to_chat: !!input.toChat, to_discord: !!input.toDiscord,
+  })) as RpcResult & AnnounceResult & { id?: string };
+}
+
+/** 一次建立一批（固定練習、AI 匯入）：整批先檢查，有一筆不對就整批都不建立，result.row 是第幾筆（從 1 開始）。 */
+export async function savePractices(team: string, items: PracticeRow[], opts: {
+  series?: boolean; announce?: string; toChat?: boolean; toDiscord?: boolean;
+} = {}): Promise<RpcResult & AnnounceResult & { count?: number; row?: number; series_id?: string | null }> {
+  return (await rpc("save_practices", {
+    team, items, series: !!opts.series, announce: opts.announce ?? "", to_chat: !!opts.toChat, to_discord: !!opts.toDiscord,
+  })) as RpcResult & AnnounceResult & { count?: number; row?: number; series_id?: string | null };
+}
+
+/** restOfSeries = true：刪掉同一個系列「從這一次開始、之後的」；之前練過的和出席紀錄留著。 */
+export async function deletePractice(practice: string, restOfSeries = false): Promise<RpcResult & { deleted?: number }> {
+  return (await rpc("delete_practice", { practice, rest_of_series: restOfSeries })) as RpcResult & { deleted?: number };
+}
+
+/** answer: null = 清掉登記。player 不填 = 登記自己；球隊管理員可以填任何人代登記。 */
+export async function setPracticeAttendance(practice: string, answer: AttendanceAnswer | null, note = "", player?: string | null):
+  Promise<RpcResult & { answer?: AttendanceAnswer | null }> {
+  return (await rpc("set_practice_attendance", { practice, answer, note, player: player ?? null })) as RpcResult & { answer?: AttendanceAnswer | null };
 }
 
 // ---------- 組隊（v2.4）----------

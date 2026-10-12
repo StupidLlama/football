@@ -1,5 +1,6 @@
 // 「我的待辦」：依我的身分和狀態，列出現在該做的事。純計算。
 import { answerOf, isLocked, kickoffLabel, splitGames } from "./matches.ts";
+import { answerOfPractice, isPracticeLocked, nextPractice, practiceDay, whenText } from "./practices.ts";
 import type { TeamView } from "./teamview.ts";
 
 export type Todo = { key: string; title: string; detail: string; href?: string; action?: string; tone: "main" | "info" | "warn" };
@@ -32,6 +33,14 @@ export function todosFor(v: TeamView, teamId: string, isAdmin: boolean, now = ne
     if (next && !isLocked(next, now) && answerOf(v.data.attendance, next.id, v.myPlayer.id) === null) {
       out.push({ key: "attendance", title: "下一場還沒回覆", detail: `vs ${next.opponent} · ${kickoffLabel(next.kickoff)}`,
         href: `${base}/matches/${next.id}`, action: "去登記", tone: "warn" });
+    }
+  }
+  if (v.myPlayer) {
+    // v2.7：下一次練習還沒回覆（開始後鎖住了就不用提醒）
+    const nextP = nextPractice(v.data.practices, now);
+    if (nextP && !isPracticeLocked(nextP, now) && answerOfPractice(v.data.practiceAttendance, nextP.id, v.myPlayer.id) === null) {
+      out.push({ key: "practice_attendance", title: "下一次練習還沒回覆", detail: `${whenText(nextP)}${nextP.location ? ` · ${nextP.location}` : ""}`,
+        href: `${base}/practice?day=${practiceDay(nextP)}`, action: "去登記", tone: "warn" });
     }
   }
   const mine = v.duties.filter((d) => d.player_id && d.player_id === me.player_id && d.kickoff && d.kickoff >= startOfDay(now));
