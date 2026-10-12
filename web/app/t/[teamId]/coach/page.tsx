@@ -12,6 +12,7 @@ import { BADGE_LABEL, rosterProblem, sortRoster, type Badge } from "@/lib/roster
 import { useAuth } from "@/lib/auth";
 import { message, type RpcResult } from "@/lib/status";
 import { useTeamView } from "@/lib/team";
+import { PanelBack, useDirty, useLeave, useLeaveGuard } from "@/components/back-button";
 import { ConfirmButton } from "@/components/confirm-button";
 import { CaptainBadge, dateLabel, ErrorBox, RoleBadge, Soon, useToast } from "@/components/ui";
 
@@ -169,6 +170,9 @@ function PlayerForm({ rows, self, onSave, onCancel }: {
   const [badge, setBadge] = useState<Badge>(self?.badge ?? null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const dirty = useDirty([name, jersey, badge]);
+  const { leave, dialog } = useLeave(dirty, onCancel);
+  const guard = useLeaveGuard(dirty && !busy);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -183,6 +187,8 @@ function PlayerForm({ rows, self, onSave, onCancel }: {
 
   return (
     <form onSubmit={submit} className="panel pad stack" style={{ gap: 12, marginBottom: 8, borderColor: "#3B82F6" }}>
+      <PanelBack onBack={leave} disabled={busy} />
+      {dialog}{guard}
       <p style={{ margin: 0, fontWeight: 700 }}>{self ? `編輯「${self.name}」` : "新增球員"}</p>
       {error && <ErrorBox text={error} />}
       <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
@@ -207,7 +213,7 @@ function PlayerForm({ rows, self, onSave, onCancel }: {
       <p className="faint" style={{ margin: 0, fontSize: 13 }}>隊長、副隊長各只能有一位；要換人，先把原本那位改成「無」。隊長也可以同時是球隊管理員。</p>
       <div className="chips">
         <button type="submit" className="btn btn-main btn-sm" disabled={busy}>{busy ? "儲存中…" : self ? "儲存" : "新增"}</button>
-        <button type="button" className="btn btn-line btn-sm" disabled={busy} onClick={onCancel}>取消</button>
+        <button type="button" className="btn btn-line btn-sm" disabled={busy} onClick={leave}>取消</button>
       </div>
     </form>
   );
@@ -428,6 +434,8 @@ function TeamSettings() {
   const [league, setLeague] = useState(t.league_name ?? "");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  // 跟已儲存的內容比；儲存後 v.reload() 讓 t 更新，就不算改過
+  const guard = useLeaveGuard(JSON.stringify([name, season, league]) !== JSON.stringify([t.name, t.season ?? "", t.league_name ?? ""]));
   if (!v.isCoach) return <p className="panel muted pad">只有這一隊的球隊管理員可以改球隊設定。</p>;
 
   async function save(e: FormEvent) {
@@ -446,6 +454,7 @@ function TeamSettings() {
 
   return (
     <div className="stack" style={{ gap: 16 }}>
+      {guard}
       <form onSubmit={save} className="panel pad" style={{ maxWidth: 560, display: "flex", flexDirection: "column", gap: 12 }}>
         {error && <ErrorBox text={error} />}
         <label className="label">隊伍名稱<input className="field" value={name} onChange={(e) => setName(e.target.value)} maxLength={60} required /></label>
@@ -468,6 +477,7 @@ function ChatDiscordSettings() {
   const [url, setUrl] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const guard = useLeaveGuard(url.trim() !== "");
 
   const load = useCallback(() => {
     getChatDiscord(team).then((r) => {
@@ -496,6 +506,7 @@ function ChatDiscordSettings() {
 
   return (
     <div className="panel pad stack" style={{ gap: 12, maxWidth: 560 }}>
+      {guard}
       <p style={{ margin: 0, fontWeight: 700, fontSize: 18 }}>聊天室的 Discord 通知</p>
       <p className="faint" style={{ margin: 0, fontSize: 13 }}>
         設定後，聊天室有新的主貼文（不包含回覆）會推到這個 Discord 頻道；沒設定的話只有網站裡的紅點提醒。網址設定後不會再顯示，只能重新貼上覆蓋。

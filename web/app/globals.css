@@ -263,3 +263,8 @@ textarea.field { padding: 10px 12px; min-height: 96px; resize: vertical; line-he
 .imp-line code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; color: var(--faint); word-break: break-all; }
 .check { display: flex; align-items: flex-start; gap: 10px; min-height: 36px; font-size: 15px; cursor: pointer; }
 .check input { width: 20px; height: 20px; margin-top: 3px; flex: none; accent-color: var(--teal); }
+
+/* v2.7.1 更新紀錄：小圓點、大更新視窗 */
+.update-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--orange); vertical-align: middle; margin-left: 4px; flex: none; }
+.update-pop { width: min(520px, calc(100vw - 32px)); max-height: calc(100vh - 48px); overflow-y: auto; box-sizing: border-box; padding: 24px; border: 1px solid #2E3D5C; border-radius: 16px; background: var(--panel); color: var(--text); line-height: 1.65; }
+.update-pop::backdrop { background: rgba(5, 9, 18, .72); }

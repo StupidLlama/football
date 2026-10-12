@@ -1,7 +1,7 @@
 "use client";
 // 組隊（F3）：選賽制和陣型、自動排、拖曳／點選換人、鎖定重排、替補、「為什麼是他」、存檔。
 // 分享連結和陣容圖片在 LineupShare（v2.4 D）。
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { LINEUP_RULES } from "@/lib/config";
@@ -18,6 +18,7 @@ import { ErrorBox, Loading, useToast } from "@/components/ui";
 import { ConfirmButton } from "@/components/confirm-button";
 import { dragStart, Pitch, type DragToken, type SlotLabel } from "@/components/lineup-pitch";
 import { LineupShare } from "@/components/lineup-share";
+import { BackButton, useGuardedAction, useLeaveGuard } from "@/components/back-button";
 
 const SIZES = [11, 8] as const;
 
@@ -46,6 +47,25 @@ export default function LineupPage() {
   const [saving, setSaving] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [matchId, setMatchId] = useState<string | null>(null);
+  // 從比賽詳情或聊天室連過來（網址有 ?match= 或 ?open=）才顯示返回鍵
+  const [cameFrom, setCameFrom] = useState(false);
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    setCameFrom(!!(q.get("match") || q.get("open")));
+  }, []);
+
+  // 有沒有沒存的修改：跟「剛打開／剛存檔」的內容比。rebase = 下一次畫面更新後，把現在的內容當作新的基準
+  const snap = JSON.stringify([name, kind, size, formationName, picks, [...locked].sort(), [...attending].sort(), matchId]);
+  const baseline = useRef<string | null>(null);
+  const rebase = useRef(true);
+  const [, tick] = useState(0);
+  const markClean = () => { rebase.current = true; tick((n) => n + 1); };
+  useEffect(() => {
+    if (rebase.current && rows !== null && !(currentId === null && Object.keys(picks).length === 0)) { baseline.current = snap; rebase.current = false; }
+  });
+  const dirty = baseline.current !== null && snap !== baseline.current;
+  const guard = useLeaveGuard(dirty && !saving);
+  const guarded = useGuardedAction(dirty);
 
   const formation = findFormation(LINEUP_RULES.formations, size, formationName) ?? formationsOf(LINEUP_RULES.formations, size)[0];
   const byId = useMemo(() => new Map(v.players.map((p) => [p.id, p])), [v.players]);
@@ -82,6 +102,7 @@ export default function LineupPage() {
     const m = mId ? v.data.matches.find((x) => x.id === mId) ?? null : null;
     const size0 = (m?.size as 11 | 8 | undefined) ?? 11;
     const f0 = formationsOf(LINEUP_RULES.formations, size0)[0];
+    markClean();
     setCurrentId(null); setName(""); setKind(isCoach ? "official" : "draft");
     setSize(size0); setFormationName(f0.name); setLocked(new Set()); setSelected(null);
     const ids = attendingIdsFor(mId);
@@ -105,6 +126,7 @@ export default function LineupPage() {
   const loadRow = (row: LineupRow) => {
     const f = findFormation(LINEUP_RULES.formations, row.size, row.formation);
     if (!f) { say("這組陣容用的陣型找不到了"); return; }
+    markClean();
     setCurrentId(row.id); setName(row.name); setKind(row.kind); setSize(row.size as 11 | 8); setFormationName(row.formation);
     setMatchId(row.match_id);
     setAttending(row.match_id ? attendingIdsFor(row.match_id) : new Set(row.attending));
@@ -197,6 +219,7 @@ export default function LineupPage() {
       if (r.status === "ok") {
         say("已存檔");
         if (r.id) setCurrentId(r.id);
+        baseline.current = snap;
         await reload();
       } else {
         say(message(r, "找不到這組陣容"));
@@ -227,9 +250,11 @@ export default function LineupPage() {
 
   return (
     <section className="stack" style={{ gap: 16 }}>
+      {guard}{guarded.dialog}
+      {cameFrom && <BackButton fallback={`/t/${teamId}/matches`} />}
       <header style={{ display: "flex", flexWrap: "wrap", gap: "8px 16px", alignItems: "baseline", justifyContent: "space-between" }}>
         <h1 className="hide-sm" style={{ margin: 0, fontSize: 30 }}>組隊</h1>
-        <button type="button" className="btn btn-line btn-sm" onClick={() => freshLineup()}>開新陣容</button>
+        <button type="button" className="btn btn-line btn-sm" onClick={() => guarded.run(() => freshLineup())}>開新陣容</button>
       </header>
 
       {rows.length > 0 && (
@@ -240,7 +265,7 @@ export default function LineupPage() {
               <button key={r.id} type="button" className="row" style={{ all: "unset", boxSizing: "border-box", width: "100%", display: "flex",
                 justifyContent: "space-between", gap: 12, padding: "8px 4px", cursor: "pointer",
                 background: r.id === currentId ? "#16305E" : "transparent", borderRadius: 8 }}
-                onClick={() => loadRow(r)}>
+                onClick={() => guarded.run(() => loadRow(r))}>
                 <span>{r.name || "（未命名）"} <span className="faint" style={{ fontSize: 13 }}>· {r.size} 人制 {r.formation}{r.kind === "draft" ? " · 草稿" : ""}</span></span>
                 {r.share_token && <span className="pill">已分享</span>}
               </button>
@@ -264,6 +289,7 @@ export default function LineupPage() {
                 disabled={!canEdit || !!boundMatch} title={boundMatch ? "賽制跟著綁定的比賽，不能單獨改" : undefined}>{s} 人制</button>
             ))}
           </div>
+          {boundMatch && <p className="faint" style={{ margin: 0, fontSize: 13, flexBasis: "100%" }}>賽制跟著這場比賽（{boundMatch.size} 人制），要改的話：把上面改成「不綁定」，或去比賽詳情改賽制。</p>}
           <select className="field" style={{ minWidth: 140, width: "auto" }} value={formationName} disabled={!canEdit}
             onChange={(e) => changeFormation(e.target.value)} aria-label="陣型">
             {formationsOf(LINEUP_RULES.formations, size).map((f) => <option key={f.name} value={f.name}>{f.name}</option>)}

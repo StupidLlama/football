@@ -1,6 +1,7 @@
 // 政策文件頁的版面：標題、版本日期、目錄、內文。
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { BackButton } from "./back-button";
 import { Footer, Logo } from "./ui";
 
 export function DocPage({ title, version, intro, children }: { title: string; version: string; intro: ReactNode; children: ReactNode }) {
@@ -11,6 +12,7 @@ export function DocPage({ title, version, intro, children }: { title: string; ve
           <Logo size={28} />Football Analysis Potato
         </Link>
       </header>
+      <div style={{ marginBottom: 16 }}><BackButton fallback="/" /></div>
       <article className="doc">
         <h1 style={{ margin: "0 0 4px", fontSize: 32 }}>{title}</h1>
         <p className="faint" style={{ margin: "0 0 16px" }}>版本 {version}</p>

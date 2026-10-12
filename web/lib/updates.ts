@@ -1,0 +1,125 @@
+// 更新紀錄（給使用者看的）。版本號跟 GitHub 上的標籤一樣，內容用球員看得懂的話寫。
+// 每次上線：在 UPDATES 最上面加一段。big = 小版本（第二個數字變了，例如 v2.7），
+// 使用者下次打開網站會跳出「有新功能」的視窗；big = false 的修補版只在「更新紀錄」旁邊亮小圓點。
+// 純資料和計算，不 import React（node --test 可以直接測）。
+
+export type Update = {
+  version: string;
+  date: string; // YYYY-MM-DD
+  title: string;
+  big: boolean;
+  items: string[];
+};
+
+export const UPDATES: Update[] = [
+  {
+    version: "v2.7.1", date: "2026-10-12", title: "返回鍵和更新紀錄", big: false,
+    items: [
+      "比賽詳情、球員報告這類子頁面左上角多了「‹ 返回」，回到你剛剛來的地方。",
+      "編輯比賽、練習、陣容、我的介紹、管理專區、聊天室時，改了東西還沒儲存就要離開，會先跳出視窗問你「放棄修改？」。",
+      "組隊時如果賽制不能改，會直接寫出原因（例如跟著綁定的比賽）。",
+      "新增這個「更新紀錄」頁，有新功能時會通知你。",
+    ],
+  },
+  {
+    version: "v2.7", date: "2026-10-12", title: "練習行事曆與出席", big: true,
+    items: [
+      "新的「練習」頁：月曆上看得到每次練習和本隊比賽，點日期看詳細。",
+      "每次練習都可以登記出席或請假，練習開始後就鎖定。",
+      "球隊管理員可以新增、修改練習，也能一次建立「每週固定練習」。",
+      "可以把課表或賽程交給你自己的 AI 整理，再貼回來一次匯入。",
+      "首頁待辦會提醒你下一次練習還沒回覆。",
+    ],
+  },
+  {
+    version: "v2.6.1", date: "2026-10-08", title: "名單管理", big: false,
+    items: [
+      "所有人都看得到管理專區，在裡面輸入管理員碼就能成為球隊管理員。",
+      "球隊管理員可以新增球員，修改姓名、背號、隊長和副隊長。",
+      "同一隊的背號不會重複，隊長、副隊長各只有一位。",
+    ],
+  },
+  {
+    version: "v2.6", date: "2026-10-08", title: "隊伍聊天室", big: true,
+    items: [
+      "每一隊都有自己的聊天室，可以發文和回覆，新訊息會直接出現。",
+      "球隊管理員可以發戰術筆記（可以附上陣容）、置頂重要訊息。",
+      "可以設定把新貼文同步到球隊的 Discord 頻道。",
+      "側邊欄有未讀提醒。",
+    ],
+  },
+  {
+    version: "v2.5", date: "2026-10-08", title: "比賽列表與出賽登記", big: true,
+    items: [
+      "新的「比賽」頁：即將進行和已結束的比賽、比分。",
+      "每場比賽都可以登記出席或請假，開賽後就鎖定。",
+      "組隊時可以直接用某場比賽的出席名單排人。",
+      "首頁會優先顯示自己隊的下一場比賽和倒數。",
+    ],
+  },
+  {
+    version: "v2.4.1", date: "2026-10-07", title: "組隊", big: true,
+    items: [
+      "依大家的能力和擅長位置自動排出先發和替補。",
+      "可以拖曳或點選換人、鎖定某個位置後再重排。",
+      "球隊管理員發布正式陣容，每個人也能存自己的草稿。",
+      "陣容可以用連結分享（不用登入也能看），或下載成圖片。",
+    ],
+  },
+  {
+    version: "v2.3", date: "2026-10-06", title: "球員生涯與圖表動畫", big: true,
+    items: [
+      "球員報告多了「生涯」：把自己待過的隊伍串起來，看能力怎麼變化。",
+      "雷達圖可以和同位置的平均比較，滑鼠移上去（手機點一下）看分數。",
+      "圖表有動畫：長條從 0 長出來、雷達圖從中心展開。",
+    ],
+  },
+  {
+    version: "v2.2.1", date: "2026-10-06", title: "隱私權政策與帳號", big: false,
+    items: [
+      "新增隱私權政策和服務條款，第一次登入時請你看過並同意。",
+      "可以在「設定」下載自己的資料，或刪除帳號。",
+      "新增「聯絡我們」。",
+    ],
+  },
+  {
+    version: "v2.2", date: "2026-10-05", title: "新網站上線", big: true,
+    items: [
+      "Football Analysis Potato 新網站：用 Google 登入，手機也好用。",
+      "能力表直接在網站上填。",
+      "球員列表、球員報告（雷達圖、擅長位置）和球員比較。",
+    ],
+  },
+];
+
+export const LATEST = UPDATES[0].version;
+
+/** "v2.7.1" → [2, 7, 1]；看不懂的回傳 null。 */
+export function parseVersion(v: string): number[] | null {
+  const m = /^v(\d+)\.(\d+)(?:\.(\d+))?$/.exec(v.trim());
+  return m ? [Number(m[1]), Number(m[2]), Number(m[3] ?? 0)] : null;
+}
+
+/** a 比 b 新回傳正數，一樣回傳 0。 */
+export function compareVersions(a: string, b: string): number {
+  const x = parseVersion(a), y = parseVersion(b);
+  if (!x || !y) return 0;
+  for (let i = 0; i < 3; i++) if (x[i] !== y[i]) return x[i] - y[i];
+  return 0;
+}
+
+/** seen 之後的更新（新的在前）。seen 是 null（第一次來）就當作全部看過。 */
+export function unseen(updates: Update[], seen: string | null): Update[] {
+  if (!seen || !parseVersion(seen)) return [];
+  return updates.filter((u) => compareVersions(u.version, seen) > 0);
+}
+
+/**
+ * 該怎麼提醒：
+ * - popup：有沒看過的「大更新」→ 跳出最新的那個大更新（列出它的重點）
+ * - dot：有任何沒看過的更新 → 「更新紀錄」旁亮小圓點
+ */
+export function notice(updates: Update[], seen: string | null): { popup: Update | null; dot: boolean } {
+  const fresh = unseen(updates, seen);
+  return { popup: fresh.find((u) => u.big) ?? null, dot: fresh.length > 0 };
+}

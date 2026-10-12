@@ -1,5 +1,6 @@
 "use client";
 // 球員報告：能力分析（雷達圖：自評／表現／兩者、強項、待加強、類別）、位置（球場圖、適合度）、生涯（v2.3）、比賽數據（之後）。
+import { BackButton } from "@/components/back-button";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState, type CSSProperties } from "react";
@@ -17,7 +18,7 @@ export default function ReportPage() {
   const [tab, setTab] = useState<"ability" | "pos" | "career" | "match">("ability");
   const [mode, setMode] = useState<"self" | "perf" | "both">("self");
   const R = v.players.find((p) => p.id === playerId);
-  const back = <Link className="btn btn-line btn-sm" href={`/t/${teamId}/players`} style={{ marginBottom: 12 }}>回球員列表</Link>;
+  const back = <div style={{ marginBottom: 12 }}><BackButton fallback={`/t/${teamId}/players`} /></div>;
   if (!R) return <>{back}<p className="panel muted pad">找不到這位球員。</p></>;
 
   const team = v.rated.map((p) => p.scores!);

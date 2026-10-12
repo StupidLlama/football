@@ -508,6 +508,7 @@ flowchart LR
 | v2.7 | 練習行事曆與出席（F11）、AI 匯入練習 | 手機 1 分鐘內改好一次練習 | M |
 | v2.8 | 賽季進步追蹤（F8） | 跨賽季同一人資料連得起來 | S |
 | v2.9 | 意見回饋（F10，Discord 通知）、本隊試用、Google 表單和舊網站退役 | 關卡：隊友日常都用新網站 | S |
+| v2.10 | **視覺改版（v2 最後一版）**：C「戰情室」風格（卡片變少、KPI 合成一條、標題霞鶩文楷＋內文思源黑體＋數字 Barlow Semi Condensed）；新 Logo（馬鈴薯足球圖＋「FOOTBALL ANALYSIS」窄體大寫＋「Potato」Kaushan Script，深色底 #E9B45C／淺色底 #9C5F27，favicon 另描簡化 SVG）；圖表捲到才播動畫（長條從 0 長、雷達從中心擴散）；未登入首頁改成三人傳球、射中橫桿彈回第一人的循環動畫（取代戰術板）；參考其他運動網站挑的功能；**完整資安檢查**（對照 OWASP Top 10：每張表的 RLS 和每個 security definer 函式逐一檢查、Supabase Security Advisor、金鑰有沒有出現在程式碼或 git 歷史、`npm audit` 和 Python 套件漏洞、安全標頭與 CSP、登入和同意流程、輸入長度與次數限制、分享連結和 Discord webhook 會不會洩漏資料、刪帳號和下載資料是否完整；發現的問題分級修好，寫成 `docs/SECURITY_REVIEW.md`） | 360／390 寬和 iPad 驗收；設了「減少動態效果」不播動畫；資安檢查沒有高風險問題未修 | M |
 
 ### 階段 3：影片分析
 

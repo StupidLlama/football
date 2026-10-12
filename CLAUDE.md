@@ -149,6 +149,8 @@ py web/scripts/sync_config.py              # 改了 config/settings.toml 的能�
 - 大的修補版（有新 migration、改政策、改權限、改很多畫面，例如 v2.2.1）：也要寫。
 - 小的修 bug（只改幾行、沒動資料庫）：不用寫，在 commit 和 CLAUDE.md「下一步」記一行就好。
 
+**每版上線都要**：在 `web/lib/updates.ts` 的 `UPDATES` 最上面加一段（版本號跟 GitHub 標籤一樣、用球員看得懂的話寫 2～5 條；小版本 `big: true` 會讓使用者下次打開網站跳出「有新功能」視窗，修補版 `big: false` 只亮小圓點）。
+
 **交接說明要有**：開場指令和建議模型、專案目標、目前線上狀態、這一版的功能和檔案、測試結果、還沒驗收的、下一版的 SPEC 和計畫草稿、要先問使用者的決定、使用者的習慣、環境的坑。
 寫完 commit、push，再告訴使用者：開一個新對話，貼上 HANDOFF.md 第 0 節的開場指令。
 
@@ -166,8 +168,10 @@ py web/scripts/sync_config.py              # 改了 config/settings.toml 的能�
 - v2.5 比賽列表＋出賽登記（F7）、v2.6 隊伍聊天室（F6）：**已上線**（標籤 `v2.5`、`v2.6`）。
 - **v2.6.1 名單管理（SPEC F6.1）：已上線（main @ `d9a93ac`），0010 已在 Supabase 執行。** 標籤 `v2.6.1` 已打。一般球員兌換管理員碼的畫面還沒親眼驗收。交接說明在 `docs/HANDOFF.md`（v2.6.2 → v2.7）。
 - v2.6.2（小修）：**已上線**（main @ `40b996b`）。網站管理員在自己不是球隊管理員的隊伍（例如被取消過），管理專區最下面也看得到「輸入管理員碼」。
-- **v2.7 練習行事曆與出席（F11）：進行中**（分支 `v2.7`）。已完成並推送：0011 資料庫、AI 匯入解析器、月曆與練習頁畫面；還沒做：使用者電腦 typecheck、localhost 瀏覽器驗收、合併。上線步驟 `docs/V2_7_SETUP.md`（**先在 Supabase 執行 0011 再開網站**）。
+- **v2.7 練習行事曆與出席（F11）：已上線**（main @ `2cce416`，標籤 `v2.7`，0011 已執行）。上線步驟 `docs/V2_7_SETUP.md`。
+- v2.7.1（小修，分支 `v2.7.1`）：更新紀錄頁 `/updates`（`lib/updates.ts`、`components/updates.tsx`：頁尾和側邊欄入口、沒看過的更新亮小圓點、大更新跳視窗，記在瀏覽器 localStorage）；子頁加「‹ 返回」（`components/back-button.tsx`：BackButton 用在比賽詳情、球員報告、從比賽／聊天室進來的組隊；PanelBack＋`useDirty` 用在編輯面板，有改動要二次確認）；組隊頁綁定比賽時用文字說明賽制為什麼不能改（iPad 沒有 hover 提示）。
 - 沙盒連不到 npm registry（`npm install` 403）、也沒有 `pandas`；但有 PostgreSQL 16（`service postgresql start`，照 `local_shim.sql` → migrations → `rls_test.sql` 的順序用 `psql` 跑）和全域 `tsc`（沒有 React 型別，只能粗略檢查）。真實瀏覽器測試可以用 Claude in Chrome 操作使用者的 `localhost:3000`（`device_bash` 是獨立 VM、不是使用者電腦）。
+- **視覺改版放在 v2 最後一版（v2.10，2026-10-12 決定）**，內容見 `docs/SPEC.md` 版本表。示範稿（Logo、A/B/C 三種風格）在使用者的 Design 畫布「Potato 視覺改版示範」；使用者選 C 戰情室、Logo 用 Kaushan Script 版。新 Logo 的球是使用者用 Gemini 生成的圖，改版時再請使用者提供原檔。v2.10 也要做**完整資安檢查**（範圍見 SPEC 版本表），結果寫成 `docs/SECURITY_REVIEW.md`；這項適合 Opus。
 - 版本順序（2026-10-08 調整）：**v2.7 練習行事曆與出席（F11）＋ AI 匯入練習**（網站不串 AI：網站產生給 AI 的指令 → 使用者貼給自己的 AI → AI 回固定格式 → 貼回網站解析、預覽、確認）；v2.8 賽季進步追蹤（F8）；v2.9 意見回饋、全隊上線、舊網站退役；之後語言設定（多語系）。
 - 使用者問過「球場上能不能自由擺放（不限定 11 個位置框）」，討論後決定 v2.4.1 先不做，先維持「拖到固定位置框互換」。有空可以再提出來討論要不要做。
 
