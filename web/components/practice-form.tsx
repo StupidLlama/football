@@ -7,7 +7,7 @@ import { dayOf } from "@/lib/calendar";
 import { announceText, hhmm, practiceDay } from "@/lib/practices";
 import { toRpcRows, type Draft } from "@/lib/practice-import";
 import { message } from "@/lib/status";
-import { PanelBack, useDirty } from "./back-button";
+import { PanelBack, useDirty, useLeave } from "./back-button";
 import { ErrorBox } from "./ui";
 import { NO_NOTIFY, NotifyBoxes, notifyArgs, notifyDone, type Notify } from "./notify-boxes";
 
@@ -31,6 +31,7 @@ export function PracticeForm({ teamId, practice, day, lastLocation, onSaved, onC
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const dirty = useDirty([date, start, end, meet, location, title, content, note, notify]);
+  const { leave, ask } = useLeave(dirty, onCancel);
 
   const draft: Draft = { date, start, end, meet, location: location.trim(), title: title.trim(), content: content.trim(), note: note.trim() };
   const row = date && start && end ? toRpcRows([draft])[0] : null;
@@ -59,7 +60,8 @@ export function PracticeForm({ teamId, practice, day, lastLocation, onSaved, onC
 
   return (
     <form onSubmit={submit} className="panel pad stack" style={{ gap: 12 }}>
-      <PanelBack onBack={onCancel} dirty={dirty} disabled={busy} />
+      <PanelBack onBack={() => leave("top")} disabled={busy} />
+      {ask("top")}
       <h2 style={{ margin: 0, fontSize: 20 }}>{practice ? "編輯這次練習" : "新增練習"}</h2>
       {practice?.series_id && <p className="faint" style={{ margin: 0, fontSize: 13 }}>這是固定練習的其中一次，只會改這一次，其他次不受影響。</p>}
       {error && <ErrorBox text={error} />}
@@ -81,8 +83,9 @@ export function PracticeForm({ teamId, practice, day, lastLocation, onSaved, onC
       <NotifyBoxes teamId={teamId} value={notify} defaultText={defaultText} onChange={setNotify} />
       <div className="chips">
         <button type="submit" className="btn btn-main" disabled={busy}>{busy ? "儲存中…" : practice ? "儲存" : "建立練習"}</button>
-        <button type="button" className="btn btn-line" onClick={onCancel} disabled={busy}>取消</button>
+        <button type="button" className="btn btn-line" onClick={() => leave("bottom")} disabled={busy}>取消</button>
       </div>
+      {ask("bottom")}
     </form>
   );
 }

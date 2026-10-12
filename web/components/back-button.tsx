@@ -1,10 +1,9 @@
 "use client";
 // 返回鍵。兩種：
 //  - BackButton：子頁用（比賽詳情、球員報告…）。有上一頁就回上一頁；沒有（例如直接開網址）就去 fallback 列表頁。
-//  - PanelBack：同一頁展開的編輯面板用。dirty（有改過）時第一下變「放棄修改？」，再按一次才離開。
+//  - PanelBack＋useLeave：同一頁展開的編輯面板用。改過內容再按返回或取消，會先問「放棄修改／繼續編輯」。
 import { useRouter } from "next/navigation";
-import { useRef } from "react";
-import { ConfirmButton } from "./confirm-button";
+import { useRef, useState } from "react";
 
 const CLASS = "btn btn-line btn-sm";
 
@@ -21,15 +20,30 @@ export function BackButton({ fallback, label = "返回" }: { fallback: string; l
   );
 }
 
-export function PanelBack({ onBack, dirty = false, disabled = false }: { onBack: () => void; dirty?: boolean; disabled?: boolean }) {
-  if (dirty) {
-    return (
-      <ConfirmButton label="‹ 返回" confirm="放棄修改？" onConfirm={onBack} disabled={disabled} className={CLASS} />
-    );
-  }
+/** 編輯面板最上面的返回鍵（離開前要不要確認由 useLeave 決定）。 */
+export function PanelBack({ onBack, disabled = false }: { onBack: () => void; disabled?: boolean }) {
   return (
     <button type="button" className={CLASS} onClick={onBack} disabled={disabled} style={{ alignSelf: "flex-start" }}>‹ 返回</button>
   );
+}
+
+/**
+ * 離開編輯面板（返回或取消）：沒改過就直接離開；改過就在按的那顆按鈕旁邊跳出提醒，
+ * 「放棄修改」才真的離開，「繼續編輯」留下來。
+ */
+export function useLeave(dirty: boolean, onLeave: () => void) {
+  const [asking, setAsking] = useState<"top" | "bottom" | null>(null);
+  const leave = (where: "top" | "bottom") => { if (dirty) setAsking(where); else onLeave(); };
+  const ask = (where: "top" | "bottom") => asking !== where ? null : (
+    <div role="alert" className="status warn" style={{ margin: 0, display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px 12px" }}>
+      <span style={{ flex: "1 1 200px" }}>你改的內容還沒儲存，離開就會不見。</span>
+      <span className="chips">
+        <button type="button" className="btn btn-danger btn-sm" onClick={onLeave}>放棄修改</button>
+        <button type="button" className="btn btn-line btn-sm" onClick={() => setAsking(null)} autoFocus>繼續編輯</button>
+      </span>
+    </div>
+  );
+  return { leave, ask };
 }
 
 /** 表單有沒有被改過：跟第一次畫面上的內容比（JSON 字串）。 */

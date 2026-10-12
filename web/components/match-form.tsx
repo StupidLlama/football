@@ -4,7 +4,7 @@ import { useState, type FormEvent } from "react";
 import { saveMatch, type Match } from "@/lib/api";
 import { fromLocalInput, toLocalInput } from "@/lib/matches";
 import { message } from "@/lib/status";
-import { PanelBack, useDirty } from "./back-button";
+import { PanelBack, useDirty, useLeave } from "./back-button";
 import { ErrorBox } from "./ui";
 
 const SIZES = [11, 8] as const;
@@ -24,6 +24,7 @@ export function MatchForm({ teamId, match, onSaved, onCancel }: {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const dirty = useDirty([opponent, kickoff, meetAt, location, jersey, size, note, ourScore, theirScore]);
+  const { leave, ask } = useLeave(dirty, onCancel);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -49,7 +50,8 @@ export function MatchForm({ teamId, match, onSaved, onCancel }: {
 
   return (
     <form onSubmit={submit} className="panel pad stack" style={{ gap: 12 }}>
-      <PanelBack onBack={onCancel} dirty={dirty} disabled={busy} />
+      <PanelBack onBack={() => leave("top")} disabled={busy} />
+      {ask("top")}
       {error && <ErrorBox text={error} />}
       <label className="label">對手<input className="field" value={opponent} maxLength={40} required
         onChange={(e) => setOpponent(e.target.value)} placeholder="例如：機械系" /></label>
@@ -82,8 +84,9 @@ export function MatchForm({ teamId, match, onSaved, onCancel }: {
       </div>
       <div className="chips">
         <button type="submit" className="btn btn-main" disabled={busy}>{busy ? "儲存中…" : match ? "儲存" : "建立比賽"}</button>
-        <button type="button" className="btn btn-line" onClick={onCancel} disabled={busy}>取消</button>
+        <button type="button" className="btn btn-line" onClick={() => leave("bottom")} disabled={busy}>取消</button>
       </div>
+      {ask("bottom")}
     </form>
   );
 }

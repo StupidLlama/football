@@ -10,7 +10,7 @@ import {
   MAX_ROWS, buildPrompt, clashIndexes, okDrafts, parseImport, toRpcRows, type ImportInfo,
 } from "@/lib/practice-import";
 import { message } from "@/lib/status";
-import { PanelBack, useDirty } from "./back-button";
+import { PanelBack, useDirty, useLeave } from "./back-button";
 import { ErrorBox } from "./ui";
 import { NO_NOTIFY, NotifyBoxes, notifyArgs, notifyDone, type Notify } from "./notify-boxes";
 
@@ -30,6 +30,7 @@ export function PracticeImportPanel({ teamId, teamName, existing, lastLocation, 
   const [copied, setCopied] = useState(false);
   const promptRef = useRef<HTMLTextAreaElement>(null);
   const dirty = useDirty([info.usual, info.extra, pasted, choice, notify]);
+  const { leave, ask } = useLeave(dirty, onCancel);
 
   const prompt = useMemo(() => buildPrompt(info), [info]);
   const parsed = useMemo(() => parseImport(pasted, { termStart: info.termStart, termEnd: info.termEnd, today }),
@@ -81,7 +82,8 @@ export function PracticeImportPanel({ teamId, teamName, existing, lastLocation, 
 
   return (
     <div className="panel pad stack" style={{ gap: 16 }}>
-      <PanelBack onBack={onCancel} dirty={dirty} disabled={busy} />
+      <PanelBack onBack={() => leave("top")} disabled={busy} />
+      {ask("top")}
       <div>
         <h2 style={{ margin: 0, fontSize: 20 }}>用 AI 匯入練習</h2>
         <p className="faint" style={{ margin: "4px 0 0", fontSize: 13 }}>
@@ -172,8 +174,9 @@ export function PracticeImportPanel({ teamId, teamName, existing, lastLocation, 
         <button type="button" className="btn btn-main" disabled={busy || picked.length === 0} onClick={create}>
           {busy ? "建立中…" : picked.length ? `建立 ${picked.length} 次練習` : "建立"}
         </button>
-        <button type="button" className="btn btn-line" onClick={onCancel} disabled={busy}>取消</button>
+        <button type="button" className="btn btn-line" onClick={() => leave("bottom")} disabled={busy}>取消</button>
       </div>
+      {ask("bottom")}
     </div>
   );
 }
