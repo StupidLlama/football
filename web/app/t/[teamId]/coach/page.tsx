@@ -55,7 +55,7 @@ export default function CoachPage() {
       {!v.archived && cur === "team" && <TeamSettings />}
       {/* 網站管理員看得到所有球隊的管理工具，但不一定是這一隊的球隊管理員（例如被取消過）：一樣可以用管理員碼升級 */}
       {!v.isCoach && isAdmin && !v.archived && <div style={{ marginTop: 32 }}><Redeem compact /></div>}
-      {v.isCoach && (
+      {v.isCoach && !v.archived && (
         <p className="faint" style={{ margin: "32px 0 0", fontSize: 13 }}>
           你是這一隊的球隊管理員。要讓其他人也變成球隊管理員：到「Team ID 與管理員碼」產生管理員碼私訊給他，他在這一頁輸入就可以。
         </p>
