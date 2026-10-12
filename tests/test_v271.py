@@ -50,3 +50,11 @@ def test_latest_update_matches_claude_md_rule():
     root = WEB.parent
     assert "lib/updates.ts" in (root / "CLAUDE.md").read_text(encoding="utf-8")
     assert '"v2.7.1"' in _web("lib/updates.ts").split("export const UPDATES")[1][:200]
+
+
+def test_doc_pages_have_back_button():
+    """更新紀錄、隱私權政策、服務條款共用 DocPage：上面都有返回鍵。"""
+    doc = _web("components/doc.tsx")
+    assert "<BackButton" in doc
+    for rel in ("app/updates/page.tsx", "app/privacy/page.tsx", "app/terms/page.tsx"):
+        assert "DocPage" in _web(rel), rel
