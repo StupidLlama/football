@@ -42,7 +42,7 @@ infra/ui/                  theme.py（CSS、圖例）、common.py（共用）、
 web/                       v2.2 Next.js 網站（Tools shell，TypeScript）：瀏覽器直接連 Supabase（supabase-js），動作呼叫資料庫函式
   app/                     頁面：首頁、login、join、teams（選球隊）、settings、t/[teamId]/（我的、home、players、players/[playerId]、form 能力表、claim、coach 管理專區、lineup/matches/practice 即將推出）；v2.2.1：consent（同意頁）、privacy、terms、contact、api/contact/route.ts（伺服器端，轉發到 Discord）
   components/              共用元件：ui.tsx（雷達圖＋滑鼠移上去顯示分數、標籤、KPI、提示訊息、頁尾）、anim.tsx（useTween、AnimatedNumber：圖表動畫，尊重「減少動態效果」）、line-chart.tsx（生涯趨勢折線圖）、career.tsx（球員報告的生涯分頁）、shell.tsx（側邊欄）、guard.tsx（RequireLogin：要登入＋同意最新政策）、doc.tsx（政策頁版面）、position-picker.tsx…
-  lib/                     rating.ts（= domain/rating.py 的 TS 版，純計算）、teamview.ts、todos.ts、positions.ts、career.ts（生涯時間線）、compare.ts（同位置平均、進步退步）、anim.ts（緩動、插值）、roster.ts（名單檢查：背號、隊長不重複）（純計算）；api.ts（所有 Supabase 查詢與 rpc）、policies.ts（POLICY_VERSION、網站管理員、資料存放地區）、status.ts（狀態訊息，跟 backend/accounts.py 一樣）、auth.tsx、team.tsx
+  lib/                     calendar.ts、practices.ts、practice-import.ts（v2.7 練習月曆、固定練習展開、AI 匯入的指令與解析）、rating.ts（= domain/rating.py 的 TS 版，純計算）、teamview.ts、todos.ts、positions.ts、career.ts（生涯時間線）、compare.ts（同位置平均、進步退步）、anim.ts（緩動、插值）、roster.ts（名單檢查：背號、隊長不重複）（純計算）；api.ts（所有 Supabase 查詢與 rpc）、policies.ts（POLICY_VERSION、網站管理員、資料存放地區）、status.ts（狀態訊息，跟 backend/accounts.py 一樣）、auth.tsx、team.tsx
   lib/config.json          由 config/settings.toml 產生：py web/scripts/sync_config.py（不要手改）
   tests/                   node --test 的計算測試（npm test）
 backend/                   v2 後端（Tools shell）：main.py（FastAPI）、accounts.py（v2.1 帳號 API：加入、教練碼、認領、教練管理）、db.py（as_user = 用使用者身分查詢，RLS 生效）、auth.py（驗證 Supabase JWT）、importer.py（v1 資料匯入）、scripts/（migrate、rls_check）；v2.2 起網站不經過這個 API
@@ -62,6 +62,7 @@ docs/V2_3_SETUP.md         v2.3 上線步驟（0006、手機驗收、合併到 m
 docs/V2_5_SETUP.md         v2.5 上線步驟（0008、比賽列表與出賽登記驗收、合併到 main、打標籤）
 docs/V2_6_SETUP.md         v2.6 上線步驟（0009、聊天室與 Discord 通知驗收、合併到 main、打標籤）
 docs/V2_6_1_SETUP.md       v2.6.1 上線步驟（0010、名單管理、管理專區開放輸入管理員碼）
+docs/V2_7_SETUP.md         v2.7 上線步驟（0011、練習月曆與出席、固定練習、AI 匯入；先跑 0011 再開網站）
 docs/SECURITY.md           金鑰保管、換金鑰、個資外洩處理順序
 docs/HANDOFF.md            交接說明：上一版做了什麼、下一版要做什麼、環境的坑（新工作階段先讀它）
 ```
@@ -165,6 +166,7 @@ py web/scripts/sync_config.py              # 改了 config/settings.toml 的能�
 - v2.5 比賽列表＋出賽登記（F7）、v2.6 隊伍聊天室（F6）：**已上線**（標籤 `v2.5`、`v2.6`）。
 - **v2.6.1 名單管理（SPEC F6.1）：已上線（main @ `d9a93ac`），0010 已在 Supabase 執行。** 標籤 `v2.6.1` 已打。一般球員兌換管理員碼的畫面還沒親眼驗收。交接說明在 `docs/HANDOFF.md`（v2.6.2 → v2.7）。
 - v2.6.2（小修）：**已上線**（main @ `40b996b`）。網站管理員在自己不是球隊管理員的隊伍（例如被取消過），管理專區最下面也看得到「輸入管理員碼」。
+- **v2.7 練習行事曆與出席（F11）：進行中**（分支 `v2.7`）。已完成並推送：0011 資料庫、AI 匯入解析器、月曆與練習頁畫面；還沒做：使用者電腦 typecheck、localhost 瀏覽器驗收、合併。上線步驟 `docs/V2_7_SETUP.md`（**先在 Supabase 執行 0011 再開網站**）。
 - 沙盒連不到 npm registry（`npm install` 403）、也沒有 `pandas`；但有 PostgreSQL 16（`service postgresql start`，照 `local_shim.sql` → migrations → `rls_test.sql` 的順序用 `psql` 跑）和全域 `tsc`（沒有 React 型別，只能粗略檢查）。真實瀏覽器測試可以用 Claude in Chrome 操作使用者的 `localhost:3000`（`device_bash` 是獨立 VM、不是使用者電腦）。
 - 版本順序（2026-10-08 調整）：**v2.7 練習行事曆與出席（F11）＋ AI 匯入練習**（網站不串 AI：網站產生給 AI 的指令 → 使用者貼給自己的 AI → AI 回固定格式 → 貼回網站解析、預覽、確認）；v2.8 賽季進步追蹤（F8）；v2.9 意見回饋、全隊上線、舊網站退役；之後語言設定（多語系）。
 - 使用者問過「球場上能不能自由擺放（不限定 11 個位置框）」，討論後決定 v2.4.1 先不做，先維持「拖到固定位置框互換」。有空可以再提出來討論要不要做。
