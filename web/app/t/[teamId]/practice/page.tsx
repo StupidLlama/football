@@ -24,7 +24,7 @@ export default function PracticePage() {
   const say = useToast();
   const now = useNow();
   const today = dayOf(now);
-  const canManage = v.isCoach || !!auth.profile?.is_admin;
+  const canManage = (v.isCoach || !!auth.profile?.is_admin) && !v.archived;   // 舊賽季只能看
 
   const [ym, setYm] = useState(() => ({ year: now.getFullYear(), month: now.getMonth() + 1 }));
   const [selected, setSelected] = useState<string | null>(today);

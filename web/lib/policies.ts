@@ -2,7 +2,7 @@
 // 政策內容改了（不是改錯字）就把 POLICY_VERSION 換成改版當天的日期：大家下次登入會被要求重新同意。
 // 聯絡 Email 用環境變數設定（Vercel → Settings → Environment Variables）；營運者在政策裡只寫「網站管理員」。
 
-export const POLICY_VERSION = "2026-10-08";   // v2.6：加上隊伍聊天室、Discord 通知
+export const POLICY_VERSION = "2026-10-13";   // v2.8：賽季進步（隊友看得到前幾季的能力自評）、舊賽季封存、出席率
 
 export const OPERATOR_NAME = "Football Analysis Potato 網站管理員";
 export const CONTACT_EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL || "";

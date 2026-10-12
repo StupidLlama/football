@@ -14,43 +14,48 @@ import { message, type RpcResult } from "@/lib/status";
 import { useTeamView } from "@/lib/team";
 import { PanelBack, useDirty, useLeave, useLeaveGuard } from "@/components/back-button";
 import { ConfirmButton } from "@/components/confirm-button";
+import { SeasonPanel } from "@/components/season-panel";
 import { CaptainBadge, dateLabel, ErrorBox, RoleBadge, Soon, useToast } from "@/components/ui";
 
-type Tab = "progress" | "roster" | "members" | "codes" | "team";
+type Tab = "progress" | "roster" | "members" | "codes" | "season" | "team";
 const TABS: [Tab, string][] = [
-  ["progress", "能力表進度"], ["roster", "球員名單"], ["members", "成員"], ["codes", "Team ID 與管理員碼"], ["team", "球隊設定"],
+  ["progress", "能力表進度"], ["roster", "球員名單"], ["members", "成員"], ["codes", "Team ID 與管理員碼"], ["season", "賽季"], ["team", "球隊設定"],
 ];
 
 export default function CoachPage() {
   const v = useTeamView();
   const auth = useAuth();
-  const [tab, setTab] = useState<Tab>("progress");
+  const [tab, setTab] = useState<Tab>(v.archived ? "season" : "progress");
   useEffect(() => {
     const t = new URLSearchParams(window.location.search).get("tab");
     if (TABS.some(([k]) => k === t)) setTab(t as Tab);
   }, []);
   const isAdmin = !!auth.profile?.is_admin;
   if (!v.isCoach && !isAdmin) return <Redeem />;
+  // 舊賽季只能看：管理工具都收起來，只留「賽季」（說明、進步排行）
+  const tabs = v.archived ? TABS.filter(([k]) => k === "season") : TABS;
+  const cur: Tab = v.archived ? "season" : tab;
 
   return (
     <>
       <h1 className="hide-sm" style={{ margin: "0 0 12px", fontSize: 30 }}>管理專區</h1>
       <div className="tabs" role="tablist" aria-label="管理專區">
-        {TABS.map(([k, l]) => (
-          <button key={k} type="button" role="tab" className="tabbtn" aria-selected={tab === k} onClick={() => setTab(k)}>
+        {tabs.map(([k, l]) => (
+          <button key={k} type="button" role="tab" className="tabbtn" aria-selected={cur === k} onClick={() => setTab(k)}>
             {l}{k === "members" && v.claims.length > 0 && <span className="badge">{v.claims.length}</span>}
           </button>
         ))}
-        <span className="tabbtn" aria-disabled="true" style={{ cursor: "default" }}>排裁判 <Soon /></span>
+        {!v.archived && <span className="tabbtn" aria-disabled="true" style={{ cursor: "default" }}>排裁判 <Soon /></span>}
       </div>
-      {tab === "progress" && <Progress />}
-      {tab === "roster" && <Roster />}
-      {tab === "members" && <Members isAdmin={isAdmin} />}
-      {tab === "codes" && <Codes />}
-      {tab === "team" && <TeamSettings />}
+      {!v.archived && cur === "progress" && <Progress />}
+      {!v.archived && cur === "roster" && <Roster />}
+      {!v.archived && cur === "members" && <Members isAdmin={isAdmin} />}
+      {!v.archived && cur === "codes" && <Codes />}
+      {cur === "season" && <SeasonPanel />}
+      {!v.archived && cur === "team" && <TeamSettings />}
       {/* 網站管理員看得到所有球隊的管理工具，但不一定是這一隊的球隊管理員（例如被取消過）：一樣可以用管理員碼升級 */}
-      {!v.isCoach && isAdmin && <div style={{ marginTop: 32 }}><Redeem compact /></div>}
-      {v.isCoach && (
+      {!v.isCoach && isAdmin && !v.archived && <div style={{ marginTop: 32 }}><Redeem compact /></div>}
+      {v.isCoach && !v.archived && (
         <p className="faint" style={{ margin: "32px 0 0", fontSize: 13 }}>
           你是這一隊的球隊管理員。要讓其他人也變成球隊管理員：到「Team ID 與管理員碼」產生管理員碼私訊給他，他在這一頁輸入就可以。
         </p>

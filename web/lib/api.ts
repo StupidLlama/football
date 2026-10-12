@@ -5,10 +5,15 @@ import { supabase } from "./supabase";
 import type { RpcResult } from "./status";
 import type { Scores } from "./rating";
 import type { CareerResult } from "./career";
+import type { ProgressResult, TeamProgressResult } from "./progress";
 import type { PracticeRow } from "./practice-import";
 
 export type Role = "player" | "coach";
-export type Team = { id: string; code: string; name: string; season: string | null; league_name: string | null };
+export type Team = {
+  id: string; code: string; name: string; season: string | null; league_name: string | null;
+  /** v2.8：同一支隊伍的各個賽季共用 lineage_id；archived_at 有值 = 舊賽季（只能看） */
+  lineage_id: string; prev_team_id: string | null; archived_at: string | null; created_at: string;
+};
 export type Membership = {
   team_id: string; user_id: string; role: Role; player_id: string | null; joined_at: string; career_shared: boolean;
   claim_player_id: string | null; claim_new_name: string | null; claim_at: string | null;
@@ -76,7 +81,7 @@ export type TeamData = {
 
 // 只選需要的欄位（coach_codes 的 salt、code_hash 根本沒有開放，select * 會被拒絕）
 const COLS = {
-  team: "id, code, name, season, league_name",
+  team: "id, code, name, season, league_name, lineage_id, prev_team_id, archived_at, created_at",
   membership: "team_id, user_id, role, player_id, joined_at, career_shared, claim_player_id, claim_new_name, claim_at",
   player: "id, team_id, name, nickname, jersey_number, badge, good_positions, bad_positions, weak_side, message",
   rating: "player_id, scores, submitted_at, source",
@@ -247,7 +252,7 @@ export async function getCoachCodes(teamId: string): Promise<CoachCode[]> {
 export async function updateMyPlayer(playerId: string, fields: Partial<Pick<Player,
   "nickname" | "message" | "good_positions" | "bad_positions" | "weak_side">>): Promise<void> {
   const r = await supabase().from("players").update(fields).eq("id", playerId).select("id");
-  if (r.error) throw new Error(r.error.message);
+  if (r.error) throw new Error(isArchivedError(r.error.message) ? ARCHIVED_TEXT : r.error.message);
   if (!r.data || r.data.length === 0) throw new Error("沒有權限修改這位球員");
 }
 
@@ -262,9 +267,19 @@ export async function editPlayer(player: string, name: string, jersey: string, b
 }
 
 // ---------- 動作（資料庫函式）----------
+const ARCHIVED_TEXT = "這是舊賽季，只能看、不能修改；請到最新的賽季";
+
+/** 舊賽季的守門員（資料庫 season_guard）擋下來的錯誤。 */
+export function isArchivedError(msg: string): boolean {
+  return msg.includes("season_archived");
+}
+
 export async function rpc(name: string, args: Record<string, unknown>): Promise<RpcResult> {
   const r = await supabase().rpc(name, args);
-  if (r.error) return { status: "error", detail: `連線或權限錯誤：${r.error.message}` };
+  if (r.error) {
+    if (isArchivedError(r.error.message)) return { status: "archived" };
+    return { status: "error", detail: `連線或權限錯誤：${r.error.message}` };
+  }
   return (r.data ?? { status: "error" }) as RpcResult;
 }
 
@@ -421,13 +436,39 @@ export async function getCareer(team: string, player: string): Promise<CareerRes
   return (await rpc("get_career", { team, player })) as CareerResult;
 }
 
+// ---------- 賽季進步（v2.8）----------
+/** 在 team 看 player 的進步：同一個系列（同一支隊伍的各賽季）自動串起來，同隊的人都看得到。 */
+export async function getProgress(team: string, player: string): Promise<ProgressResult> {
+  return (await rpc("get_progress", { team, player })) as ProgressResult;
+}
+
+/** 全隊的進步（排行榜用）：只有球隊管理員。 */
+export async function getTeamProgress(team: string): Promise<TeamProgressResult> {
+  return (await rpc("get_team_progress", { team })) as TeamProgressResult;
+}
+
+export type NewSeasonInput = {
+  team: string; season: string; teamName?: string | null; keepJersey?: boolean; keepBadge?: boolean;
+  notice?: string; toDiscord?: boolean;
+};
+/** 開新賽季：舊的一季封存（只能看），名單和帳號帶到新的一季。回傳新球隊的 id 和新的 Team ID（code）。 */
+export async function startNewSeason(input: NewSeasonInput):
+  Promise<RpcResult & { team_id?: string; code?: string; players?: number; members?: number; chat?: boolean; discord?: boolean }> {
+  return (await rpc("start_new_season", {
+    team: input.team, season: input.season, team_name: input.teamName ?? null,
+    keep_jersey: input.keepJersey ?? true, keep_badge: input.keepBadge ?? true,
+    notice: input.notice ?? null, to_discord: !!input.toDiscord,
+  })) as RpcResult & { team_id?: string; code?: string; players?: number; members?: number; chat?: boolean; discord?: boolean };
+}
+
 // ---------- 選球隊頁的通知 ----------
 export type TeamNote = { kind: "form" | "claim" | "pending" | "claims" | "match"; text: string; href: string };
 
 /** 每一隊給我的提醒：還沒填能力表、還沒認領、等球隊管理員確認、（球隊管理員）待確認的認領、下一場比賽。 */
-export async function getTeamNotes(mine: MyTeam[], today: string): Promise<Record<string, TeamNote[]>> {
+export async function getTeamNotes(all: MyTeam[], today: string): Promise<Record<string, TeamNote[]>> {
   const db = supabase();
   const out: Record<string, TeamNote[]> = {};
+  const mine = all.filter((t) => !t.team.archived_at);   // 舊賽季只能看，不提醒
   if (!mine.length) return out;
   const linked = mine.map((t) => t.membership.player_id).filter((x): x is string => !!x);
   const coachTeams = mine.filter((t) => t.membership.role === "coach").map((t) => t.team.id);
@@ -463,7 +504,7 @@ export async function getTeamNotes(mine: MyTeam[], today: string): Promise<Recor
 /** 球隊管理員改球隊資料（名稱、賽季、聯賽賽程表上的隊名）。Team ID 要用 actions.resetTeamCode。 */
 export async function updateTeam(teamId: string, fields: { name: string; season: string | null; league_name: string | null }): Promise<void> {
   const r = await supabase().from("teams").update(fields).eq("id", teamId).select("id");
-  if (r.error) throw new Error(r.error.message);
+  if (r.error) throw new Error(isArchivedError(r.error.message) ? ARCHIVED_TEXT : r.error.message);
   if (!r.data || r.data.length === 0) throw new Error("只有這一隊的球隊管理員可以改");
 }
 

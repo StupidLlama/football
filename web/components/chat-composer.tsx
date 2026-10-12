@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useLeave, useLeaveGuard } from "./back-button";
 import { postMessage, type LineupRow, type MessageKind } from "@/lib/api";
 import { message } from "@/lib/status";
+import { useTeam } from "@/lib/team";
 import { ErrorBox } from "./ui";
 
 const KINDS: [MessageKind, string][] = [["general", "一般"], ["note", "筆記"], ["tactic", "戰術"]];
@@ -19,6 +20,7 @@ export function ChatComposer({ teamId, isCoach, lineups, parentId, onPosted, onC
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const isReply = !!parentId;
+  const archived = !!useTeam().view?.archived;   // 舊賽季：只能看
   const { leave, dialog } = useLeave(body.trim() !== "", onCancel ?? (() => {}));
   const guard = useLeaveGuard(body.trim() !== "" && !busy);
 
@@ -36,6 +38,8 @@ export function ChatComposer({ teamId, isCoach, lineups, parentId, onPosted, onC
       setError(message(r));
     }
   };
+
+  if (archived) return isReply ? null : <p className="panel faint pad" style={{ margin: 0 }}>這是舊賽季，只能看、不能發文。</p>;
 
   return (
     <div className={isReply ? "stack" : "panel pad stack"} style={{ gap: 8 }}>

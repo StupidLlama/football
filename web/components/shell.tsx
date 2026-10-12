@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { useAuth } from "@/lib/auth";
+import { groupSeasons } from "@/lib/seasons";
 import { useTeam } from "@/lib/team";
 import type { TeamView } from "@/lib/teamview";
 import { ErrorBox, Footer, Loading, Logo, RoleBadge, Soon } from "./ui";
@@ -54,8 +55,24 @@ function TeamCard({ v, canSwitch }: { v: TeamView; canSwitch: boolean }) {
       <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 4 }}>
         {v.data.team.season && <span className="faint" style={{ fontSize: 13 }}>{v.data.team.season}</span>}
         <RoleBadge coach={v.isCoach} />
+        {v.archived && <span className="tag" style={{ border: "1px dashed #4A5A7A", color: "#8A97AD" }}>舊賽季</span>}
       </div>
-      {canSwitch && <Link className="btn btn-line btn-sm btn-wide" href="/teams" style={{ marginTop: 8 }}>切換球隊</Link>}
+      {canSwitch && <Link className="btn btn-line btn-sm btn-wide" href="/teams" style={{ marginTop: 8 }}>切換球隊／賽季</Link>}
+    </div>
+  );
+}
+
+/** 舊賽季：只能看。連到同一個系列最新的賽季（在「選球隊」頁）。 */
+function ArchivedBanner({ teamId }: { teamId: string }) {
+  const auth = useAuth();
+  const { view } = useTeam();
+  const lineage = view?.data.team.lineage_id;
+  const latest = (auth.teams ?? []).filter((t) => t.team.lineage_id === lineage && !t.team.archived_at && t.team.id !== teamId)[0];
+  return (
+    <div className="panel" role="status" style={{ padding: "12px 16px", marginBottom: 16, borderLeft: "4px solid #8A97AD", display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+      <span style={{ flex: "1 1 260px" }}><b>這是舊賽季，只能看、不能修改。</b>
+        <span className="muted"> 資料都還在，可以查當時的名單、比賽和能力表。</span></span>
+      <Link className="btn btn-main btn-sm" href={latest ? `/t/${latest.team.id}` : "/teams"}>{latest ? `到最新賽季（${latest.team.season ?? latest.team.name}）` : "回到選球隊"}</Link>
     </div>
   );
 }
@@ -107,7 +124,7 @@ export function TeamShell({ teamId, children }: { teamId: string; children: Reac
   if (loading || !view) return <div className="narrow"><Loading /></div>;
 
   const items = navItems(teamId, view, !!auth.profile?.is_admin);
-  const canSwitch = (auth.teams?.length ?? 0) > 1;
+  const canSwitch = groupSeasons(auth.teams ?? []).length > 1 || (auth.teams ?? []).some((t) => t.team.lineage_id === view.data.team.lineage_id && t.team.id !== teamId);
   const title = TITLES.find(([re]) => re.test(path))?.[1] ?? (path.endsWith(teamId) ? "我的" : view.data.team.name);
 
   return (
@@ -130,6 +147,7 @@ export function TeamShell({ teamId, children }: { teamId: string; children: Reac
           <Bottom teamId={teamId} path={path} />
         </aside>
         <main className="main">
+          {view.archived && <ArchivedBanner teamId={teamId} />}
           {children}
           <Footer />
         </main>

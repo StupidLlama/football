@@ -30,7 +30,7 @@ export default function LineupPage() {
   const { teamId } = useParams<{ teamId: string }>();
   const v = useTeamView();
   const say = useToast();
-  const isCoach = v.isCoach;
+  const isCoach = v.isCoach && !v.archived;   // 舊賽季只能看
   const myId = v.me.user_id;
 
   const [rows, setRows] = useState<LineupRow[] | null>(null);
@@ -61,7 +61,11 @@ export default function LineupPage() {
   const [, tick] = useState(0);
   const markClean = () => { rebase.current = true; tick((n) => n + 1); };
   useEffect(() => {
-    if (rebase.current && rows !== null && !(currentId === null && Object.keys(picks).length === 0)) { baseline.current = snap; rebase.current = false; }
+    if (rebase.current && rows !== null && !(currentId === null && Object.keys(picks).length === 0)) {
+      baseline.current = snap; rebase.current = false;
+      // ref 改了不會重畫：不重畫的話，按鈕手上的 dirty 還是上一次畫面算的（打開陣容後馬上按「開新陣容」會誤跳視窗）
+      tick((n) => n + 1);
+    }
   });
   const dirty = baseline.current !== null && snap !== baseline.current;
   const guard = useLeaveGuard(dirty && !saving);
@@ -242,7 +246,7 @@ export default function LineupPage() {
   if (rows === null) return <Loading />;
 
   const currentRow = rows.find((r) => r.id === currentId) ?? null;
-  const canEdit = !currentRow || (currentRow.kind === "official" ? isCoach : currentRow.owner_id === myId);
+  const canEdit = !v.archived && (!currentRow || (currentRow.kind === "official" ? isCoach : currentRow.owner_id === myId));
   const shortage = lineup ? shortageText(lineup) : null;
   const selectedOption = selected ? lineup?.starters.find((o) => o.slot === selected) ?? null : null;
   const selectedSlotObj = selected ? formation.slots.find((s) => s.code === selected) ?? null : null;

@@ -181,5 +181,5 @@ def test_todo_links_to_practice_page_with_day():
 def test_privacy_policy_mentions_practices_without_new_version():
     privacy = _web("app/privacy/page.tsx")
     assert "比賽和練習" in privacy and "出席／請假回覆" in privacy
-    # 使用者決定（2026-10-12）：只改文字，不更新 POLICY_VERSION，大家不用重新同意
-    assert 'POLICY_VERSION = "2026-10-08"' in _web("lib/policies.ts")
+    # v2.7 只改文字、沒換版本號；v2.8 因為隊友看得到前幾季的能力自評才換成 2026-10-13（見 test_v28）
+    assert 'POLICY_VERSION = "2026-10-13"' in _web("lib/policies.ts")

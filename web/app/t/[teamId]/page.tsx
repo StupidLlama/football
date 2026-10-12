@@ -13,6 +13,7 @@ import { whenLabel, type PlayerView } from "@/lib/teamview";
 import { todosFor } from "@/lib/todos";
 import { fromChoice, PositionPicker, toChoice, WeakFootPicker, type PosChoice } from "@/components/position-picker";
 import { TodoList } from "@/components/todos";
+import { AttendanceRateCard } from "@/components/attendance-rate";
 import { fmt, Kpi, PosTag, Radar, RoleBadge, signed, useToast } from "@/components/ui";
 
 export default function MePage() {
@@ -57,7 +58,9 @@ export default function MePage() {
         </section>
       </div>
 
-      {p && <EditMine p={p} key={p.id + (p.submittedAt ?? "")} />}
+      {p && <div style={{ marginTop: 16 }}><AttendanceRateCard playerId={p.id} title="我的出席率" /></div>}
+
+      {p && !v.archived && <EditMine p={p} key={p.id + (p.submittedAt ?? "")} />}
     </>
   );
 }

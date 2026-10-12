@@ -50,7 +50,7 @@ def test_latest_update_matches_claude_md_rule():
     """每版上線要在 lib/updates.ts 最上面加一段（CLAUDE.md 有寫）。"""
     root = WEB.parent
     assert "lib/updates.ts" in (root / "CLAUDE.md").read_text(encoding="utf-8")
-    assert '"v2.7.1"' in _web("lib/updates.ts").split("export const UPDATES")[1][:200]
+    assert '"v2.7.1"' in _web("lib/updates.ts")   # 最新的一版會一直往前，這裡只確認它還留在紀錄裡(最新版的檢查在 test_v28)
 
 
 def test_doc_pages_have_back_button():
@@ -72,3 +72,10 @@ def test_every_editable_page_has_leave_guard():
     # 管理專區的新增／編輯球員、聊天室編輯與發文的取消鍵，也要先確認
     assert "<PanelBack onBack={leave}" in _web("app/t/[teamId]/coach/page.tsx")
     assert "onClick={leave}" in _web("components/chat-message.tsx") and "onClick={leave}" in _web("components/chat-composer.tsx")
+
+
+def test_lineup_baseline_rerenders_after_rebase():
+    """v2.7.2：打開一組陣容或開新陣容後，記下基準要重畫一次；不然按鈕手上的 dirty 是舊的，會誤跳「放棄修改？」。"""
+    src = _web("app/t/[teamId]/lineup/page.tsx")
+    start = src.index("baseline.current = snap; rebase.current = false;")
+    assert "tick((n) => n + 1)" in src[start:start + 300]

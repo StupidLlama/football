@@ -19,7 +19,7 @@ const member = (user: string, role: "player" | "coach", playerId: string | null,
 
 function data(me: Membership, extra: Partial<TeamData> = {}): TeamData {
   return {
-    team: { id: "T", code: "AAAA-BBBB", name: "測試隊", season: "2026-27", league_name: "資訊" },
+    team: { id: "T", code: "AAAA-BBBB", name: "測試隊", season: "2026-27", league_name: "資訊", lineage_id: "L", prev_team_id: null, archived_at: null, created_at: "2026-01-01T00:00:00Z" },
     me, members: [me, member("u2", "player", "p2"), member("u3", "player", null, "p3")],
     profiles: [], players: [player("p1", "甲"), player("p2", "乙"), player("p3", "丙")],
     ratings: [

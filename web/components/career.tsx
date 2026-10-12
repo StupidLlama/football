@@ -198,7 +198,7 @@ function TwoPoints({ career, name }: { career: Career; name: string }) {
   );
 }
 
-function ChangeList({ title, rows, color, empty }: { title: string; rows: { key: string; label: string; category: string; a: number; b: number; d: number }[]; color: string; empty: string }) {
+export function ChangeList({ title, rows, color, empty }: { title: string; rows: { key: string; label: string; category: string; a: number; b: number; d: number }[]; color: string; empty: string }) {
   return (
     <div className="panel" style={{ padding: "12px 16px", background: "var(--panel-2)" }}>
       <p style={{ margin: "0 0 4px", fontWeight: 700 }}>{title}</p>

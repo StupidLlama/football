@@ -145,7 +145,7 @@ test("通知文字：單次新增、更新、一批", () => {
 // ---------- 首頁待辦 ----------
 function viewWith(practices: Practice[], attendance: PracticeAttendance[]) {
   const data = {
-    team: { id: "t", code: "X", name: "測試", season: null, league_name: null },
+    team: { id: "t", code: "X", name: "測試", season: null, league_name: null, lineage_id: "L", prev_team_id: null, archived_at: null, created_at: "2026-01-01T00:00:00Z" },
     me: { team_id: "t", user_id: "u1", role: "player" as const, player_id: "p1", joined_at: "", career_shared: false,
           claim_player_id: null, claim_new_name: null, claim_at: null },
     members: [], profiles: [], players: [{ id: "p1", team_id: "t", name: "甲", nickname: "", jersey_number: null, badge: null,

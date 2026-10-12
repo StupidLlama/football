@@ -86,7 +86,7 @@ export default function MatchDetailPage() {
       <BackButton fallback={`/t/${teamId}/matches`} />
       <header style={{ display: "flex", flexWrap: "wrap", gap: "8px 16px", alignItems: "baseline", justifyContent: "space-between" }}>
         <h1 className="hide-sm" style={{ margin: 0, fontSize: 30 }}>vs {m.opponent}</h1>
-        {v.isCoach && (
+        {v.isCoach && !v.archived && (
           <div className="chips">
             <button type="button" className="btn btn-line btn-sm" onClick={() => setEditing(true)}>編輯</button>
             <ConfirmButton label="刪除" confirm="確定刪除？" onConfirm={onDelete} className="btn btn-danger btn-sm" />
@@ -126,7 +126,7 @@ export default function MatchDetailPage() {
             <summary style={{ cursor: "pointer", fontWeight: 600 }}>{BUCKET_LABEL[b]}（{groups[b].length}）</summary>
             {groups[b].length === 0 && <p className="faint" style={{ margin: "4px 0" }}>沒有人。</p>}
             <div className="stack" style={{ gap: 0 }}>
-              {groups[b].map((p) => v.isCoach ? (
+              {groups[b].map((p) => v.isCoach && !v.archived ? (
                 <AdminRow key={p.id} matchId={m.id} playerId={p.id} name={p.name}
                   status={answerOf(v.data.attendance, m.id, p.id)} locked={false} onChanged={v.reload} />
               ) : (

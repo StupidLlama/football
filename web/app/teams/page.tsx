@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { getTeamNotes, type TeamNote } from "@/lib/api";
 import { displayName, useAuth } from "@/lib/auth";
 import { todayISO } from "@/lib/nav";
+import { groupSeasons } from "@/lib/seasons";
 import { RequireLogin } from "@/components/guard";
 import { Footer, Logo, RoleBadge } from "@/components/ui";
 
@@ -21,6 +22,7 @@ function Picker() {
   const auth = useAuth();
   const router = useRouter();
   const teams = auth.teams ?? [];
+  const groups = groupSeasons(teams);   // 同一支隊伍的各賽季收成一張卡
   const [notes, setNotes] = useState<Record<string, TeamNote[]> | null>(null);
 
   useEffect(() => {
@@ -38,9 +40,10 @@ function Picker() {
         </div>
       </header>
       <h1 style={{ margin: "0 0 4px", fontSize: 34 }}>嗨 {displayName(auth)}，今天看哪一隊？</h1>
-      <p className="muted" style={{ margin: "0 0 24px" }}>你在 {teams.length} 支球隊，每一隊的身分分開算。點提醒可以直接處理。</p>
+      <p className="muted" style={{ margin: "0 0 24px" }}>你在 {groups.length} 支球隊，每一隊的身分分開算。點提醒可以直接處理。</p>
       <div className="stack" style={{ gap: 16 }}>
-        {teams.map(({ team, membership }) => {
+        {groups.map(({ current, past }) => {
+          const { team, membership } = current;
           const coach = membership.role === "coach";
           const list = notes?.[team.id] ?? [];
           return (
@@ -51,8 +54,16 @@ function Picker() {
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
                   {team.season && <span className="faint" style={{ fontSize: 14 }}>{team.season}</span>}
                   <RoleBadge coach={coach} />
+                  {team.archived_at && <span className="tag" style={{ border: "1px dashed #4A5A7A", color: "#8A97AD" }}>舊賽季</span>}
                 </div>
                 <Link className="btn btn-line" href={`/t/${team.id}`} style={{ marginTop: 4 }}>進入{team.name}</Link>
+                {past.length > 0 && (
+                  <p className="faint" style={{ margin: "4px 0 0", fontSize: 13 }}>
+                    舊賽季（只能看）：{past.map((p, i) => (
+                      <span key={p.team.id}>{i > 0 && "、"}<Link href={`/t/${p.team.id}`}>{p.team.season ?? p.team.name}</Link></span>
+                    ))}
+                  </p>
+                )}
               </div>
               <div style={{ flex: "2 1 320px", minWidth: 0, display: "flex", flexDirection: "column", gap: 8 }}>
                 {notes === null && <p className="faint" style={{ margin: 0, padding: "8px 0" }}>讀取提醒中…</p>}
