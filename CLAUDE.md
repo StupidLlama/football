@@ -42,11 +42,11 @@ infra/ui/                  theme.py（CSS、圖例）、common.py（共用）、
 web/                       v2.2 Next.js 網站（Tools shell，TypeScript）：瀏覽器直接連 Supabase（supabase-js），動作呼叫資料庫函式
   app/                     頁面：首頁、login、join、teams（選球隊）、settings、t/[teamId]/（我的、home、players、players/[playerId]、form 能力表、claim、coach 管理專區、lineup/matches/practice 即將推出）；v2.2.1：consent（同意頁）、privacy、terms、contact、api/contact/route.ts（伺服器端，轉發到 Discord）
   components/              共用元件：ui.tsx（雷達圖＋滑鼠移上去顯示分數、標籤、KPI、提示訊息、頁尾）、anim.tsx（useTween、AnimatedNumber：圖表動畫，尊重「減少動態效果」）、line-chart.tsx（生涯趨勢折線圖）、career.tsx（球員報告的生涯分頁）、shell.tsx（側邊欄）、guard.tsx（RequireLogin：要登入＋同意最新政策）、doc.tsx（政策頁版面）、position-picker.tsx…
-  lib/                     calendar.ts、practices.ts、practice-import.ts（v2.7 練習月曆、固定練習展開、AI 匯入的指令與解析）、rating.ts（= domain/rating.py 的 TS 版，純計算）、teamview.ts、todos.ts、positions.ts、career.ts（生涯時間線）、compare.ts（同位置平均、進步退步）、anim.ts（緩動、插值）、roster.ts（名單檢查：背號、隊長不重複）（純計算）；api.ts（所有 Supabase 查詢與 rpc）、policies.ts（POLICY_VERSION、網站管理員、資料存放地區）、status.ts（狀態訊息，跟 backend/accounts.py 一樣）、auth.tsx、team.tsx
+  lib/                     calendar.ts、practices.ts、practice-import.ts（v2.7 練習月曆、固定練習展開、AI 匯入的指令與解析）、rating.ts（= domain/rating.py 的 TS 版，純計算）、teamview.ts、todos.ts、positions.ts、career.ts（生涯時間線）、compare.ts（同位置平均、進步退步）、anim.ts（緩動、插值）、roster.ts（名單檢查：背號、隊長不重複）、progress.ts（v2.8 賽季進步：每季取最後一份、進退步、全隊排行）、attendance-rate.ts（出席率：比賽／練習分開，請假不算分母，沒回覆算沒到）、seasons.ts（同一個 lineage 的賽季分組）（純計算）；api.ts（所有 Supabase 查詢與 rpc）、policies.ts（POLICY_VERSION、網站管理員、資料存放地區）、status.ts（狀態訊息，跟 backend/accounts.py 一樣）、auth.tsx、team.tsx
   lib/config.json          由 config/settings.toml 產生：py web/scripts/sync_config.py（不要手改）
   tests/                   node --test 的計算測試（npm test）
 backend/                   v2 後端（Tools shell）：main.py（FastAPI）、accounts.py（v2.1 帳號 API：加入、教練碼、認領、教練管理）、db.py（as_user = 用使用者身分查詢，RLS 生效）、auth.py（驗證 Supabase JWT）、importer.py（v1 資料匯入）、scripts/（migrate、rls_check）；v2.2 起網站不經過這個 API
-supabase/migrations/       v2 資料表與 RLS 的 SQL，編號只能往後加（0010_roster.sql：球隊管理員新增球員、改姓名／背號／隊長；0004_web.sql：網站用的資料表權限、submit_self_rating；0005_privacy.sql：同意紀錄、刪除帳號、下載資料、聯絡訊息；0006_career.sql：生涯開關 career_shared、set_career_shared、get_career）；supabase/tests/ 是權限測試
+supabase/migrations/       v2 資料表與 RLS 的 SQL，編號只能往後加（0012_seasons.sql：賽季系列 lineage_id、開新賽季 start_new_season、舊賽季唯讀 season_guard、進步資料 get_progress；0010_roster.sql：球隊管理員新增球員、改姓名／背號／隊長；0004_web.sql：網站用的資料表權限、submit_self_rating；0005_privacy.sql：同意紀錄、刪除帳號、下載資料、聯絡訊息；0006_career.sql：生涯開關 career_shared、set_career_shared、get_career）；supabase/tests/ 是權限測試
 config/settings.toml       能力分類、表單欄位、位置適合度權重、回饋網址
 config/formations.toml     11 人制、8 人制陣型（位置、座標）
 config/performance.toml    比賽表現評分的維度與各位置權重（v4 才用）
@@ -63,6 +63,7 @@ docs/V2_5_SETUP.md         v2.5 上線步驟（0008、比賽列表與出賽登�
 docs/V2_6_SETUP.md         v2.6 上線步驟（0009、聊天室與 Discord 通知驗收、合併到 main、打標籤）
 docs/V2_6_1_SETUP.md       v2.6.1 上線步驟（0010、名單管理、管理專區開放輸入管理員碼）
 docs/V2_7_SETUP.md         v2.7 上線步驟（0011、練習月曆與出席、固定練習、AI 匯入；先跑 0011 再開網站）
+docs/V2_8_SETUP.md         v2.8 上線步驟（0012、賽季進步、開新賽季、舊賽季唯讀、出席率；先跑 0012 再開網站）
 docs/SECURITY.md           金鑰保管、換金鑰、個資外洩處理順序
 docs/HANDOFF.md            交接說明：上一版做了什麼、下一版要做什麼、環境的坑（新工作階段先讀它）
 ```
@@ -160,7 +161,18 @@ py web/scripts/sync_config.py              # 改了 config/settings.toml 的能�
   - 照確認過的計畫寫畫面、補測試、改文件、小修 → Sonnet
 - 可以獨立完成的雜事交給子代理並指定便宜的模型：找檔案、讀大量文件、整理測試輸出 → Haiku；照清楚規格的小改動 → Sonnet。需要整段對話脈絡的工作（設計、除錯）留在主對話。
 
-## 下一步（2026-10-12）
+## v2.8 賽季的規則
+
+- 一筆 `teams` = 一支球隊的一個賽季（**不拆 `seasons` 表**，原因在 SPEC F8）；同一支隊的各賽季共用 `lineage_id`，`prev_team_id` 記上一季，`archived_at` 有值 = 舊賽季（只能看）。
+- 舊賽季唯讀由資料庫的 `season_guard` 觸發器統一擋，新增屬於球隊的資料表時要把它掛上去（`tests/test_v28.py` 的 GUARDED 清單會檢查）；網站只負責把按鈕收起來，不能只靠網站。資料庫擋下來的錯誤叫 `season_archived`，`api.ts` 翻成 `archived` 狀態。
+- `players.prev_player_id` 只能由 `start_new_season` 設定（`app.new_season`）；跨賽季的資料只經過 `get_progress` / `get_team_progress`，不放寬 RLS。
+- 出席率只在網站算（`attendance-rate.ts`），本人看自己的、球隊管理員看全隊；不要在別人的球員報告對一般球員顯示。
+- 新賽季**不複製**能力表、比賽、練習、聊天室、陣容；名單和帳號自動帶過去。
+
+## 下一步（2026-10-13）
+
+- **v2.8 賽季進步追蹤與出席率：程式與文件寫好（分支 `v2.8`），資料庫 0012 已在 Supabase 執行（RLS OK）。** 待辦：你在電腦跑 `pytest`、`typecheck`、`npm test`，用「測試隊」照 `docs/V2_8_SETUP.md` 驗收，然後合併 main、打標籤 `v2.8`。隱私權政策已更新、`POLICY_VERSION = 2026-10-13`，上線後大家要重新同意一次。
+- v2.7.1 的標籤已重打在 main（`c18a8b0`）。
 
 - v2.2 / v2.2.1：已上線（見 `docs/V2_2_1_SETUP.md` 的剩餘事項：Google 登入正式版、v2.2.1 標籤）。
 - v2.3：已上線（main，從來沒打過 GitHub 標籤，不影響功能，有空再補）。還沒用真實資料測過：兩位球員比較的變形動畫、隊友看別人的生涯、兩個時間點比較。
