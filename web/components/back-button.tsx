@@ -1,9 +1,9 @@
 "use client";
 // 返回鍵。兩種：
 //  - BackButton：子頁用（比賽詳情、球員報告…）。有上一頁就回上一頁；沒有（例如直接開網址）就去 fallback 列表頁。
-//  - PanelBack＋useLeave：同一頁展開的編輯面板用。改過內容再按返回或取消，會先問「放棄修改／繼續編輯」。
+//  - PanelBack＋useLeave：同一頁展開的編輯面板用。改過內容再按返回或取消，會跳出視窗問「放棄修改／繼續編輯」。
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const CLASS = "btn btn-line btn-sm";
 
@@ -28,22 +28,34 @@ export function PanelBack({ onBack, disabled = false }: { onBack: () => void; di
 }
 
 /**
- * 離開編輯面板（返回或取消）：沒改過就直接離開；改過就在按的那顆按鈕旁邊跳出提醒，
- * 「放棄修改」才真的離開，「繼續編輯」留下來。
+ * 離開編輯面板（返回或取消）：沒改過就直接離開；改過就跳出確認視窗，
+ * 「放棄修改」才真的離開，「繼續編輯」（或按 Esc）留下來。
+ * 用法：const { leave, dialog } = useLeave(dirty, onCancel); 按鈕 onClick={leave}，畫面裡放 {dialog}。
  */
 export function useLeave(dirty: boolean, onLeave: () => void) {
-  const [asking, setAsking] = useState<"top" | "bottom" | null>(null);
-  const leave = (where: "top" | "bottom") => { if (dirty) setAsking(where); else onLeave(); };
-  const ask = (where: "top" | "bottom") => asking !== where ? null : (
-    <div role="alert" className="status warn" style={{ margin: 0, display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px 12px" }}>
-      <span style={{ flex: "1 1 200px" }}>你改的內容還沒儲存，離開就會不見。</span>
-      <span className="chips">
-        <button type="button" className="btn btn-danger btn-sm" onClick={onLeave}>放棄修改</button>
-        <button type="button" className="btn btn-line btn-sm" onClick={() => setAsking(null)} autoFocus>繼續編輯</button>
-      </span>
-    </div>
+  const [asking, setAsking] = useState(false);
+  const leave = () => { if (dirty) setAsking(true); else onLeave(); };
+  const dialog = asking ? <LeaveDialog onLeave={onLeave} onStay={() => setAsking(false)} /> : null;
+  return { leave, dialog };
+}
+
+function LeaveDialog({ onLeave, onStay }: { onLeave: () => void; onStay: () => void }) {
+  const ref = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const d = ref.current;
+    if (d && !d.open) { try { d.showModal(); } catch { d.setAttribute("open", ""); } }
+  }, []);
+  return (
+    <dialog ref={ref} className="update-pop" aria-labelledby="leave-h" aria-describedby="leave-d"
+      onCancel={(e) => { e.preventDefault(); onStay(); }} style={{ width: "min(420px, calc(100vw - 32px))" }}>
+      <h2 id="leave-h" style={{ margin: "0 0 8px", fontSize: 22 }}>放棄修改？</h2>
+      <p id="leave-d" className="muted" style={{ margin: 0 }}>你改的內容還沒儲存，離開就會不見。</p>
+      <div className="chips" style={{ marginTop: 20, justifyContent: "flex-end" }}>
+        <button type="button" className="btn btn-line" onClick={onStay} autoFocus>繼續編輯</button>
+        <button type="button" className="btn btn-danger" onClick={onLeave}>放棄修改</button>
+      </div>
+    </dialog>
   );
-  return { leave, ask };
 }
 
 /** 表單有沒有被改過：跟第一次畫面上的內容比（JSON 字串）。 */

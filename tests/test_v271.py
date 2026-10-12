@@ -19,14 +19,15 @@ def test_edit_panels_have_panel_back_with_dirty_check():
     for f in ("match-form", "practice-form", "practice-series", "practice-import-panel"):
         src = _web(f"components/{f}.tsx")
         assert "useLeave(dirty, onCancel)" in src and "useDirty(" in src, f
-        assert 'leave("top")' in src and 'leave("bottom")' in src, f"{f} 的返回和取消都要先確認"
+        assert "<PanelBack onBack={leave}" in src and ">取消</button>" in src and "onClick={leave}" in src, f"{f} 的返回和取消都要先確認"
+        assert "{dialog}" in src, f
         assert "onClick={onCancel}" not in src, f"{f} 還有直接離開的按鈕"
 
 
 def test_back_button_falls_back_when_no_history():
     src = _web("components/back-button.tsx")
     assert "window.history.length > 1" in src and "router.push(fallback)" in src
-    assert "放棄修改" in src and "繼續編輯" in src
+    assert "放棄修改" in src and "繼續編輯" in src and "showModal" in src
 
 
 def test_lineup_explains_why_size_is_locked():
