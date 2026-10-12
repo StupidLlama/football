@@ -24,7 +24,7 @@ export const viewport: Viewport = { themeColor: "#0B1220", width: "device-width"
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="zh-Hant" className={wenkai.variable}>
-      <body>
+      <body suppressHydrationWarning>
         <Providers>{children}</Providers>
       </body>
     </html>
