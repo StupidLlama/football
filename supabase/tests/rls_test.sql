@@ -86,7 +86,7 @@ with u as (update public.players set nickname = '新暱稱' where id = '20000000
 select pg_temp.expect((select count(*) from u), 1, '球員改自己的暱稱');
 with u as (update public.players set nickname = '亂改' where id = '20000000-0000-0000-0000-0000000000a2' returning 1)
 select pg_temp.expect((select count(*) from u), 0, '球員改隊友的暱稱');
-with u as (update public.duties set slot = 9 returning 1)
+with u as (update public.duties set slot = 9 where team_id = '10000000-0000-0000-0000-00000000000a' returning 1)
 select pg_temp.expect((select count(*) from u), 0, '球員改裁判任務');
 reset role;
 
@@ -104,7 +104,7 @@ reset role;
 -- ============ 3. A 隊教練 ============
 set local role authenticated;
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000d","role":"authenticated"}', true);
-with u as (update public.duties set player_id = '20000000-0000-0000-0000-0000000000a2' returning 1)
+with u as (update public.duties set player_id = '20000000-0000-0000-0000-0000000000a2' where team_id in ('10000000-0000-0000-0000-00000000000a', '10000000-0000-0000-0000-00000000000b') returning 1)
 select pg_temp.expect((select count(*) from u), 1, 'A 隊教練排 A 隊的裁判（B 隊的不能動）');
 select pg_temp.expect((select count(*) from public.duties where team_id = '10000000-0000-0000-0000-00000000000b'), 0,
                       'A 隊教練看得到 B 隊的裁判任務');
@@ -335,7 +335,8 @@ reset role;
 -- v2.2 網站：資料表權限、送出能力表
 -- ============================================================
 -- 前面直接 insert 的自評和這裡在同一個交易裡（時間一樣），先把它們移到一小時前，才不會被當成「連按兩次」
-update public.ability_ratings set submitted_at = submitted_at - interval '1 hour';
+-- 只動這次測試新增的（submitted_at = 這個交易開始的時間）：正式資料庫裡有舊賽季的能力表，season_guard 會擋（v2.9 修）
+update public.ability_ratings set submitted_at = submitted_at - interval '1 hour' where submitted_at = now();
 
 set local role authenticated;
 select pg_temp.login('00000000-0000-0000-0000-00000000000a');   -- A 隊球員，已連到 A1

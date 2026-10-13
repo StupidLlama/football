@@ -136,3 +136,11 @@ def test_old_streamlit_site_shows_moved_notice():
     assert "st.stop()" in app[notice:app.index("PAGES = [")]
     for layer in ("domain", "stats", "adapters", "infra"):
         assert (ROOT / layer).is_dir(), layer
+
+
+def test_rls_test_never_writes_real_rows():
+    """rls_test.sql 也會在正式資料庫跑：每個 update / delete 都要有 where，只動測試自己新增的資料。
+    （v2.9 發現：沒加 where 的 update 會碰到正式資料庫裡舊賽季的能力表，被 season_guard 擋下。）"""
+    for m in re.finditer(r"^\s*(?:with \w+ as \()?(update|delete from) public\.(\w+)(.*?);", RLS_TEST, re.M | re.S):
+        stmt = m.group(0)
+        assert re.search(r"\bwhere\b", stmt), f"{m.group(1)} {m.group(2)} 沒有 where：{stmt.strip()[:80]}"
