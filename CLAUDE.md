@@ -42,7 +42,7 @@ infra/ui/                  theme.py（CSS、圖例）、common.py（共用）、
 web/                       v2.2 Next.js 網站（Tools shell，TypeScript）：瀏覽器直接連 Supabase（supabase-js），動作呼叫資料庫函式
   app/                     頁面：首頁、login、join、teams（選球隊）、settings、t/[teamId]/（我的、home、players、players/[playerId]、form 能力表、claim、coach 管理專區、lineup/matches/practice 即將推出）；v2.2.1：consent（同意頁）、privacy、terms、contact、api/contact/route.ts（伺服器端，轉發到 Discord）；v2.9：feedback（我的回饋、回饋管理）
   components/              共用元件：ui.tsx（雷達圖＋滑鼠移上去顯示分數、標籤、KPI、提示訊息、頁尾）、anim.tsx（useTween、AnimatedNumber：圖表動畫，尊重「減少動態效果」）、line-chart.tsx（生涯趨勢折線圖）、career.tsx（球員報告的生涯分頁）、shell.tsx（側邊欄）、feedback.tsx（v2.9 右下角回饋按鈕、回饋表單、側邊欄數字）、add-to-calendar.tsx（.ics 下載）、guard.tsx（RequireLogin：要登入＋同意最新政策）、doc.tsx（政策頁版面）、position-picker.tsx…
-  lib/                     calendar.ts、practices.ts、practice-import.ts（v2.7 練習月曆、固定練習展開、AI 匯入的指令與解析）、rating.ts（= domain/rating.py 的 TS 版，純計算）、teamview.ts、todos.ts、positions.ts、career.ts（生涯時間線）、compare.ts（同位置平均、進步退步）、anim.ts（緩動、插值）、roster.ts（名單檢查：背號、隊長不重複）、progress.ts（v2.8 賽季進步：每季取最後一份、進退步、全隊排行）、attendance-rate.ts（出席率：比賽／練習分開，請假不算分母，沒回覆算沒到）、seasons.ts（同一個 lineage 的賽季分組）、feedback.ts（v2.9 裝置名稱、回饋狀態、未讀回覆）、ics.ts（v2.9 加到日曆）（純計算）；api.ts（所有 Supabase 查詢與 rpc）、policies.ts（POLICY_VERSION、網站管理員、資料存放地區）、status.ts（狀態訊息，跟 backend/accounts.py 一樣）、auth.tsx、team.tsx
+  lib/                     calendar.ts、practices.ts、practice-import.ts（v2.7 練習月曆、固定練習展開、AI 匯入的指令與解析）、rating.ts（= domain/rating.py 的 TS 版，純計算）、teamview.ts、todos.ts、positions.ts、career.ts（生涯時間線）、compare.ts（同位置平均、進步退步）、anim.ts（緩動、插值）、roster.ts（名單檢查：背號、隊長不重複）、progress.ts（v2.8 賽季進步：每季取最後一份、進退步、全隊排行）、attendance-rate.ts（出席率：比賽／練習分開，請假不算分母，沒回覆算沒到）、seasons.ts（同一個 lineage 的賽季分組）、feedback.ts（v2.9 裝置名稱、回饋狀態、未讀回覆）、ics.ts（v2.9 加到日曆）、browser-notice.ts（v2.9 不是 iOS Safari 時的提醒）（純計算）；api.ts（所有 Supabase 查詢與 rpc）、policies.ts（POLICY_VERSION、網站管理員、資料存放地區）、status.ts（狀態訊息，跟 backend/accounts.py 一樣）、auth.tsx、team.tsx
   lib/config.json          由 config/settings.toml 產生：py web/scripts/sync_config.py（不要手改）
   tests/                   node --test 的計算測試（npm test）
 backend/                   v2 後端（Tools shell）：main.py（FastAPI）、accounts.py（v2.1 帳號 API：加入、教練碼、認領、教練管理）、db.py（as_user = 用使用者身分查詢，RLS 生效）、auth.py（驗證 Supabase JWT）、importer.py（v1 資料匯入）、scripts/（migrate、rls_check）；v2.2 起網站不經過這個 API
@@ -177,11 +177,13 @@ py web/scripts/sync_config.py              # 改了 config/settings.toml 的能�
 - 自動附的資訊只能是頁面路徑（不含 `?` 參數）、網站版本、粗略裝置（`lib/feedback.ts` 的 `deviceLabel`）；**不要存完整 User-Agent、IP、螢幕截圖**（要加的話先改隱私權政策）。
 - Discord 只用 `DISCORD_WEBHOOK_URL`、只在 `app/api/contact/route.ts`；訊息一律 `allowed_mentions: { parse: [] }`。
 - 右下角回饋按鈕（`FeedbackFab`，放在 `app/providers.tsx`）：正在輸入時要藏起來；新增「整頁輸入」的頁面時確認它不會擋到送出鍵。
+- 瀏覽器提醒（`BrowserNoticePopup`，放在 `app/providers.tsx`）：只對手機／平板、不是 iOS Safari 時跳，每一種情況只跳一次（localStorage `fap.browserNoticeSeen`）；電腦不跳。
 - 加到日曆只在瀏覽器產生 `.ics`（`lib/ics.ts`）：時間寫 UTC、每行 CRLF、超過 75 位元組折行；**不放 VALARM**，提醒通知等接 LINE 機器人再做。
 
 ## 下一步（2026-10-13）
 
-- **v2.9 意見回饋、加到日曆、舊網站退役：寫好了，在 `v2.9` 分支**（0013 還沒在 Supabase 執行）。上線步驟 `docs/V2_9_SETUP.md`。使用者決定（2026-10-13 答案表）：聯絡我們升級成回饋、截圖先不做、回覆只在網站內通知、只有登入的人、共用 Webhook、政策不升版本、Google 登入已是正式版、**不另外試用，v2.9 做完直接全隊上線**、Streamlit 留搬家公告、Streamlit 程式碼原地保留、Google 表單停收、多語系放 v2.10 之後、`.ics` 放 v2.9、**提醒通知等接 LINE 機器人再做**、測試隊殘留資料留著。
+- **v2.9 意見回饋、加到日曆、舊網站退役：已上線（main @ `6341553`，標籤 `v2.9`，0013 已執行）。** 最後追加：不是 iOS Safari 的手機／平板跳一次瀏覽器提醒（`lib/browser-notice.ts`、`components/browser-notice.tsx`）。使用者手機驗收、關 Google 表單、貼加入訊息到隊群組還沒回報。還沒決定：Android「加到 Google 日曆」按鈕。交接說明在 `docs/HANDOFF.md`（v2.9 → v2.10）。
+- **下一版 v2.10（v2 最後一版）：完整資安檢查＋視覺改版**，建議拆成資安（Opus）先、視覺（Sonnet）後；上線後是階段切換，交接說明要寫得更詳細。
 
 - **v2.8 賽季進步追蹤與出席率：已上線（main @ `0fc3c28`，標籤 `v2.8`，0012 已執行）。** `POLICY_VERSION = 2026-10-13`，大家下次登入要重新同意。iPad 寬度還沒驗收。交接說明在 `docs/HANDOFF.md`（v2.8 → v2.9）。
 - v2.7.1 的標籤已重打在 main（`c18a8b0`）。
