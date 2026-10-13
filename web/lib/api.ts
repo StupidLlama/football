@@ -90,7 +90,7 @@ const COLS = {
   code: "id, hint, created_at, expires_at, revoked_at, uses, last_used_at",
   fixture: "id, day, start_time, end_time, home, away, round, match_no, home_score, away_score, referee, linesmen, note",
   duty: "id, fixture_id, role, slot, player_id",
-  contact: "id, user_id, category, body, page, status, created_at",
+  contact: "id, user_id, category, body, page, status, created_at, version, device, reply, replied_at, reply_read_at",
   match: "id, team_id, opponent, kickoff, meet_at, location, jersey, size, note, our_score, their_score, fixture_id, created_by, created_at, updated_at",
   attendance: "match_id, player_id, team_id, status, note, updated_by, updated_at",
   practice: "id, team_id, starts_at, ends_at, meet_at, location, title, content, note, series_id, created_by, created_at, updated_at",
@@ -508,12 +508,16 @@ export async function updateTeam(teamId: string, fields: { name: string; season:
   if (!r.data || r.data.length === 0) throw new Error("只有這一隊的球隊管理員可以改");
 }
 
-// ---------- 聯絡我們 ----------
-export type ContactMessage = { id: string; user_id: string | null; category: string; body: string; page: string; status: "new" | "done"; created_at: string };
+// ---------- 意見回饋（v2.2.1 的「聯絡我們」在 v2.9 升級成意見回饋，同一張表） ----------
+export type ContactMessage = {
+  id: string; user_id: string | null; category: string; body: string; page: string;
+  status: "new" | "doing" | "done"; created_at: string;
+  version: string; device: string; reply: string; replied_at: string | null; reply_read_at: string | null;
+};
 export const CONTACT_CATEGORIES: [string, string][] = [["bug", "網站壞掉了"], ["suggestion", "建議"], ["privacy", "個資、帳號"], ["other", "其他"]];
 
-/** 送出聯絡訊息：經過網站自己的伺服器（存進資料庫，再通知網站管理員的 Discord）。 */
-export async function sendContact(category: string, body: string, page: string): Promise<RpcResult> {
+/** 送出回饋：經過網站自己的伺服器（存進資料庫，再通知網站管理員的 Discord）。 */
+export async function sendContact(category: string, body: string, page: string, version = "", device = ""): Promise<RpcResult> {
   const { data } = await supabase().auth.getSession();
   const token = data.session?.access_token;
   if (!token) return { status: "unauthenticated" };
@@ -521,7 +525,7 @@ export async function sendContact(category: string, body: string, page: string):
     const r = await fetch("/api/contact", {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
-      body: JSON.stringify({ category, body, page }),
+      body: JSON.stringify({ category, body, page, version, device }),
     });
     return (await r.json()) as RpcResult;
   } catch {
@@ -529,13 +533,21 @@ export async function sendContact(category: string, body: string, page: string):
   }
 }
 
-/** 網站管理員：最近的聯絡訊息。 */
+/** 網站管理員：最近的回饋（RLS：網站管理員看得到全部）。 */
 export async function getContactMessages(): Promise<ContactMessage[]> {
   return must<ContactMessage[]>(await supabase().from("contact_messages").select(COLS.contact)
-    .order("created_at", { ascending: false }).limit(50), "聯絡訊息");
+    .order("created_at", { ascending: false }).limit(200), "意見回饋");
 }
 
-export async function setContactStatus(id: string, status: "new" | "done"): Promise<void> {
-  const r = await supabase().from("contact_messages").update({ status }).eq("id", id).select("id");
-  if (r.error) throw new Error(r.error.message);
+/** 我送過的回饋（網站管理員也只看自己的）。 */
+export async function getMyFeedback(userId: string): Promise<ContactMessage[]> {
+  return must<ContactMessage[]>(await supabase().from("contact_messages").select(COLS.contact)
+    .eq("user_id", userId).order("created_at", { ascending: false }).limit(100), "我的回饋");
 }
+
+export const feedbackActions = {
+  setStatus: (message: string, status: "new" | "doing" | "done") => rpc("set_feedback_status", { message, status }),
+  reply: (message: string, reply: string, nextStatus: "" | "new" | "doing" | "done" = "") =>
+    rpc("reply_feedback", { message, reply, next_status: nextStatus }),
+  markRead: () => rpc("mark_feedback_read", {}),
+};

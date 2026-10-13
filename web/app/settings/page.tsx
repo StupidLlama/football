@@ -1,9 +1,9 @@
 "use client";
-// 設定：個人資料、我的球隊（離隊）、我的生涯（哪幾隊放進生涯）、文字大小、隱私與帳號（同意紀錄、下載資料、刪除帳號）、網站管理員（建立隊伍、聯絡訊息）。
+// 設定：個人資料、我的球隊（離隊）、我的生涯（哪幾隊放進生涯）、文字大小、隱私與帳號（同意紀錄、下載資料、刪除帳號）、網站管理員（建立隊伍；回饋管理在 /feedback）。
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
-import { actions, CONTACT_CATEGORIES, getContactMessages, setContactStatus, setDisplayName, type ContactMessage } from "@/lib/api";
+import { actions, setDisplayName } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { safeNext } from "@/lib/nav";
 import { TEXT_SIZES, setTextSize, textSize } from "@/lib/prefs";
@@ -96,7 +96,14 @@ function Settings() {
       </section>
 
       {auth.profile?.is_admin && <AdminCreateTeam onCreated={() => auth.reload()} />}
-      {auth.profile?.is_admin && <AdminMessages />}
+      <section aria-labelledby="s-fb" className="panel" style={{ marginTop: 16, padding: "20px 24px" }}>
+        <h2 id="s-fb" style={{ margin: "0 0 4px", fontSize: 20 }}>意見回饋</h2>
+        <p className="faint" style={{ margin: "0 0 12px", fontSize: 14 }}>每一頁右下角的「回饋」按鈕可以回報問題、提建議；網站管理員的回覆會出現在「我的回饋」。</p>
+        <div className="chips">
+          <Link className="btn btn-line btn-sm" href="/feedback">我的回饋</Link>
+          {auth.profile?.is_admin && <Link className="btn btn-main btn-sm" href="/feedback?tab=admin">回饋管理（網站管理員）</Link>}
+        </div>
+      </section>
 
       <PrivacyAndAccount />
       <Footer />
@@ -297,37 +304,6 @@ function PrivacyAndAccount() {
       )}
       <div className="row"><span style={{ flex: 1 }}>登出這台裝置</span>
         <button type="button" className="btn btn-line btn-sm" onClick={async () => { await auth.signOut(); router.replace("/"); }}>登出</button></div>
-    </section>
-  );
-}
-
-function AdminMessages() {
-  const [list, setList] = useState<ContactMessage[] | null>(null);
-  const [error, setError] = useState("");
-  const load = () => getContactMessages().then(setList).catch((e) => setError(String(e.message ?? e)));
-  useEffect(() => { load(); }, []);
-  const label = Object.fromEntries(CONTACT_CATEGORIES);
-  const open = (list ?? []).filter((m) => m.status === "new").length;
-  return (
-    <section aria-labelledby="s-msgs" className="panel" style={{ marginTop: 16, padding: "20px 24px", borderColor: "#F5A52466" }}>
-      <h2 id="s-msgs" className="accent" style={{ margin: "0 0 4px", fontSize: 20 }}>網站管理員：聯絡訊息{open ? `（${open} 則未處理）` : ""}</h2>
-      <p className="faint" style={{ margin: "0 0 8px", fontSize: 14 }}>新訊息也會通知到你的 Discord。這裡是完整紀錄。</p>
-      {error && <ErrorBox text={error} />}
-      {list === null && <p className="faint">讀取中…</p>}
-      {list?.length === 0 && <p className="faint">還沒有訊息。</p>}
-      {list?.map((m) => (
-        <div key={m.id} className="row" style={{ flexWrap: "wrap", alignItems: "flex-start", opacity: m.status === "done" ? 0.6 : 1 }}>
-          <span style={{ flex: "1 1 260px", minWidth: 0 }}>
-            <span className="pill">{label[m.category] ?? m.category}</span>
-            <span className="faint" style={{ marginLeft: 8, fontSize: 13 }}>{dateLabel(m.created_at)}{m.page ? `・${m.page}` : ""}</span>
-            <span style={{ display: "block", whiteSpace: "pre-wrap", overflowWrap: "anywhere", marginTop: 4 }}>{m.body}</span>
-          </span>
-          <button type="button" className="btn btn-line btn-sm"
-            onClick={async () => { await setContactStatus(m.id, m.status === "new" ? "done" : "new"); load(); }}>
-            {m.status === "new" ? "標記已處理" : "改回未處理"}
-          </button>
-        </div>
-      ))}
     </section>
   );
 }

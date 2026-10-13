@@ -64,7 +64,7 @@ def test_doc_pages_have_back_button():
 def test_every_editable_page_has_leave_guard():
     """所有能輸入東西的頁面：有沒儲存的修改時，離開（點連結、重新整理）要先確認。"""
     for rel in ("app/t/[teamId]/page.tsx", "app/t/[teamId]/coach/page.tsx", "app/t/[teamId]/lineup/page.tsx",
-                "app/settings/page.tsx", "app/contact/page.tsx", "components/chat-composer.tsx", "components/chat-message.tsx"):
+                "app/settings/page.tsx", "components/feedback.tsx", "components/chat-composer.tsx", "components/chat-message.tsx"):
         assert "useLeaveGuard(" in _web(rel), rel
     src = _web("components/back-button.tsx")
     assert "beforeunload" in src and 'addEventListener("click"' in src and "stopImmediatePropagation" in src

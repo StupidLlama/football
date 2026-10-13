@@ -26,6 +26,12 @@ message_prefix = "有什麼是你希望球隊上的人知道的"
 [feedback]
 url = ""
 
+# ---------- 舊網站退役（v2.9）----------
+# moved_to 有值：舊的 Streamlit 網站只顯示「搬家了」公告和新網站連結，不再顯示球員資料。
+# 本機想看舊網站（例如課堂 Demo）：改成空字串再 py -m streamlit run app.py。程式碼都還在（Clean Architecture 四層）。
+[site]
+moved_to = "https://football-analysis-potato.vercel.app"
+
 # ---------- 球隊與賽程 ----------
 # name = 系際聯賽賽程表上我們隊的名字（主場 / 客場 / 主審 / 邊審欄位會寫這個）
 [team]

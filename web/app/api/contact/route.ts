@@ -1,5 +1,5 @@
-// 聯絡我們（在網站自己的伺服器上執行，不在瀏覽器）：
-//   1. 用使用者自己的登入憑證呼叫資料庫函式 send_contact_message → 存進 contact_messages（要登入、一小時最多 5 則）
+// 意見回饋／聯絡我們（在網站自己的伺服器上執行，不在瀏覽器）：
+//   1. 用使用者自己的登入憑證呼叫資料庫函式 send_contact_message → 存進 contact_messages（要登入、一小時最多 5 則；v2.9 多存網站版本和裝置）
 //   2. 存好之後，通知網站管理員的 Discord 頻道（Webhook 網址只放在伺服器的環境變數 DISCORD_WEBHOOK_URL，瀏覽器看不到）
 import { createClient } from "@supabase/supabase-js";
 
@@ -16,18 +16,20 @@ export async function POST(req: Request) {
   if (!token) return json({ status: "unauthenticated" }, 401);
   if (!url || !key) return json({ status: "error", detail: "網站還沒設定 Supabase" }, 500);
 
-  let input: { category?: unknown; body?: unknown; page?: unknown };
+  let input: { category?: unknown; body?: unknown; page?: unknown; version?: unknown; device?: unknown };
   try { input = await req.json(); } catch { return json({ status: "invalid", detail: "格式不對" }, 400); }
   const category = String(input.category ?? "");
   const body = String(input.body ?? "").slice(0, 2000);
   const page = String(input.page ?? "").slice(0, 200);
+  const version = String(input.version ?? "").slice(0, 20);
+  const device = String(input.device ?? "").slice(0, 60);
 
   // 用「這個使用者」的身分連資料庫：RLS 和函式裡的 auth.uid() 都會生效
   const db = createClient(url, key, {
     global: { headers: { Authorization: `Bearer ${token}` } },
     auth: { persistSession: false, autoRefreshToken: false },
   });
-  const r = await db.rpc("send_contact_message", { category, body, page });
+  const r = await db.rpc("send_contact_message", { category, body, page, version, device });
   if (r.error) return json({ status: "error", detail: "請重新登入後再試" }, 401);
   const result = r.data as { status: string; id?: string };
   if (result.status !== "ok") return json(result, result.status === "rate_limited" ? 429 : 400);
@@ -39,9 +41,12 @@ export async function POST(req: Request) {
     const text = [
       `**[${CATEGORY_LABEL[category] ?? category}]** 來自 ${who}`,
       page ? `頁面：${page}` : "",
+      [version && `版本：${version}`, device && `裝置：${device}`].filter(Boolean).join("　"),
       "",
       body,
-    ].filter((x, i) => x !== "" || i === 2).join("\n").slice(0, 1900);
+      "",
+      `回饋管理：${new URL(req.url).origin}/feedback?tab=admin`,
+    ].filter((x, i) => x !== "" || i === 3 || i === 5).join("\n").slice(0, 1900);
     try {
       await fetch(hook, {
         method: "POST",
@@ -50,7 +55,7 @@ export async function POST(req: Request) {
         body: JSON.stringify({ username: "Football Analysis Potato", content: text, allowed_mentions: { parse: [] } }),
       });
     } catch {
-      // Discord 暫時連不上也沒關係：訊息已經存在資料庫，網站管理員在設定頁看得到
+      // Discord 暫時連不上也沒關係：訊息已經存在資料庫，網站管理員在「回饋管理」頁看得到
     }
   }
   return json({ status: "ok", id: result.id });

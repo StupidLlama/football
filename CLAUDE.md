@@ -10,8 +10,8 @@
 ## 這個專案是什麼
 
 1. **球員卡網站**（已完成、已部署）：從 Google 表單讀球隊球員的自評能力，顯示雷達圖、適合位置球場圖、球員比較。
-   - v2 新網站（Next.js，在 `web/`）：https://football-analysis-potato.vercel.app（Vercel，Root Directory = `web`，push 到 main 自動重新部署）；正在取代舊網站，兩個並存到 v2.9。
-   - 正式網站：https://football-analysis-potato.streamlit.app（有隊伍密碼）
+   - v2 新網站（Next.js，在 `web/`）：https://football-analysis-potato.vercel.app（Vercel，Root Directory = `web`，push 到 main 自動重新部署）；**v2.9 起是唯一的正式網站**。
+   - 舊網站：https://football-analysis-potato.streamlit.app（v2.9 退役：`config/settings.toml` 的 `[site] moved_to` 有值時只顯示搬家公告；程式碼留著當課程的 Clean Architecture 範例）
    - GitHub：StupidLlama/football（push 到 main 會自動重新部署）
 2. **足球比賽影片分析**（軟工課專題，規劃中）：影片 → 辨識 → 數據 → 圖表。
    **完整規劃在 `docs/PROJECT_PLAN.md`，做影片分析相關的工作前先讀它。**
@@ -27,7 +27,7 @@
 ## 資料夾
 
 ```
-app.py                     入口：頁面導覽、隊伍密碼（網站名稱 Football Analysis Potato 🥔）
+app.py                     入口：頁面導覽、隊伍密碼（網站名稱 Football Analysis Potato 🥔）；v2.9 起 [site] moved_to 有值就只顯示搬家公告
 domain/                    Core：models.py、rating.py、positions.py、foot.py（慣用腳）、formations.py（陣型）、performance.py（表現評分權重）、fixture.py（聯賽比賽、裁判任務）
 stats/                     Inner shell：player.py、team.py、match.py、ranking.py（排行榜）、lineup.py + assignment.py（自動排人）、schedule.py（戰績、裁判任務）、referee.py（抽裁判，Picker 可替換）
 adapters/                  Translate shell：form.py（表單翻譯）、repository.py（資料庫讀寫）、schedule.py（系際聯賽賽程表 → Fixture，修年份、合併儲存格）
@@ -40,13 +40,13 @@ infra/coach.py             教練檢查（v1 密碼，v2 換帳號）
 infra/charts/              style.py 深色配色、radar.py（Plotly 雷達圖，圖例由網頁畫）、bars.py、pitch.py、lineup.py（陣容球場圖＋下載 PNG）、feet.py（雙腳 SVG）
 infra/ui/                  theme.py（CSS、圖例）、common.py（共用）、pages/（home 首頁、overview 能力總覽、player、compare、leaderboard、lineup、matches、coach 教練專區）
 web/                       v2.2 Next.js 網站（Tools shell，TypeScript）：瀏覽器直接連 Supabase（supabase-js），動作呼叫資料庫函式
-  app/                     頁面：首頁、login、join、teams（選球隊）、settings、t/[teamId]/（我的、home、players、players/[playerId]、form 能力表、claim、coach 管理專區、lineup/matches/practice 即將推出）；v2.2.1：consent（同意頁）、privacy、terms、contact、api/contact/route.ts（伺服器端，轉發到 Discord）
-  components/              共用元件：ui.tsx（雷達圖＋滑鼠移上去顯示分數、標籤、KPI、提示訊息、頁尾）、anim.tsx（useTween、AnimatedNumber：圖表動畫，尊重「減少動態效果」）、line-chart.tsx（生涯趨勢折線圖）、career.tsx（球員報告的生涯分頁）、shell.tsx（側邊欄）、guard.tsx（RequireLogin：要登入＋同意最新政策）、doc.tsx（政策頁版面）、position-picker.tsx…
-  lib/                     calendar.ts、practices.ts、practice-import.ts（v2.7 練習月曆、固定練習展開、AI 匯入的指令與解析）、rating.ts（= domain/rating.py 的 TS 版，純計算）、teamview.ts、todos.ts、positions.ts、career.ts（生涯時間線）、compare.ts（同位置平均、進步退步）、anim.ts（緩動、插值）、roster.ts（名單檢查：背號、隊長不重複）、progress.ts（v2.8 賽季進步：每季取最後一份、進退步、全隊排行）、attendance-rate.ts（出席率：比賽／練習分開，請假不算分母，沒回覆算沒到）、seasons.ts（同一個 lineage 的賽季分組）（純計算）；api.ts（所有 Supabase 查詢與 rpc）、policies.ts（POLICY_VERSION、網站管理員、資料存放地區）、status.ts（狀態訊息，跟 backend/accounts.py 一樣）、auth.tsx、team.tsx
+  app/                     頁面：首頁、login、join、teams（選球隊）、settings、t/[teamId]/（我的、home、players、players/[playerId]、form 能力表、claim、coach 管理專區、lineup/matches/practice 即將推出）；v2.2.1：consent（同意頁）、privacy、terms、contact、api/contact/route.ts（伺服器端，轉發到 Discord）；v2.9：feedback（我的回饋、回饋管理）
+  components/              共用元件：ui.tsx（雷達圖＋滑鼠移上去顯示分數、標籤、KPI、提示訊息、頁尾）、anim.tsx（useTween、AnimatedNumber：圖表動畫，尊重「減少動態效果」）、line-chart.tsx（生涯趨勢折線圖）、career.tsx（球員報告的生涯分頁）、shell.tsx（側邊欄）、feedback.tsx（v2.9 右下角回饋按鈕、回饋表單、側邊欄數字）、add-to-calendar.tsx（.ics 下載）、guard.tsx（RequireLogin：要登入＋同意最新政策）、doc.tsx（政策頁版面）、position-picker.tsx…
+  lib/                     calendar.ts、practices.ts、practice-import.ts（v2.7 練習月曆、固定練習展開、AI 匯入的指令與解析）、rating.ts（= domain/rating.py 的 TS 版，純計算）、teamview.ts、todos.ts、positions.ts、career.ts（生涯時間線）、compare.ts（同位置平均、進步退步）、anim.ts（緩動、插值）、roster.ts（名單檢查：背號、隊長不重複）、progress.ts（v2.8 賽季進步：每季取最後一份、進退步、全隊排行）、attendance-rate.ts（出席率：比賽／練習分開，請假不算分母，沒回覆算沒到）、seasons.ts（同一個 lineage 的賽季分組）、feedback.ts（v2.9 裝置名稱、回饋狀態、未讀回覆）、ics.ts（v2.9 加到日曆）（純計算）；api.ts（所有 Supabase 查詢與 rpc）、policies.ts（POLICY_VERSION、網站管理員、資料存放地區）、status.ts（狀態訊息，跟 backend/accounts.py 一樣）、auth.tsx、team.tsx
   lib/config.json          由 config/settings.toml 產生：py web/scripts/sync_config.py（不要手改）
   tests/                   node --test 的計算測試（npm test）
 backend/                   v2 後端（Tools shell）：main.py（FastAPI）、accounts.py（v2.1 帳號 API：加入、教練碼、認領、教練管理）、db.py（as_user = 用使用者身分查詢，RLS 生效）、auth.py（驗證 Supabase JWT）、importer.py（v1 資料匯入）、scripts/（migrate、rls_check）；v2.2 起網站不經過這個 API
-supabase/migrations/       v2 資料表與 RLS 的 SQL，編號只能往後加（0012_seasons.sql：賽季系列 lineage_id、開新賽季 start_new_season、舊賽季唯讀 season_guard、進步資料 get_progress；0010_roster.sql：球隊管理員新增球員、改姓名／背號／隊長；0004_web.sql：網站用的資料表權限、submit_self_rating；0005_privacy.sql：同意紀錄、刪除帳號、下載資料、聯絡訊息；0006_career.sql：生涯開關 career_shared、set_career_shared、get_career）；supabase/tests/ 是權限測試
+supabase/migrations/       v2 資料表與 RLS 的 SQL，編號只能往後加（0013_feedback.sql：聯絡我們升級成意見回饋、set_feedback_status / reply_feedback / mark_feedback_read；0012_seasons.sql：賽季系列 lineage_id、開新賽季 start_new_season、舊賽季唯讀 season_guard、進步資料 get_progress；0010_roster.sql：球隊管理員新增球員、改姓名／背號／隊長；0004_web.sql：網站用的資料表權限、submit_self_rating；0005_privacy.sql：同意紀錄、刪除帳號、下載資料、聯絡訊息；0006_career.sql：生涯開關 career_shared、set_career_shared、get_career）；supabase/tests/ 是權限測試
 config/settings.toml       能力分類、表單欄位、位置適合度權重、回饋網址
 config/formations.toml     11 人制、8 人制陣型（位置、座標）
 config/performance.toml    比賽表現評分的維度與各位置權重（v4 才用）
@@ -64,6 +64,7 @@ docs/V2_6_SETUP.md         v2.6 上線步驟（0009、聊天室與 Discord 通�
 docs/V2_6_1_SETUP.md       v2.6.1 上線步驟（0010、名單管理、管理專區開放輸入管理員碼）
 docs/V2_7_SETUP.md         v2.7 上線步驟（0011、練習月曆與出席、固定練習、AI 匯入；先跑 0011 再開網站）
 docs/V2_8_SETUP.md         v2.8 上線步驟（0012、賽季進步、開新賽季、舊賽季唯讀、出席率；先跑 0012 再開網站）
+docs/V2_9_SETUP.md         v2.9 上線步驟（0013、意見回饋、加到日曆、舊網站退役、給隊友的加入訊息）
 docs/SECURITY.md           金鑰保管、換金鑰、個資外洩處理順序
 docs/HANDOFF.md            交接說明：上一版做了什麼、下一版要做什麼、環境的坑（新工作階段先讀它）
 ```
@@ -169,10 +170,20 @@ py web/scripts/sync_config.py              # 改了 config/settings.toml 的能�
 - 出席率只在網站算（`attendance-rate.ts`），本人看自己的、球隊管理員看全隊；不要在別人的球員報告對一般球員顯示。
 - 新賽季**不複製**能力表、比賽、練習、聊天室、陣容；名單和帳號自動帶過去。
 
+## v2.9 意見回饋與日曆的規則
+
+- 意見回饋就是 `contact_messages`（「聯絡我們」升級，**不要另開 feedback 表**）。改狀態、回覆只能用 `set_feedback_status` / `reply_feedback`（函式裡檢查 `is_admin`）；本人只能用 `mark_feedback_read`；這張表沒有直接 update 的權限，不要加回去。
+- 回饋屬於使用者、不屬於球隊：不掛 `season_guard`。刪帳號靠外鍵 cascade 一起刪。
+- 自動附的資訊只能是頁面路徑（不含 `?` 參數）、網站版本、粗略裝置（`lib/feedback.ts` 的 `deviceLabel`）；**不要存完整 User-Agent、IP、螢幕截圖**（要加的話先改隱私權政策）。
+- Discord 只用 `DISCORD_WEBHOOK_URL`、只在 `app/api/contact/route.ts`；訊息一律 `allowed_mentions: { parse: [] }`。
+- 右下角回饋按鈕（`FeedbackFab`，放在 `app/providers.tsx`）：正在輸入時要藏起來；新增「整頁輸入」的頁面時確認它不會擋到送出鍵。
+- 加到日曆只在瀏覽器產生 `.ics`（`lib/ics.ts`）：時間寫 UTC、每行 CRLF、超過 75 位元組折行；**不放 VALARM**，提醒通知等接 LINE 機器人再做。
+
 ## 下一步（2026-10-13）
 
+- **v2.9 意見回饋、加到日曆、舊網站退役：寫好了，在 `v2.9` 分支**（0013 還沒在 Supabase 執行）。上線步驟 `docs/V2_9_SETUP.md`。使用者決定（2026-10-13 答案表）：聯絡我們升級成回饋、截圖先不做、回覆只在網站內通知、只有登入的人、共用 Webhook、政策不升版本、Google 登入已是正式版、**不另外試用，v2.9 做完直接全隊上線**、Streamlit 留搬家公告、Streamlit 程式碼原地保留、Google 表單停收、多語系放 v2.10 之後、`.ics` 放 v2.9、**提醒通知等接 LINE 機器人再做**、測試隊殘留資料留著。
+
 - **v2.8 賽季進步追蹤與出席率：已上線（main @ `0fc3c28`，標籤 `v2.8`，0012 已執行）。** `POLICY_VERSION = 2026-10-13`，大家下次登入要重新同意。iPad 寬度還沒驗收。交接說明在 `docs/HANDOFF.md`（v2.8 → v2.9）。
-- **下一個：v2.9 意見回饋（F10）、全隊上線、舊網站退役**。開場指令在 `docs/HANDOFF.md` 第 0 節。
 - v2.7.1 的標籤已重打在 main（`c18a8b0`）。
 
 - v2.2 / v2.2.1：已上線（見 `docs/V2_2_1_SETUP.md` 的剩餘事項：Google 登入正式版、v2.2.1 標籤）。

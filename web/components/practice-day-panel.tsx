@@ -3,11 +3,13 @@
 // 以及那天的本隊比賽（只連過去，不能在這裡改）。
 import Link from "next/link";
 import { useState } from "react";
+import { practiceEvent } from "@/lib/ics";
+import { AddToCalendar } from "./add-to-calendar";
 import { deletePractice, setPracticeAttendance, type AttendanceAnswer, type Match, type Practice } from "@/lib/api";
 import { dayLabel } from "@/lib/calendar";
 import { kickoffLabel } from "@/lib/matches";
 import {
-  answerOfPractice, groupPracticePlayers, hhmm, isPracticeLocked, practiceCounts, restOfSeriesCount, timeRange, titleOf,
+  answerOfPractice, groupPracticePlayers, hhmm, isPracticeLocked, practiceCounts, restOfSeriesCount, timeRange, titleOf, practiceDay,
 } from "@/lib/practices";
 import { useTeamView } from "@/lib/team";
 import { AttendanceButtons } from "./attendance-buttons";
@@ -72,6 +74,8 @@ function PracticeCard({ p, canManage, now, onEdit }: { p: Practice; canManage: b
       </p>
       {p.content && <p style={{ margin: 0, whiteSpace: "pre-wrap" }}>{p.content}</p>}
       {p.note && <p className="muted" style={{ margin: 0, whiteSpace: "pre-wrap" }}>{p.note}</p>}
+      {!locked && <div><AddToCalendar events={[practiceEvent(p, v.data.team.name)]} calName={v.data.team.name}
+        fileName={`${v.data.team.name}-${practiceDay(p)}-${titleOf(p)}`} /></div>}
       <p className="faint" style={{ margin: 0, fontSize: 13 }}>出席 {counts.in}・請假 {counts.out}・還沒回覆 {counts.pending}</p>
 
       {myId && (

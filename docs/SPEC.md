@@ -210,6 +210,21 @@ Football Analysis Potato 把「球員卡網站」和「比賽影片分析」合�
 - 不自動開 GitHub Issue：repo 公開後 Issue 人人看得到；管理者確認是 Bug 後再自己整理成 Issue。
 - v1.1 先用 Google 表單版：側邊欄放連結，回覆進試算表，用 Google 表單的 Email 通知。
 - 完成標準：送出後 1 分鐘內 Discord 收到通知；Webhook 網址只放在伺服器設定。
+- **v2.9 確認的決定（2026-10-13）**：
+  - 不另開 `feedback` 表：v2.2.1 的「聯絡我們」（`contact_messages`）升級成意見回饋，同一個入口、同一個 Discord Webhook（`DISCORD_WEBHOOK_URL`）；`/contact` 和浮動按鈕用同一個表單。
+  - 只有登入的人能送（沿用一小時 5 則的限制）。**截圖先不做**（放到 v2.10 跟資安檢查一起評估 Supabase Storage）。
+  - 自動附上：頁面（只留路徑）、網站版本（`updates.ts` 最新版）、粗略裝置（「手機 · Safari」，不存完整 User-Agent）。
+  - 改狀態、回覆都是函式（`set_feedback_status`、`reply_feedback`，只有網站管理員）；本人用 `mark_feedback_read` 標記看過；收回直接 update 這張表的權限。
+  - 回覆只在網站內通知（側邊欄「意見回饋」的數字＋「我的回饋」），不寄 Email。
+  - 隱私權政策只補文字、不升 `POLICY_VERSION`。
+  - 回饋屬於使用者、不屬於球隊，不掛 `season_guard`。
+
+### 加到日曆（v2.9）
+
+- 練習卡片、比賽詳情各有「加到日曆」；練習頁有「整季加到日曆」（還沒結束的練習和比賽）。
+- 在瀏覽器裡產生 `.ics` 檔下載（`web/lib/ics.ts`），不串 Google 日曆、不需要權限、不經過伺服器。時間一律寫 UTC，比賽沒有結束時間預設 2 小時。
+- **提醒通知**（前一天推播之類）等接 LINE 機器人再做，所以 `.ics` 裡刻意不放提醒（VALARM）。
+- 沒做：可訂閱的日曆網址（要讓沒登入的日曆 App 讀得到球隊行程，需要新的公開權杖，放到之後再評估）。
 
 ## 球員表現評分與 PR 值
 
@@ -393,7 +408,7 @@ YouTube 條款不允許把影片抓下來處理，所以分析一定用原始影
 | lineups | 一組陣容 | 賽制、陣型、每個位置的球員、分享連結 | seasons |
 | clips | 一個教練影片片段 | 開始 / 結束秒數、標記的球員、說明 | videos |
 | messages | 聊天室一則訊息 | 內容、附件（陣容 / 片段）、是否置頂、發文者 | seasons |
-| feedback | 一則意見回饋 | 類型、內容、截圖、頁面、版本、裝置、狀態、管理者回覆 | users |
+| feedback | 一則意見回饋（v2.9 實作成 `contact_messages`，見 F10） | 類型、內容、頁面、版本、裝置、狀態、管理者回覆（截圖之後再做） | users |
 
 - 三種 PR 都從 performance\_ratings 查出來：隊內 = 同賽季；全體 = 全部；同位置 = 同位置欄位。
 - 一個帳號加入幾支球隊，就有幾筆 memberships；權限規則都以「你在這個賽季有沒有 membership、是什麼身分」來判斷。
@@ -513,7 +528,7 @@ flowchart LR
 | v2.6.1 | 名單管理（F6.1）：球隊管理員新增球員、改姓名／背號／隊長；所有人都看得到管理專區、在裡面輸入管理員碼 | 背號、隊長不會重複 | S |
 | v2.7 | 練習行事曆與出席（F11）、AI 匯入練習 | 手機 1 分鐘內改好一次練習 | M |
 | v2.8 | 賽季進步追蹤（F8） | 跨賽季同一人資料連得起來 | S |
-| v2.9 | 意見回饋（F10，Discord 通知）、本隊試用、Google 表單和舊網站退役 | 關卡：隊友日常都用新網站 | S |
+| v2.9 | 意見回饋（F10，Discord 通知）、練習和比賽加到日曆（`.ics`）、全隊上線（2026-10-13 決定不另外試用，做完直接全隊上線）、Google 表單和舊網站退役（Streamlit 只留搬家公告，程式碼留在 repo） | 關卡：隊友日常都用新網站 | S |
 | v2.10 | **視覺改版（v2 最後一版）**：C「戰情室」風格（卡片變少、KPI 合成一條、標題霞鶩文楷＋內文思源黑體＋數字 Barlow Semi Condensed）；新 Logo（馬鈴薯足球圖＋「FOOTBALL ANALYSIS」窄體大寫＋「Potato」Kaushan Script，深色底 #E9B45C／淺色底 #9C5F27，favicon 另描簡化 SVG）；圖表捲到才播動畫（長條從 0 長、雷達從中心擴散）；未登入首頁改成三人傳球、射中橫桿彈回第一人的循環動畫（取代戰術板）；參考其他運動網站挑的功能；**完整資安檢查**（對照 OWASP Top 10：每張表的 RLS 和每個 security definer 函式逐一檢查、Supabase Security Advisor、金鑰有沒有出現在程式碼或 git 歷史、`npm audit` 和 Python 套件漏洞、安全標頭與 CSP、登入和同意流程、輸入長度與次數限制、分享連結和 Discord webhook 會不會洩漏資料、刪帳號和下載資料是否完整；發現的問題分級修好，寫成 `docs/SECURITY_REVIEW.md`） | 360／390 寬和 iPad 驗收；設了「減少動態效果」不播動畫；資安檢查沒有高風險問題未修 | M |
 
 ### 階段 3：影片分析

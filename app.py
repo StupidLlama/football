@@ -20,6 +20,17 @@ APP_NAME = "Football Analysis Potato"
 st.set_page_config(page_title=APP_NAME, page_icon="🥔", layout="wide")
 inject_css()
 
+# v2.9 舊網站退役：只顯示搬家公告（設定在 config/settings.toml 的 [site] moved_to，清空就恢復舊網站）
+if config.moved_to():
+    st.title(f"🥔 {APP_NAME} 搬家了！")
+    st.markdown(
+        "舊網站已經停止更新，球員資料、能力表、組隊、比賽、聊天室都搬到**新網站**了。\n\n"
+        "第一次用：用 Google 帳號登入 → 輸入球隊管理員給你的 **Team ID** → 在名單上找到自己 → 填能力表。"
+    )
+    st.link_button("前往新網站", config.moved_to(), type="primary", icon=":material/arrow_forward:")
+    st.caption("這個網站的程式碼還留在 GitHub（軟工課的 Clean Architecture 範例），但不再顯示球隊資料。")
+    st.stop()
+
 PAGES = [
     st.Page("infra/ui/pages/home.py", title="首頁", icon=":material/home:", default=True),
     st.Page("infra/ui/pages/player.py", title="球員報告", icon=":material/person:"),

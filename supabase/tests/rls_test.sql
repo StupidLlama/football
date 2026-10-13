@@ -414,13 +414,13 @@ select pg_temp.must_fail($q$insert into public.contact_messages (user_id, catego
 select pg_temp.expect((select count(*) from public.contact_messages), 5, '看得到自己的聯絡訊息');
 select pg_temp.login('00000000-0000-0000-0000-00000000000d');
 select pg_temp.expect((select count(*) from public.contact_messages), 0, '球隊管理員看得到別人的聯絡訊息');
-with u as (update public.contact_messages set status = 'done' returning 1)
-select pg_temp.expect((select count(*) from u), 0, '球隊管理員改聯絡訊息狀態');
+-- v2.9 起狀態只能用函式改（0013 收回了直接 update 的權限），詳細測試在檔案最後的 v2.9 段
+select pg_temp.must_fail($q$update public.contact_messages set status = 'done'$q$, '球隊管理員直接改聯絡訊息狀態');
 select pg_temp.login('00000000-0000-0000-0000-00000000000f');
 -- 正式資料庫裡可能已經有真的聯絡訊息，所以只算這次測試新增的（created_at = 這個交易開始的時間）
 select pg_temp.expect((select count(*) from public.contact_messages where created_at = now()), 5, '網站管理員看得到所有聯絡訊息');
-with u as (update public.contact_messages set status = 'done' where created_at = now() returning 1)
-select pg_temp.expect((select count(*) from u), 5, '網站管理員改聯絡訊息狀態');
+select pg_temp.st(public.set_feedback_status(c.id, 'done'), 'ok', '網站管理員改聯絡訊息狀態')
+  from public.contact_messages c where c.created_at = now();
 -- 刪除名單上沒有連結帳號的名字
 select pg_temp.login('00000000-0000-0000-0000-00000000000a');
 select pg_temp.st(public.delete_unlinked_player('20000000-0000-0000-0000-0000000000a3'), 'forbidden', '球員刪名單上的名字');
@@ -1276,6 +1276,72 @@ select pg_temp.expect((select count(*) from public.ability_ratings where player_
                         ('20000000-0000-0000-0000-000000000051', current_setting('test.n51')::uuid)), 0, '刪帳號後兩季的能力表都不見');
 select pg_temp.expect((select count(*) from public.teams where id = '10000000-0000-0000-0000-000000000051' and archived_at is not null), 1,
                       '刪帳號後舊賽季還是封存');
+
+-- ============ v2.9 意見回饋：版本、裝置、狀態、回覆、已讀 ============
+-- 31 = 送回饋的人、32 = 別人（一般使用者）、f = 網站管理員
+insert into auth.users (id, email) values
+  ('00000000-0000-0000-0000-000000000031', 'rls-31@example.test'),
+  ('00000000-0000-0000-0000-000000000032', 'rls-32@example.test');
+set local role authenticated;
+select pg_temp.login('00000000-0000-0000-0000-000000000031');
+-- 舊網站的三個參數呼叫還能用（版本、裝置有預設值）
+select pg_temp.st(public.send_contact_message('bug', '舊網站送的'), 'ok', '三個參數送回饋');
+select pg_temp.st(public.send_contact_message('suggestion', '新網站送的', '/t/x/players', 'v2.9', '手機 · Safari'), 'ok',
+                  '帶版本和裝置送回饋');
+select pg_temp.expect((select count(*) from public.contact_messages
+                        where body = '新網站送的' and version = 'v2.9' and device = '手機 · Safari'), 1, '版本和裝置有存');
+select set_config('test.fb', (select id::text from public.contact_messages where body = '新網站送的'), true);
+-- 本人不能改狀態、不能回覆自己、不能直接改欄位
+select pg_temp.st(public.set_feedback_status(current_setting('test.fb')::uuid, 'done'), 'forbidden', '本人改回饋狀態');
+select pg_temp.st(public.reply_feedback(current_setting('test.fb')::uuid, '自問自答'), 'forbidden', '本人回覆自己的回饋');
+select pg_temp.must_fail($q$update public.contact_messages set reply = '偷改' where user_id = auth.uid()$q$, '直接改回覆欄位');
+select pg_temp.must_fail($q$update public.contact_messages set reply_read_at = now() where user_id = auth.uid()$q$, '直接改已讀時間');
+-- 別人看不到、也改不了
+select pg_temp.login('00000000-0000-0000-0000-000000000032');
+select pg_temp.expect((select count(*) from public.contact_messages where user_id = '00000000-0000-0000-0000-000000000031'), 0,
+                      '別人看得到我的回饋');
+select pg_temp.st(public.set_feedback_status(current_setting('test.fb')::uuid, 'doing'), 'forbidden', '別人改回饋狀態');
+select pg_temp.st(public.mark_feedback_read(), 'ok', '別人標記已讀（只影響自己的）');
+-- 網站管理員：改狀態、回覆
+select pg_temp.login('00000000-0000-0000-0000-00000000000f');
+select pg_temp.st(public.set_feedback_status(current_setting('test.fb')::uuid, 'doing'), 'ok', '網站管理員改成處理中');
+select pg_temp.st(public.set_feedback_status(current_setting('test.fb')::uuid, 'lost'), 'invalid', '不存在的狀態');
+select pg_temp.st(public.set_feedback_status('99999999-0000-0000-0000-000000000000', 'done'), 'not_found', '不存在的回饋');
+select pg_temp.st(public.reply_feedback(current_setting('test.fb')::uuid, '   '), 'invalid', '空白回覆');
+select pg_temp.st(public.reply_feedback(current_setting('test.fb')::uuid, '謝謝，已經修好', 'done'), 'ok', '網站管理員回覆並標成已解決');
+select pg_temp.expect((select count(*) from public.contact_messages where id = current_setting('test.fb')::uuid
+                        and status = 'done' and reply = '謝謝，已經修好' and replied_at is not null and reply_read_at is null), 1,
+                      '回覆和狀態都有存');
+select pg_temp.st(public.reply_feedback(current_setting('test.fb')::uuid, '補充說明'), 'ok', '只回覆、不改狀態');
+select pg_temp.expect((select count(*) from public.contact_messages where id = current_setting('test.fb')::uuid and status = 'done'), 1,
+                      '沒給狀態時狀態不變');
+-- 別人標記已讀不會影響 31 的回饋
+select pg_temp.login('00000000-0000-0000-0000-000000000032');
+select pg_temp.st(public.mark_feedback_read(), 'ok', '別人再標一次已讀');
+select pg_temp.login('00000000-0000-0000-0000-000000000031');
+select pg_temp.expect((select count(*) from public.contact_messages where user_id = auth.uid() and reply = '補充說明'
+                        and reply_read_at is null), 1, '別人的已讀沒影響到我');
+select pg_temp.expect(((public.mark_feedback_read() ->> 'marked'))::bigint, 1, '本人標記已讀');
+select pg_temp.expect((select count(*) from public.contact_messages where user_id = auth.uid() and reply_read_at is not null), 1,
+                      '已讀時間有存');
+select pg_temp.expect((select jsonb_array_length(public.export_my_data() -> 'contact_messages')), 2, '下載資料有回饋');
+select pg_temp.expect((select count(*) from jsonb_array_elements(public.export_my_data() -> 'contact_messages') e
+                        where e ->> 'reply' = '補充說明' and e ->> 'device' = '手機 · Safari'), 1, '下載資料有回覆和裝置');
+reset role;
+set local role anon;
+select set_config('request.jwt.claims', '', true);
+select pg_temp.must_fail($q$select public.set_feedback_status('99999999-0000-0000-0000-000000000000', 'done')$q$, '沒登入改回饋狀態');
+select pg_temp.must_fail($q$select public.reply_feedback('99999999-0000-0000-0000-000000000000', 'x')$q$, '沒登入回覆');
+select pg_temp.must_fail('select public.mark_feedback_read()', '沒登入標記已讀');
+select pg_temp.must_fail($q$select public.send_contact_message('bug', 'x')$q$, '沒登入送回饋');
+reset role;
+-- 刪帳號時回饋跟著刪
+set local role authenticated;
+select pg_temp.login('00000000-0000-0000-0000-000000000031');
+select pg_temp.st(public.delete_my_account(), 'ok', '送過回饋的人刪帳號');
+reset role;
+select pg_temp.expect((select count(*) from public.contact_messages where user_id = '00000000-0000-0000-0000-000000000031'), 0,
+                      '刪帳號後回饋不見');
 
 select 'RLS OK' as result;
 rollback;

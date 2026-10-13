@@ -50,6 +50,11 @@ def load_feedback_url(path: Path = SETTINGS_PATH) -> str:
     return str(_read(path).get("feedback", {}).get("url", "")).strip()
 
 
+def load_moved_to(path: Path = SETTINGS_PATH) -> str:
+    """[site] moved_to：舊網站搬家後的新網址；有值時 app.py 只顯示搬家公告（v2.9 舊網站退役）。"""
+    return str(_read(path).get("site", {}).get("moved_to", "")).strip()
+
+
 @dataclass(frozen=True)
 class ScheduleSettings:
     team: str
@@ -94,6 +99,10 @@ def form_spec() -> FormSpec:
 @lru_cache(maxsize=1)
 def feedback_url() -> str:
     return load_feedback_url()
+
+
+def moved_to() -> str:
+    return load_moved_to()
 
 
 @lru_cache(maxsize=1)

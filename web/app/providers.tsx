@@ -2,6 +2,7 @@
 import { useEffect, type ReactNode } from "react";
 import { AuthProvider } from "@/lib/auth";
 import { ChalkDefs, ToastProvider } from "@/components/ui";
+import { FeedbackFab } from "@/components/feedback";
 import { loadTextSize } from "@/lib/prefs";
 
 export function Providers({ children }: { children: ReactNode }) {
@@ -12,6 +13,8 @@ export function Providers({ children }: { children: ReactNode }) {
       <ToastProvider>
         <ChalkDefs />
         {children}
+        {/* v2.9：每一頁右下角的意見回饋按鈕（登入後才出現） */}
+        <FeedbackFab />
       </ToastProvider>
     </AuthProvider>
   );

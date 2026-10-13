@@ -15,6 +15,7 @@ ACTIONS = {"join_team", "start_new_season", "get_progress", "get_team_progress",
 HELPERS = {"season_guard", "players_prev_guard", "progress_chain"}
 
 # 每張屬於球隊的表都要有守門員（memberships 只擋加入；chat_reads 刻意不擋：看舊聊天室要記讀到哪裡）
+# contact_messages（v2.9 意見回饋）也刻意不擋：回饋屬於使用者、不屬於任何球隊（tests/test_v29.py 有檢查）
 GUARDED = {"teams", "memberships", "players", "ability_ratings", "fixtures", "duties", "coach_codes", "lineups",
            "matches", "attendance", "practices", "practice_attendance", "messages", "chat_discord"}
 

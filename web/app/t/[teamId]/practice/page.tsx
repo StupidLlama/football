@@ -10,6 +10,8 @@ import { answerOfPractice, groupByDay, practiceDay, practiceStatus, titleOf, whe
 import { useTeamView } from "@/lib/team";
 import { PracticeCalendar } from "@/components/practice-calendar";
 import { PracticeDayPanel } from "@/components/practice-day-panel";
+import { AddToCalendar } from "@/components/add-to-calendar";
+import { seasonEvents } from "@/lib/ics";
 import { PracticeForm } from "@/components/practice-form";
 import { PracticeImportPanel } from "@/components/practice-import-panel";
 import { PracticeSeries } from "@/components/practice-series";
@@ -63,13 +65,18 @@ export default function PracticePage() {
     <section className="stack" style={{ gap: 16 }}>
       <header style={{ display: "flex", flexWrap: "wrap", gap: "8px 16px", alignItems: "baseline", justifyContent: "space-between" }}>
         <h1 className="hide-sm" style={{ margin: 0, fontSize: 30 }}>練習</h1>
+        <div className="chips">
+          {/* v2.9：還沒結束的練習和比賽一次加到日曆 */}
+          <AddToCalendar events={seasonEvents(v.data.practices, v.data.matches, v.data.team.name, now)}
+            calName={v.data.team.name} fileName={`${v.data.team.name}-${v.data.team.season ?? "行程"}`} label="整季加到日曆" />
         {canManage && (
-          <div className="chips">
+          <>
             <button type="button" className="btn btn-main btn-sm" onClick={() => setMode({ kind: "form", practice: null, day: selected ?? today })}>＋ 新增練習</button>
             <button type="button" className="btn btn-line btn-sm" onClick={() => setMode({ kind: "series" })}>固定練習</button>
             <button type="button" className="btn btn-line btn-sm" onClick={() => setMode({ kind: "import" })}>用 AI 匯入</button>
-          </div>
+          </>
         )}
+        </div>
       </header>
 
       <div ref={modeRef}>

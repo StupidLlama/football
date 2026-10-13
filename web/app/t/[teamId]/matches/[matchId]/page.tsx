@@ -10,6 +10,8 @@ import { BackButton } from "@/components/back-button";
 import { AttendanceButtons } from "@/components/attendance-buttons";
 import { ConfirmButton } from "@/components/confirm-button";
 import { MatchForm } from "@/components/match-form";
+import { AddToCalendar } from "@/components/add-to-calendar";
+import { matchEvent } from "@/lib/ics";
 import { ErrorBox, useNow, useToast } from "@/components/ui";
 
 const BUCKET_LABEL = { in: "出席", out: "請假", pending: "還沒回覆" } as const;
@@ -86,12 +88,16 @@ export default function MatchDetailPage() {
       <BackButton fallback={`/t/${teamId}/matches`} />
       <header style={{ display: "flex", flexWrap: "wrap", gap: "8px 16px", alignItems: "baseline", justifyContent: "space-between" }}>
         <h1 className="hide-sm" style={{ margin: 0, fontSize: 30 }}>vs {m.opponent}</h1>
-        {v.isCoach && !v.archived && (
-          <div className="chips">
-            <button type="button" className="btn btn-line btn-sm" onClick={() => setEditing(true)}>編輯</button>
-            <ConfirmButton label="刪除" confirm="確定刪除？" onConfirm={onDelete} className="btn btn-danger btn-sm" />
-          </div>
-        )}
+        <div className="chips">
+          {!locked && <AddToCalendar events={[matchEvent(m, v.data.team.name)]} calName={v.data.team.name}
+            fileName={`${v.data.team.name}-vs-${m.opponent}`} />}
+          {v.isCoach && !v.archived && (
+            <>
+              <button type="button" className="btn btn-line btn-sm" onClick={() => setEditing(true)}>編輯</button>
+              <ConfirmButton label="刪除" confirm="確定刪除？" onConfirm={onDelete} className="btn btn-danger btn-sm" />
+            </>
+          )}
+        </div>
       </header>
 
       <div className="panel pad stack" style={{ gap: 8 }}>
