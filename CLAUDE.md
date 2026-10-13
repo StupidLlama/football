@@ -171,7 +171,8 @@ py web/scripts/sync_config.py              # 改了 config/settings.toml 的能�
 
 ## 下一步（2026-10-13）
 
-- **v2.8 賽季進步追蹤與出席率：程式與文件寫好（分支 `v2.8`），資料庫 0012 已在 Supabase 執行（RLS OK）。** 待辦：你在電腦跑 `pytest`、`typecheck`、`npm test`，用「測試隊」照 `docs/V2_8_SETUP.md` 驗收，然後合併 main、打標籤 `v2.8`。隱私權政策已更新、`POLICY_VERSION = 2026-10-13`，上線後大家要重新同意一次。
+- **v2.8 賽季進步追蹤與出席率：已上線（main @ `0fc3c28`，標籤 `v2.8`，0012 已執行）。** `POLICY_VERSION = 2026-10-13`，大家下次登入要重新同意。iPad 寬度還沒驗收。交接說明在 `docs/HANDOFF.md`（v2.8 → v2.9）。
+- **下一個：v2.9 意見回饋（F10）、全隊上線、舊網站退役**。開場指令在 `docs/HANDOFF.md` 第 0 節。
 - v2.7.1 的標籤已重打在 main（`c18a8b0`）。
 
 - v2.2 / v2.2.1：已上線（見 `docs/V2_2_1_SETUP.md` 的剩餘事項：Google 登入正式版、v2.2.1 標籤）。
