@@ -148,3 +148,23 @@ test("檔名不能有斜線這類符號", () => {
   assert.equal(icsFileName("資訊系足/2026 秋"), "資訊系足-2026-秋.ics");
   assert.equal(icsFileName("///"), "calendar.ics");
 });
+
+// ---------- 瀏覽器提醒 ----------
+import { browserNotice } from "../lib/browser-notice.ts";
+
+test("瀏覽器提醒：iOS Safari 和電腦不打擾", () => {
+  assert.equal(browserNotice(UA.iphone), null);
+  assert.equal(browserNotice(UA.ipad, 5), null, "iPad Safari 假裝成 Mac");
+  assert.equal(browserNotice(UA.edge), null);
+  assert.equal(browserNotice(""), null);
+});
+
+test("瀏覽器提醒：iOS 內建瀏覽器、其他瀏覽器、Android", () => {
+  assert.equal(browserNotice(UA.line)?.kind, "ios-inapp");
+  const chromeIos = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/126.0 Mobile/15E148 Safari/604.1";
+  assert.equal(browserNotice(chromeIos)?.kind, "ios-other");
+  assert.equal(browserNotice(UA.android)?.kind, "android");
+  assert.equal(browserNotice(UA.androidTab)?.kind, "android");
+  const lineAndroid = "Mozilla/5.0 (Linux; Android 14; Pixel 8; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/126.0 Mobile Safari/537.36 Line/14.9.0";
+  assert.equal(browserNotice(lineAndroid)?.kind, "android-inapp");
+});
