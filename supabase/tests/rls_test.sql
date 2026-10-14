@@ -1392,6 +1392,15 @@ select pg_temp.must_fail($q$update public.players set good_positions = '{CB}', b
                           where id = '20000000-0000-0000-0000-000000000210'$q$, '同一個位置又擅長又不擅長');
 select pg_temp.must_fail($q$update public.players set good_positions = array_fill('CB'::text, array[11])
                           where id = '20000000-0000-0000-0000-000000000210'$q$, '位置超過 10 個');
+-- null：文字「null」就是普通的字；真正的 NULL 一律擋下
+select pg_temp.st(public.post_message('10000000-0000-0000-0000-000000000210', 'null'), 'ok', '聊天室打「null」這個字');
+select pg_temp.st(public.post_message('10000000-0000-0000-0000-000000000210', null), 'invalid', '聊天室送真正的 NULL');
+select pg_temp.st(public.submit_self_rating('10000000-0000-0000-0000-000000000210', '{"passing": null}'), 'invalid', '能力分數是 NULL');
+select pg_temp.st(public.join_team(null), 'not_found', 'Team ID 是 NULL');
+select pg_temp.must_fail($q$update public.players set nickname = null
+                          where id = '20000000-0000-0000-0000-000000000210'$q$, '暱稱改成 NULL');
+select pg_temp.must_fail($q$update public.players set good_positions = '{NULL}'
+                          where id = '20000000-0000-0000-0000-000000000210'$q$, '位置裡塞 NULL');
 with u as (update public.players set good_positions = '{LB/RB,ST}', bad_positions = '{}'
             where id = '20000000-0000-0000-0000-000000000210' returning 1)
 select pg_temp.expect((select count(*) from u), 1, 'v2.10 LB/RB 這種位置可以');
