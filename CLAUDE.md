@@ -46,7 +46,7 @@ web/                       v2.2 Next.js 網站（Tools shell，TypeScript）：�
   lib/config.json          由 config/settings.toml 產生：py web/scripts/sync_config.py（不要手改）
   tests/                   node --test 的計算測試（npm test）
 backend/                   v2 後端（Tools shell）：main.py（FastAPI）、accounts.py（v2.1 帳號 API：加入、教練碼、認領、教練管理）、db.py（as_user = 用使用者身分查詢，RLS 生效）、auth.py（驗證 Supabase JWT）、importer.py（v1 資料匯入）、scripts/（migrate、rls_check）；v2.2 起網站不經過這個 API
-supabase/migrations/       v2 資料表與 RLS 的 SQL，編號只能往後加（0013_feedback.sql：聯絡我們升級成意見回饋、set_feedback_status / reply_feedback / mark_feedback_read；0012_seasons.sql：賽季系列 lineage_id、開新賽季 start_new_season、舊賽季唯讀 season_guard、進步資料 get_progress；0010_roster.sql：球隊管理員新增球員、改姓名／背號／隊長；0004_web.sql：網站用的資料表權限、submit_self_rating；0005_privacy.sql：同意紀錄、刪除帳號、下載資料、聯絡訊息；0006_career.sql：生涯開關 career_shared、set_career_shared、get_career）；supabase/tests/ 是權限測試
+supabase/migrations/       v2 資料表與 RLS 的 SQL，編號只能往後加（0014_security.sql：v2.10 資安修補（能力表只能用函式寫、資料表字數上限、下載資料補齊）；0013_feedback.sql：聯絡我們升級成意見回饋、set_feedback_status / reply_feedback / mark_feedback_read；0012_seasons.sql：賽季系列 lineage_id、開新賽季 start_new_season、舊賽季唯讀 season_guard、進步資料 get_progress；0010_roster.sql：球隊管理員新增球員、改姓名／背號／隊長；0004_web.sql：網站用的資料表權限、submit_self_rating；0005_privacy.sql：同意紀錄、刪除帳號、下載資料、聯絡訊息；0006_career.sql：生涯開關 career_shared、set_career_shared、get_career）；supabase/tests/ 是權限測試
 config/settings.toml       能力分類、表單欄位、位置適合度權重、回饋網址
 config/formations.toml     11 人制、8 人制陣型（位置、座標）
 config/performance.toml    比賽表現評分的維度與各位置權重（v4 才用）
@@ -65,7 +65,9 @@ docs/V2_6_1_SETUP.md       v2.6.1 上線步驟（0010、名單管理、管理專
 docs/V2_7_SETUP.md         v2.7 上線步驟（0011、練習月曆與出席、固定練習、AI 匯入；先跑 0011 再開網站）
 docs/V2_8_SETUP.md         v2.8 上線步驟（0012、賽季進步、開新賽季、舊賽季唯讀、出席率；先跑 0012 再開網站）
 docs/V2_9_SETUP.md         v2.9 上線步驟（0013、意見回饋、加到日曆、舊網站退役、給隊友的加入訊息）
+docs/V2_10_SETUP.md        v2.10 上線步驟（舊資料檢查 v210_precheck.sql、0014、舊網站金鑰清理）
 docs/SECURITY.md           金鑰保管、換金鑰、個資外洩處理順序
+docs/SECURITY_REVIEW.md    v2.10 資安檢查報告（OWASP 對照、分級、修了什麼、以後每版要做的）
 docs/HANDOFF.md            交接說明：上一版做了什麼、下一版要做什麼、環境的坑（新工作階段先讀它）
 ```
 
@@ -139,7 +141,7 @@ py web/scripts/sync_config.py              # 改了 config/settings.toml 的能�
 ## v2.4 組隊的規則
 
 - 排人演算法（加分扣分、位置適合度比對）寫在 `domain/`、`stats/lineup.py`（Python 版）和 `web/lib/lineup.ts`／`assignment.ts`（網站版），兩邊邏輯要一致；改規則後重新產生 `web/tests/fixtures/lineup_cases.json`（`py web/scripts/lineup_fixture.py`），讓 `web/tests/v24.test.ts` 能對照 Python 的答案驗證。加分扣分數字只能放 `config/settings.toml` 的 `[lineup]`，不要寫死。
-- 分享連結只能透過 `get_shared_lineup` 這一個函式讀（唯一 grant 給 anon 的函式），回傳欄位要白名單（背號、位置、隊名、陣型），絕對不能有球員 id、能力分數、是誰排的；新加欄位要同時檢查 `tests/test_v24.py` 的白名單測試。
+- 分享連結只能透過 `get_shared_lineup` 這一個函式讀（唯一 grant 給 anon 的函式），回傳欄位要白名單（背號、位置、隊名、賽季、陣型、比賽對手和時間；球員名字**只有分享的人勾「顯示名字」**（`share_names`）才給），絕對不能有球員 id、能力分數、是誰排的；新加欄位要同時檢查 `tests/test_v24.py` 的白名單測試。
 - 官方陣容（`kind='official'`）只有球隊管理員能存/刪；草稿（`kind='draft'`）只有自己能存/刪/分享，規則在 `save_lineup`／`delete_lineup`／`set_lineup_share` 裡，不要放寬 RLS。
 - 球場座標系統：105×68 公尺，進攻方向朝右（x 大 = 進攻方向），SVG 的 y 軸是往下的，畫的時候要用 `W - y` 反過來。
 
@@ -179,6 +181,16 @@ py web/scripts/sync_config.py              # 改了 config/settings.toml 的能�
 - 右下角回饋按鈕（`FeedbackFab`，放在 `app/providers.tsx`）：正在輸入時要藏起來；新增「整頁輸入」的頁面時確認它不會擋到送出鍵。
 - 瀏覽器提醒（`BrowserNoticePopup`，放在 `app/providers.tsx`）：只對手機／平板、不是 iOS Safari 時跳，每一種情況只跳一次（localStorage `fap.browserNoticeSeen`）；電腦不跳。
 - 加到日曆只在瀏覽器產生 `.ics`（`lib/ics.ts`）：時間寫 UTC、每行 CRLF、超過 75 位元組折行；**不放 VALARM**，提醒通知等接 LINE 機器人再做。
+
+## v2.10 資安的規則
+
+- 報告在 `docs/SECURITY_REVIEW.md`；以後每版照最後一節「以後每一版要做的」檢查。
+- **寫入一律經過 security definer 函式**（檢查身分、長度、次數）；不要再開放資料表直接 insert / update / delete。現在還開放直接寫的只有：本人改 `players` 的暱稱／位置／話、本人改 `profiles.display_name`、球隊管理員改 `teams`、`fixtures`、`duties`、`players`——這些表本身都有 check 上限（0014）。`ability_ratings` 只能用 `submit_self_rating`（`tests/test_v210.py` 會擋）。
+- 加 check 上限到已經有資料的表時用 `NOT VALID`，並附一個只讀的檢查 SQL（像 `supabase/tests/v210_precheck.sql`）先給使用者跑。
+- 新資料表要決定放不放進 `export_my_data`（`tests/test_v210.py` 的 `PERSONAL_TABLES` / `NOT_PERSONAL`）。
+- `rls_test.sql` 最後有整個資料庫的總檢查（沒開 RLS、給 anon 的權限、definer 沒固定 `search_path`、anon 能呼叫的 definer 函式只能是 `get_shared_lineup`）：新增開放給 anon 的函式時要一起改那個白名單，並在報告寫理由。
+- 跳轉網址一律經過 `lib/nav.ts` 的 `safeNext`（擋控制字元、用 URL 解析確認同一個網站）。
+- 資安問題修好、上線**之後**才把細節寫進公開 repo（commit 訊息不寫怎麼攻擊）。
 
 ## 下一步（2026-10-13）
 

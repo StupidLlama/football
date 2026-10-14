@@ -5,7 +5,7 @@
 --      網站本來就只用 submit_self_rating；匯入工具用管理者身分（db.admin），不受影響。
 --   2. 資料表本身也加上字數和格式的上限（跟資料庫函式、網站的檢查一樣或更寬）：
 --      players、teams、fixtures。用 NOT VALID：舊資料不檢查，新增和修改才檢查。
---      執行前先跑 docs/V2_10_SETUP.md 第 2 節的檢查 SQL，確認舊資料沒有超過上限的。
+--      執行前先跑 supabase/tests/v210_precheck.sql（只讀），確認舊資料沒有超過上限的（docs/V2_10_SETUP.md 第 2 節）。
 --   3. export_my_data（下載我的資料）補上：裁判任務、聊天室已讀時間、加入球隊／兌換管理員碼的嘗試紀錄。
 --
 -- 規則：已經執行過的檔案不要改；要改就新增 0015_xxx.sql。
