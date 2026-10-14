@@ -72,9 +72,14 @@ select pg_temp.must_fail($q$insert into public.fixtures (team_id, day, home, awa
                           values ('10000000-0000-0000-0000-00000000000a', '2026-11-01', 'x', 'y')$q$, '球員新增賽程');
 select pg_temp.must_fail($q$insert into public.players (team_id, name)
                           values ('10000000-0000-0000-0000-00000000000a', '偷加的人')$q$, '球員新增名單');
--- 自己的自評可以，別人的不行
+-- v2.10 起連自己的自評也不能直接 insert（要經過 submit_self_rating 的檢查）；後面測試要用的資料改用管理者身分建立
+select pg_temp.must_fail($q$insert into public.ability_ratings (team_id, player_id, scores)
+                          values ('10000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-0000000000a1', '{"passing": 4}')$q$,
+                         '球員直接 insert 自己的自評（v2.10）');
+reset role;
 insert into public.ability_ratings (team_id, player_id, scores)
   values ('10000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-0000000000a1', '{"passing": 4}');
+set local role authenticated;
 select pg_temp.must_fail($q$insert into public.ability_ratings (team_id, player_id, scores)
                           values ('10000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-0000000000a2', '{"passing": 5}')$q$,
                          '球員幫隊友填自評');
@@ -273,8 +278,11 @@ select pg_temp.st(public.decide_claim('10000000-0000-0000-0000-00000000000a', '0
 select pg_temp.login('00000000-0000-0000-0000-000000000010');
 select pg_temp.st(public.request_claim('10000000-0000-0000-0000-00000000000a', null, '另一個名字'),
                   'already_linked', '已經連上還要再認領');
+-- 後面測試要用的自評：v2.10 起直接 insert 只能用管理者身分
+reset role;
 insert into public.ability_ratings (team_id, player_id, scores)
   values ('10000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-0000000000a2', '{"passing": 5}');
+set local role authenticated;
 
 -- 不在名單上的新隊友：申請新增名字
 select pg_temp.login('00000000-0000-0000-0000-000000000011');
@@ -1343,6 +1351,93 @@ select pg_temp.st(public.delete_my_account(), 'ok', '送過回饋的人刪帳號
 reset role;
 select pg_temp.expect((select count(*) from public.contact_messages where user_id = '00000000-0000-0000-0000-000000000031'), 0,
                       '刪帳號後回饋不見');
+
+-- ============================================================
+-- v2.10 資安檢查（0014）：只動這一段自己新增的資料，每個 update / delete 都有 where
+-- ============================================================
+insert into auth.users (id, email) values
+  ('00000000-0000-0000-0000-000000000210', 'rls-210p@example.test'),   -- 球員
+  ('00000000-0000-0000-0000-000000000211', 'rls-210c@example.test');   -- 球隊管理員
+insert into public.teams (id, code, name) values ('10000000-0000-0000-0000-000000000210', 'RLS-TEST-210', 'v2.10 測試隊');
+insert into public.players (id, team_id, name) values
+  ('20000000-0000-0000-0000-000000000210', '10000000-0000-0000-0000-000000000210', '球員210'),
+  ('20000000-0000-0000-0000-000000000211', '10000000-0000-0000-0000-000000000210', '球員211');
+insert into public.memberships (team_id, user_id, role, player_id) values
+  ('10000000-0000-0000-0000-000000000210', '00000000-0000-0000-0000-000000000210', 'player', '20000000-0000-0000-0000-000000000210'),
+  ('10000000-0000-0000-0000-000000000210', '00000000-0000-0000-0000-000000000211', 'coach', '20000000-0000-0000-0000-000000000211');
+insert into public.fixtures (id, team_id, day, home, away) values
+  ('70000000-0000-0000-0000-000000000210', '10000000-0000-0000-0000-000000000210', '2026-11-01', '資訊', '對手');
+insert into public.duties (team_id, fixture_id, role, slot, player_id) values
+  ('10000000-0000-0000-0000-000000000210', '70000000-0000-0000-0000-000000000210', '主審', 1, '20000000-0000-0000-0000-000000000210');
+
+set local role authenticated;
+select pg_temp.login('00000000-0000-0000-0000-000000000210');
+-- 1. 能力表不能直接寫：分數、日期都會跳過檢查
+select pg_temp.must_fail($q$insert into public.ability_ratings (team_id, player_id, scores, submitted_at)
+                          values ('10000000-0000-0000-0000-000000000210', '20000000-0000-0000-0000-000000000210',
+                                  '{"passing": 999}', '2099-01-01')$q$, '球員直接塞 999 分、未來日期的自評');
+select pg_temp.st(public.submit_self_rating('10000000-0000-0000-0000-000000000210', '{"passing": 4}', '{CM}', '{GK}'),
+                  'ok', 'v2.10 球員照正常流程送能力表');
+-- 2. 球員資料：正常的改得動，塞爆、亂填位置的擋下
+with u as (update public.players set nickname = '阿210', message = '加油'
+            where id = '20000000-0000-0000-0000-000000000210' returning 1)
+select pg_temp.expect((select count(*) from u), 1, 'v2.10 球員正常改暱稱');
+select pg_temp.must_fail($q$update public.players set nickname = repeat('x', 41)
+                          where id = '20000000-0000-0000-0000-000000000210'$q$, '暱稱塞爆');
+select pg_temp.must_fail($q$update public.players set message = repeat('x', 1001)
+                          where id = '20000000-0000-0000-0000-000000000210'$q$, '給球隊的話塞爆');
+select pg_temp.must_fail($q$update public.players set good_positions = '{"<b>x</b>"}'
+                          where id = '20000000-0000-0000-0000-000000000210'$q$, '位置亂填');
+select pg_temp.must_fail($q$update public.players set good_positions = '{CB}', bad_positions = '{CB}'
+                          where id = '20000000-0000-0000-0000-000000000210'$q$, '同一個位置又擅長又不擅長');
+select pg_temp.must_fail($q$update public.players set good_positions = array_fill('CB'::text, array[11])
+                          where id = '20000000-0000-0000-0000-000000000210'$q$, '位置超過 10 個');
+with u as (update public.players set good_positions = '{LB/RB,ST}', bad_positions = '{}'
+            where id = '20000000-0000-0000-0000-000000000210' returning 1)
+select pg_temp.expect((select count(*) from u), 1, 'v2.10 LB/RB 這種位置可以');
+-- 3. 下載我的資料：有裁判任務、聊天室已讀、嘗試紀錄
+select pg_temp.st(public.mark_chat_read('10000000-0000-0000-0000-000000000210'), 'ok', 'v2.10 標記聊天室已讀');
+select pg_temp.expect((select count(*) from jsonb_array_elements(public.export_my_data() -> 'teams') e
+                        where e -> 'chat_last_read_at' <> 'null'::jsonb
+                          and jsonb_array_length(e -> 'referee_duties') = 1), 1, '下載資料有裁判任務和已讀時間');
+select pg_temp.expect((select count(*) from jsonb_object_keys(public.export_my_data()) k
+                        where k in ('join_attempts', 'coach_code_attempts')), 2, '下載資料有嘗試紀錄');
+
+select pg_temp.login('00000000-0000-0000-0000-000000000211');
+-- 4. 球隊管理員：一樣不能直接寫或刪能力表；隊名、賽程有字數上限
+select pg_temp.must_fail($q$insert into public.ability_ratings (team_id, player_id, scores)
+                          values ('10000000-0000-0000-0000-000000000210', '20000000-0000-0000-0000-000000000210',
+                                  '{"passing": 1}')$q$, '球隊管理員直接幫球員寫自評');
+select pg_temp.must_fail($q$delete from public.ability_ratings
+                          where team_id = '10000000-0000-0000-0000-000000000210'$q$, '球隊管理員直接刪自評');
+with u as (update public.teams set name = 'v2.10 測試隊改名' where id = '10000000-0000-0000-0000-000000000210' returning 1)
+select pg_temp.expect((select count(*) from u), 1, 'v2.10 球隊管理員正常改隊名');
+select pg_temp.must_fail($q$update public.teams set name = repeat('x', 41)
+                          where id = '10000000-0000-0000-0000-000000000210'$q$, '隊名塞爆');
+select pg_temp.must_fail($q$update public.teams set season = repeat('x', 21)
+                          where id = '10000000-0000-0000-0000-000000000210'$q$, '賽季名稱塞爆');
+select pg_temp.must_fail($q$update public.fixtures set note = repeat('x', 501)
+                          where id = '70000000-0000-0000-0000-000000000210'$q$, '賽程備註塞爆');
+select pg_temp.must_fail($q$update public.players set name = repeat('x', 41)
+                          where id = '20000000-0000-0000-0000-000000000211'$q$, '球隊管理員把名字塞爆');
+reset role;
+select pg_temp.expect((select count(*) from public.ability_ratings where team_id = '10000000-0000-0000-0000-000000000210'), 1,
+                      'v2.10 只有正常送出的那一份自評');
+
+-- 5. 整個資料庫的總檢查（以後新增的表、函式也會被抓到）
+select pg_temp.expect((select count(*) from pg_class c where c.relnamespace = 'public'::regnamespace
+                        and c.relkind = 'r' and not c.relrowsecurity), 0, '沒開 RLS 的表');
+select pg_temp.expect((select count(*) from information_schema.role_table_grants
+                        where table_schema = 'public' and grantee in ('anon', 'PUBLIC')), 0, '給沒登入的人的資料表權限');
+select pg_temp.expect((select count(*) from information_schema.role_table_grants
+                        where table_schema = 'public' and grantee = 'authenticated'
+                          and privilege_type in ('TRUNCATE', 'REFERENCES', 'TRIGGER')), 0, '給登入的人 TRUNCATE 之類的權限');
+select pg_temp.expect((select count(*) from pg_proc p where p.pronamespace = 'public'::regnamespace and p.prosecdef
+                        and not coalesce(array_to_string(p.proconfig, ',') like '%search_path=%', false)), 0,
+                      'security definer 函式沒固定 search_path');
+select pg_temp.expect((select count(*) from pg_proc p where p.pronamespace = 'public'::regnamespace and p.prosecdef
+                        and p.proname <> 'get_shared_lineup' and has_function_privilege('anon', p.oid, 'execute')), 0,
+                      '沒登入的人能呼叫的 security definer 函式（只有 get_shared_lineup 可以）');
 
 select 'RLS OK' as result;
 rollback;

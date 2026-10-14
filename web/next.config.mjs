@@ -39,6 +39,8 @@ const nextConfig = {
         { key: "X-Content-Type-Options", value: "nosniff" },
         { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
         { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=()" },
+        // v2.10：別的網站用 window.open 打開我們時，拿不到我們的視窗（Google 登入是整頁跳轉，不受影響）
+        { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
       ],
     }];
   },
