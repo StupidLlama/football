@@ -1438,6 +1438,11 @@ select pg_temp.expect((select count(*) from pg_proc p where p.pronamespace = 'pu
 select pg_temp.expect((select count(*) from pg_proc p where p.pronamespace = 'public'::regnamespace and p.prosecdef
                         and p.proname <> 'get_shared_lineup' and has_function_privilege('anon', p.oid, 'execute')), 0,
                       '沒登入的人能呼叫的 security definer 函式（只有 get_shared_lineup 可以）');
+select pg_temp.expect((select count(*) from pg_proc p where p.pronamespace = 'public'::regnamespace and p.prosecdef
+                        and p.prorettype = 'trigger'::regtype
+                        and (has_function_privilege('anon', p.oid, 'execute')
+                             or has_function_privilege('authenticated', p.oid, 'execute'))), 0,
+                      '觸發器用的 security definer 函式可以被直接呼叫');
 
 select 'RLS OK' as result;
 rollback;

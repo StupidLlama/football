@@ -15,6 +15,8 @@ grant usage on schema public, auth to anon, authenticated, service_role;
 grant execute on function auth.uid() to anon, authenticated;
 -- Supabase 預設會把 public 的資料表權限給這些角色，再靠 RLS 擋
 alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
+-- v2.10：Supabase 也預設把 public 的新函式執行權限給這些角色（Security Advisor 0028／0029 就是在抓這個）
+alter default privileges in schema public grant execute on functions to anon, authenticated, service_role;
 -- v2.6：模擬 pg_net（Supabase 內建的 HTTP 外掛）。真的 pg_net 會把要送的請求放進 net.http_request_queue，
 -- 交易提交後才真的送出；這裡只記下來，讓 rls_test 檢查「新主貼文有排進 Discord 通知、回覆沒有」。
 create schema if not exists net;

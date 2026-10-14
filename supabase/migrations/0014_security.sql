@@ -7,6 +7,7 @@
 --      players、teams、fixtures。用 NOT VALID：舊資料不檢查，新增和修改才檢查。
 --      執行前先跑 supabase/tests/v210_precheck.sql（只讀），確認舊資料沒有超過上限的（docs/V2_10_SETUP.md 第 2 節）。
 --   3. export_my_data（下載我的資料）補上：裁判任務、聊天室已讀時間、加入球隊／兌換管理員碼的嘗試紀錄。
+--   4. 收回觸發器函式 handle_new_user 的執行權限（Security Advisor 列出來的）。
 --
 -- 規則：已經執行過的檔案不要改；要改就新增 0015_xxx.sql。
 -- 上線順序：先在 Supabase 執行這個檔案（再跑 rls_test.sql），再部署網站。
@@ -131,3 +132,8 @@ end $$;
 
 revoke all on function public.export_my_data() from public, anon;
 grant execute on function public.export_my_data() to authenticated;
+
+-- ---------- 4. 觸發器用的函式不該被直接呼叫（Security Advisor 0029）----------
+-- Supabase 預設把 public 的新函式執行權限給 anon、authenticated；handle_new_user（0003，新帳號自動建 profile）
+-- 當時沒收回。直接呼叫觸發器函式本來就會失敗，這裡收回只是讓權限乾淨、Advisor 不再列出。
+revoke all on function public.handle_new_user() from public, anon, authenticated;
