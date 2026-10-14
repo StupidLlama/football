@@ -85,5 +85,5 @@ npm.cmd run dev
 
 - [ ] 問助手「測試是不是全部通過」→ 合併到 main（Vercel 自動部署）
 - [ ] 正式網站打開幾頁、登入、送一次回饋：Console 沒有 CSP 錯誤
-- [ ] 助手把 `docs/SECURITY_REVIEW.md`、`updates.ts`（`big: false`）、CLAUDE.md 一起 push
+- [ ] 助手把 `docs/SECURITY_REVIEW.md`、`updates.ts`（小版本，`big: true`）、CLAUDE.md 一起 push
 - [ ] GitHub 打標籤 `v2.10`（Target 選 `main`）
