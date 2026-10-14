@@ -1,8 +1,17 @@
 // 網站設定：安全標頭。
 const dev = process.env.NODE_ENV !== "production";
 // 只取「https://專案.supabase.co」這段（去掉前後空白和換行：環境變數貼上時常多一個換行，CSP 就會壞掉、連不到資料庫）
+// v2.10：正式版讀不到網址時「直接建置失敗」，不要悄悄放寬成所有 *.supabase.co（Vercel 建置失敗時，舊版網站照常運作）。
+// 只有本機開發（npm run dev）才用萬用字元，方便還沒建 .env.local 時也能打開。
 function origin(raw) {
-  try { return new URL((raw ?? "").trim()).origin; } catch { return "https://*.supabase.co"; }
+  try {
+    const u = new URL((raw ?? "").trim());
+    if (u.protocol !== "https:" && !dev) throw new Error("not https");
+    return u.origin;
+  } catch {
+    if (dev) return "https://*.supabase.co";
+    throw new Error("NEXT_PUBLIC_SUPABASE_URL 沒有設定或格式不對（要像 https://abcdefgh.supabase.co），CSP 無法建立");
+  }
 }
 const supabase = origin(process.env.NEXT_PUBLIC_SUPABASE_URL);
 const supabaseWs = supabase.replace(/^https:/, "wss:");

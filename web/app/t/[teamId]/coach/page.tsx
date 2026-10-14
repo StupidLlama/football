@@ -462,7 +462,7 @@ function TeamSettings() {
       {guard}
       <form onSubmit={save} className="panel pad" style={{ maxWidth: 560, display: "flex", flexDirection: "column", gap: 12 }}>
         {error && <ErrorBox text={error} />}
-        <label className="label">隊伍名稱<input className="field" value={name} onChange={(e) => setName(e.target.value)} maxLength={60} required /></label>
+        <label className="label">隊伍名稱<input className="field" value={name} onChange={(e) => setName(e.target.value)} maxLength={40} required /></label>
         <label className="label">賽季（例如 2026-27）<input className="field" value={season} onChange={(e) => setSeason(e.target.value)} maxLength={20} /></label>
         <label className="label">聯賽賽程表上的隊名（例如「資訊」，用來找出我們隊的比賽和裁判任務）
           <input className="field" value={league} onChange={(e) => setLeague(e.target.value)} maxLength={20} />

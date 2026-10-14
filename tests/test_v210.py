@@ -113,6 +113,22 @@ def test_security_headers_v210():
     assert "frame-ancestors 'none'" in cfg and "object-src 'none'" in cfg
 
 
+def test_csp_never_silently_widens_in_production():
+    """Trail of Bits insecure-defaults／sharp-edges：讀不到 Supabase 網址時，正式版要建置失敗，不能放寬成 *.supabase.co。"""
+    cfg = (WEB / "next.config.mjs").read_text(encoding="utf-8")
+    body = cfg[cfg.index("function origin("):cfg.index("const supabase =")]
+    assert "throw new Error" in body and "if (dev) return" in body
+
+
+def test_web_limits_fit_table_limits():
+    """網站輸入框的上限不能比資料表的 check 寬，不然使用者會看到資料庫錯誤（differential-review 找到的隊名 60 vs 40）。"""
+    coach = (WEB / "app" / "t" / "[teamId]" / "coach" / "page.tsx").read_text(encoding="utf-8")
+    m = re.search(r"隊伍名稱<input[^>]*maxLength=\{(\d+)\}", coach)
+    assert m and int(m.group(1)) <= 40
+    m = re.search(r"賽季[^<]*<input[^>]*maxLength=\{(\d+)\}", coach)
+    assert m and int(m.group(1)) <= 20
+
+
 def test_consent_uses_safe_next():
     page = (WEB / "app" / "consent" / "page.tsx").read_text(encoding="utf-8")
     assert "safeNext(" in page
