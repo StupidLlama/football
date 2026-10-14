@@ -192,10 +192,13 @@ py web/scripts/sync_config.py              # 改了 config/settings.toml 的能�
 - 跳轉網址一律經過 `lib/nav.ts` 的 `safeNext`（擋控制字元、用 URL 解析確認同一個網站）。
 - 資安問題修好、上線**之後**才把細節寫進公開 repo（commit 訊息不寫怎麼攻擊）。
 
-## 下一步（2026-10-13）
+## 下一步（2026-10-14）
+
+- **v2.10 完整資安檢查：已上線（main @ `0cfbf1f`，0014 已執行，rls_test RLS OK）。** 報告 `docs/SECURITY_REVIEW.md`（沒有高風險；中風險 2 個、低風險 11 個，該修的都修了）；第二輪用 Trail of Bits 的 differential-review／insecure-defaults／sharp-edges 檢查清單。Supabase Auth：Email 確認開、密碼最短 8、擋外洩密碼開。還沒做：使用者清空 Streamlit secrets、停用 Google 服務帳號金鑰（`V2_10_SETUP.md` 第 6 節）、打標籤 `v2.10`。交接說明在 `docs/HANDOFF.md`（v2.10 → v2.11）。
+- **下一版 v2.11（v2 最後一版）：視覺改版**（SPEC 版本表），適合 Sonnet；上線後是階段切換（v2 → v3），交接說明要寫得更詳細。多語系往後變 v2.12。
 
 - **v2.9 意見回饋、加到日曆、舊網站退役：已上線（main @ `6341553`，標籤 `v2.9`，0013 已執行）。** 最後追加：不是 iOS Safari 的手機／平板跳一次瀏覽器提醒（`lib/browser-notice.ts`、`components/browser-notice.tsx`）。使用者手機驗收、關 Google 表單、貼加入訊息到隊群組還沒回報。還沒決定：Android「加到 Google 日曆」按鈕。交接說明在 `docs/HANDOFF.md`（v2.9 → v2.10）。
-- **下一版 v2.10（v2 最後一版）：完整資安檢查＋視覺改版**，建議拆成資安（Opus）先、視覺（Sonnet）後；上線後是階段切換，交接說明要寫得更詳細。
+- （2026-10-13 的計畫：v2.10 拆成資安 v2.10、視覺 v2.11，2026-10-14 決定。）
 
 - **v2.8 賽季進步追蹤與出席率：已上線（main @ `0fc3c28`，標籤 `v2.8`，0012 已執行）。** `POLICY_VERSION = 2026-10-13`，大家下次登入要重新同意。iPad 寬度還沒驗收。交接說明在 `docs/HANDOFF.md`（v2.8 → v2.9）。
 - v2.7.1 的標籤已重打在 main（`c18a8b0`）。
