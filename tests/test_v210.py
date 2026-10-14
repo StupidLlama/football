@@ -123,9 +123,9 @@ def test_csp_never_silently_widens_in_production():
 def test_web_limits_fit_table_limits():
     """網站輸入框的上限不能比資料表的 check 寬，不然使用者會看到資料庫錯誤（differential-review 找到的隊名 60 vs 40）。"""
     coach = (WEB / "app" / "t" / "[teamId]" / "coach" / "page.tsx").read_text(encoding="utf-8")
-    m = re.search(r"隊伍名稱<input[^>]*maxLength=\{(\d+)\}", coach)
+    m = re.search(r"隊伍名稱<input.*?maxLength=\{(\d+)\}", coach)
     assert m and int(m.group(1)) <= 40
-    m = re.search(r"賽季[^<]*<input[^>]*maxLength=\{(\d+)\}", coach)
+    m = re.search(r"賽季（[^<]*<input.*?maxLength=\{(\d+)\}", coach)
     assert m and int(m.group(1)) <= 20
 
 
