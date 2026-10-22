@@ -14,7 +14,8 @@ import { todosFor } from "@/lib/todos";
 import { fromChoice, PositionPicker, toChoice, WeakFootPicker, type PosChoice } from "@/components/position-picker";
 import { TodoList } from "@/components/todos";
 import { AttendanceRateCard } from "@/components/attendance-rate";
-import { fmt, Kpi, PosTag, Radar, RoleBadge, signed, useToast } from "@/components/ui";
+import { Radar, Rate, useToast } from "@/components/ui";
+import { PositionMap } from "@/components/position-map";
 
 export default function MePage() {
   const { teamId } = useParams<{ teamId: string }>();
@@ -27,9 +28,9 @@ export default function MePage() {
   return (
     <>
       {p ? <MyCard p={p} /> : (
-        <section className="panel" style={{ padding: "20px 24px", borderLeft: "4px solid #60A5FA" }}>
-          <p style={{ margin: 0, display: "flex", gap: 8, flexWrap: "wrap" }}><span className="pill">{v.data.team.name}</span><RoleBadge coach={v.isCoach} /></p>
-          <h1 style={{ margin: "8px 0 4px", fontSize: 30 }}>{auth.profile?.display_name || "歡迎"}</h1>
+        <section className="profile" style={{ display: "block" }}>
+          <p className="muted" style={{ margin: 0, fontSize: 14 }}>{v.data.team.name} · {v.isCoach ? "球隊管理員" : "球員"}</p>
+          <h1 style={{ margin: "4px 0", fontSize: 30 }}>{auth.profile?.display_name || "歡迎"}</h1>
           <p className="muted" style={{ margin: 0 }}>你還沒連到名單上的球員，所以還看不到自己的球員卡。</p>
         </section>
       )}
@@ -72,26 +73,35 @@ function MyCard({ p }: { p: PlayerView }) {
   const best = p.scores ? strengths(p.scores, v.rated.map((x) => x.scores!), RULES, 1).strong[0] : null;
   return (
     <>
-      <section aria-label="我的球員卡" className="panel" style={{ padding: "20px 24px", borderLeft: "4px solid #60A5FA", display: "flex",
-        flexWrap: "wrap", gap: "16px 32px", alignItems: "center" }}>
-        <div style={{ flex: "1 1 280px", minWidth: 0 }}>
-          <p style={{ margin: 0, display: "flex", gap: 8, flexWrap: "wrap" }}><span className="pill">{v.data.team.name}</span><RoleBadge coach={v.isCoach} /></p>
-          <h1 style={{ margin: "8px 0 0", fontSize: 38, lineHeight: 1.2 }}>
-            <span className="num" style={{ color: "#60A5FA", marginRight: 12 }}>{p.jersey_number ? `#${p.jersey_number}` : "#—"}</span>{p.name}
-          </h1>
-          <p className="muted" style={{ margin: "4px 0 12px" }}>{p.nickname ? `暱稱：${p.nickname}` : "還沒有暱稱"}</p>
-          <div className="tags">
-            {p.good_positions.map((x) => <PosTag key={x} pos={x} />)}
-            {p.bad_positions.map((x) => <PosTag key={x} pos={x} bad />)}
+      {/* v2.11：Sofascore／FotMob 球員頁的頁首：不包卡片，背號方塊＋名字＋一行資料、數據列、位置小球場、雷達圖 */}
+      <header aria-label="我的球員卡" className="profile">
+        <div style={{ flex: "1 1 320px", minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            <span className="shirt num" aria-label={`背號 ${p.jersey_number || "沒有"}`}>{p.jersey_number || "—"}</span>
+            <div style={{ minWidth: 0 }}>
+              <h1 style={{ margin: 0, fontSize: 34, lineHeight: 1.2 }}>{p.name}</h1>
+              <p className="muted" style={{ margin: "2px 0 0", fontSize: 14 }}>
+                {[v.data.team.name, v.isCoach ? "球隊管理員" : "球員", p.nickname && `暱稱 ${p.nickname}`].filter(Boolean).join(" · ")}
+              </p>
+            </div>
           </div>
+          {p.scores && best && (
+            <dl className="statrow">
+              <div><dt>平均能力</dt><dd><Rate v={p.avg} /></dd></div>
+              <div><dt>隊內排名</dt><dd className="num">{rank(p.avg, avgs)}<span className="faint" style={{ fontSize: 14 }}> / {v.rated.length}</span></dd></div>
+              <div><dt>推薦位置</dt><dd className="num">{p.rec[0]}</dd></div>
+              <div><dt>最強能力</dt><dd>{best.label}</dd></div>
+            </dl>
+          )}
+          <div style={{ maxWidth: 300, marginTop: 16 }}><PositionMap good={p.good_positions} bad={p.bad_positions} /></div>
         </div>
         {p.scores ? (
-          <figure style={{ margin: 0, flex: "0 1 240px", minWidth: 200 }}>
-            <Radar abilities={ABILITIES} showLabels={false} label={`${p.name} 的 21 項能力，和全隊平均比較`} series={[
-              { values: ABILITIES.map((a) => v.teamScores[a.key] ?? 0), color: "#8A97AD", dashed: true, width: 0.7 },
-              { values: ABILITIES.map((a) => p.scores![a.key] ?? 0), color: "#60A5FA", fill: "rgba(59,130,246,.25)", width: 1 },
+          <figure style={{ margin: 0, flex: "1 1 300px", minWidth: 0, maxWidth: 420 }}>
+            <Radar abilities={ABILITIES} label={`${p.name} 的 21 項能力，和全隊平均比較`} series={[
+              { values: ABILITIES.map((a) => v.teamScores[a.key] ?? 0), color: "#8A97AD", dashed: true, width: 0.7, name: "全隊平均" },
+              { values: ABILITIES.map((a) => p.scores![a.key] ?? 0), color: "#60A5FA", fill: "rgba(59,130,246,.25)", width: 1, name: p.name },
             ]} />
-            <figcaption className="faint" style={{ fontSize: 13, textAlign: "center" }}>藍色是你，灰色虛線是全隊平均</figcaption>
+            <figcaption className="faint" style={{ fontSize: 13, textAlign: "center" }}>藍色是你，灰色虛線是全隊平均；點能力名稱看分數</figcaption>
           </figure>
         ) : (
           <div style={{ flex: "0 1 260px" }}>
@@ -99,15 +109,7 @@ function MyCard({ p }: { p: PlayerView }) {
             <Link className="btn btn-main" href={`/t/${teamId}/form`}>填能力表（約 3 分鐘）</Link>
           </div>
         )}
-      </section>
-      {p.scores && best && (
-        <div className="kpis" style={{ marginTop: 16 }}>
-          <Kpi label="平均能力" value={<span className="num">{fmt(p.avg)}</span>} sub={`比隊平均 ${signed(p.avg - v.teamAvg)}`} />
-          <Kpi label="隊內排名" value={<span className="num">#{rank(p.avg, avgs)}</span>} sub={`共 ${v.rated.length} 人（依平均能力）`} />
-          <Kpi label="數據推薦位置" value={p.rec[0]} sub={`其次 ${p.rec.slice(1).join("、")}`} />
-          <Kpi label="最強能力" value={best.label} sub={`${best.score} 分，隊內 #${best.rank}`} />
-        </div>
-      )}
+      </header>
       {p.scores && (
         <p style={{ margin: "8px 0 0" }}><Link href={`/t/${teamId}/players/${p.id}`}>看完整的球員報告（隊友看到的我）</Link></p>
       )}

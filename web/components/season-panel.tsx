@@ -146,7 +146,7 @@ function NewSeason() {
 
   if (done) {
     return (
-      <section className="panel pad" role="status" style={{ borderLeft: "4px solid #2DD4BF" }}>
+      <section className="panel pad" role="status">
         <h2 style={{ margin: "0 0 4px", fontSize: 20 }}>新賽季開好了</h2>
         <p style={{ margin: "0 0 8px" }}>帶過去 {done.players} 位球員、{done.members} 個帳號{done.chat ? "；已在新賽季的聊天室發出通知" : ""}。舊賽季已經封存（只能看）。</p>
         <p className="faint" style={{ margin: "0 0 12px", fontSize: 14 }}>新賽季的 Team ID：<b className="num" style={{ color: "#E9EDF3", letterSpacing: "0.06em" }}>{done.code}</b>（舊的 Team ID 不能再用來加入）。</p>

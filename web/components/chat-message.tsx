@@ -97,7 +97,7 @@ export function ChatMessage({ thread, teamId, myUserId, isCoach, nameOf, lineups
 }) {
   const { post, replies } = thread;
   return (
-    <article className="panel pad stack" style={{ gap: 10, borderLeft: post.pinned_at ? "3px solid #F59E0B" : undefined }}>
+    <article className="panel pad stack" style={{ gap: 10 }}>
       <Row m={post} teamId={teamId} myUserId={myUserId} isCoach={isCoach} nameOf={nameOf} lineups={lineups} now={now} onChanged={onChanged} isReply={false} />
       <button type="button" className="btn btn-text btn-sm" style={{ alignSelf: "flex-start" }} onClick={onToggleOpen}>
         {open ? "收起回覆" : replies.length > 0 ? `${replies.length} 則回覆` : "回覆"}

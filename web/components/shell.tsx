@@ -70,7 +70,7 @@ function ArchivedBanner({ teamId }: { teamId: string }) {
   const lineage = view?.data.team.lineage_id;
   const latest = (auth.teams ?? []).filter((t) => t.team.lineage_id === lineage && !t.team.archived_at && t.team.id !== teamId)[0];
   return (
-    <div className="panel" role="status" style={{ padding: "12px 16px", marginBottom: 16, borderLeft: "4px solid #8A97AD", display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+    <div className="panel" role="status" style={{ padding: "12px 16px", marginBottom: 16, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
       <span style={{ flex: "1 1 260px" }}><b>這是舊賽季，只能看、不能修改。</b>
         <span className="muted"> 資料都還在，可以查當時的名單、比賽和能力表。</span></span>
       <Link className="btn btn-main btn-sm" href={latest ? `/t/${latest.team.id}` : "/teams"}>{latest ? `到最新賽季（${latest.team.season ?? latest.team.name}）` : "回到選球隊"}</Link>

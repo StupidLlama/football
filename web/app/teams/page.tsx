@@ -47,8 +47,7 @@ function Picker() {
           const coach = membership.role === "coach";
           const list = notes?.[team.id] ?? [];
           return (
-            <article key={team.id} className="panel" style={{ padding: "16px 20px", display: "flex", flexWrap: "wrap", gap: 16,
-              borderLeft: `4px solid ${coach ? "#F59E0B" : "#3B82F6"}` }}>
+            <article key={team.id} className="panel" style={{ padding: "16px 0", display: "flex", flexWrap: "wrap", gap: 16 }}>
               <div style={{ flex: "1 1 240px", minWidth: 0, display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-start" }}>
                 <h2 style={{ margin: 0, fontSize: 22 }}>{team.name}</h2>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
