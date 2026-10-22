@@ -131,7 +131,7 @@ export function TeamShell({ teamId, children }: { teamId: string; children: Reac
 
   return (
     <>
-      <div style={{ height: 4, background: view.isCoach ? "#F5A524" : "#3B82F6" }} />
+      <div style={{ height: 4, background: view.isCoach ? "#F59E0B" : "#3B82F6" }} />
       <div className="mobilebar">
         <button type="button" className="btn btn-line" onClick={() => setDrawer(true)} aria-label="打開選單" aria-expanded={drawer} style={{ padding: "0 12px" }}>
           <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 7h16M4 12h16M4 17h16" /></svg>

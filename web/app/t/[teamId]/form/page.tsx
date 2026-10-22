@@ -109,7 +109,7 @@ function AbilityForm({ p, teamId }: { p: PlayerView; teamId: string }) {
 
   if (done) {
     return (
-      <div className="panel" style={{ padding: 24, maxWidth: 640, borderTop: "3px solid #2DD4BF" }}>
+      <div className="panel" style={{ padding: 24, maxWidth: 640, borderTop: "3px solid #3B82F6" }}>
         <h1 style={{ margin: "0 0 4px", fontSize: 28 }}>送出了，謝謝！</h1>
         <p className="muted" style={{ margin: "0 0 16px" }}>隊友現在看得到你的能力雷達圖和擅長位置。之後有進步，隨時可以回來重填（舊的紀錄會保留）。</p>
         <div className="chips">
@@ -149,7 +149,7 @@ function AbilityForm({ p, teamId }: { p: PlayerView; teamId: string }) {
             return (
               <button key={s} type="button" className="chip" aria-current={i === d.step ? "step" : undefined} onClick={() => go(i)}
                 style={i === d.step ? { borderColor: "#60A5FA", background: "#16305E", color: "#fff", fontWeight: 700, minHeight: 32 }
-                  : { minHeight: 32, ...(full ? { borderColor: "#2DD4BF66", color: "#7EEADB" } : {}) }}>
+                  : { minHeight: 32, ...(full ? { borderColor: "#60A5FA66", color: "#93C5FD" } : {}) }}>
                 {full ? "✓ " : ""}{s}
               </button>
             );

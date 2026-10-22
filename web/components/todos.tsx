@@ -2,7 +2,7 @@
 import Link from "next/link";
 import type { Todo } from "@/lib/todos";
 
-const TONE = { main: "#2DD4BF", warn: "#F5A524", info: "#3B82F6" };
+const TONE = { main: "#60A5FA", warn: "#F59E0B", info: "#3B82F6" };
 
 /** 列表樣式（我的頁）。 */
 export function TodoList({ todos }: { todos: Todo[] }) {

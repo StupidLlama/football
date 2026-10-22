@@ -8,16 +8,13 @@ import { jerseyValue, rank, rankAsc, sortBy, type SortDir, type SortKey } from "
 import { read, write } from "@/lib/prefs";
 import { useTeamView } from "@/lib/team";
 import type { PlayerView } from "@/lib/teamview";
-import { Bar, fmt, Kpi, LegendLine, PrefTag, Radar, signed } from "@/components/ui";
+import { Bar, fmt, Kpi, LegendLine, PrefTag, Radar, Rate, signed } from "@/components/ui";
+import { rateTier } from "@/lib/rate-tier";
 import { AnimatedNumber } from "@/components/anim";
 import { diffs, groupAverage, playersAt, positionsWithPlayers } from "@/lib/compare";
 
 type Col = { label: string; val: (p: PlayerView) => number; dec: number };
 
-const heat = (v: number): CSSProperties => {
-  const t = Math.max(0, Math.min(1, (v - 1) / 4));
-  return { background: `rgba(59,130,246,${(0.10 + t * 0.70).toFixed(2)})`, color: t > 0.55 ? "#06122A" : "#E9EDF3" };
-};
 
 export default function PlayersPage() {
   const [tab, setTab] = useState<"list" | "compare">("list");
@@ -154,7 +151,7 @@ function Overview() {
                   <span className="c-num">
                     <span style={podium
                       ? { display: "inline-block", minWidth: 34, padding: "1px 6px", borderRadius: 99, textAlign: "center", fontWeight: 700,
-                          background: ["#F5A524", "#93C5FD", "#60A5FA"][rk - 1], color: "#0B1220" }
+                          background: ["#F59E0B", "#93C5FD", "#60A5FA"][rk - 1], color: "#0B1220" }
                       : { fontVariantNumeric: "tabular-nums", ...(rankMode ? { fontWeight: 700, color: "#C7D7F5" } : { color: "#8A97AD" }) }}>
                       {rankMode ? `#${rk}` : p.jersey_number || "—"}
                     </span>
@@ -164,16 +161,16 @@ function Overview() {
                     {rankMode && p.jersey_number && <span className="faint num" style={{ fontSize: 13, marginLeft: 6 }}>#{p.jersey_number}</span>}
                     {p.nickname && <span className="faint" style={{ fontSize: 13, marginLeft: 6 }}>{p.nickname}</span>}
                   </span>
-                  <span className="c-avg" style={{ fontSize: 18 }}>{fmt(p.avg)}</span>
+                  <span className="c-avg" style={{ fontSize: 18 }}><Rate v={p.avg} /></span>
                   <span className="c-sc">
                     {cols.map((c, i) => {
                       const val = c.val(p);
                       const ring = key === `col:${i}` ? { boxShadow: "0 0 0 2px #93C5FD" } : {};
                       if (cell === "rank") {
                         const r = rank(val, P.map(c.val));
-                        return <span key={c.label} className="sc" style={{ ...heat(5 - (4 * (r - 1)) / Math.max(1, P.length - 1)), fontSize: 14, ...ring }}>#{r}</span>;
+                        return <span key={c.label} className={`sc tier-${rateTier(5 - (4 * (r - 1)) / Math.max(1, P.length - 1))}`} style={{ fontSize: 14, ...ring }}>#{r}</span>;
                       }
-                      return <span key={c.label} className="sc" style={{ ...heat(val), ...ring }}>{fmt(val, c.dec)}</span>;
+                      return <span key={c.label} className={`sc tier-${rateTier(val)}`} style={ring}>{fmt(val, c.dec)}</span>;
                     })}
                   </span>
                   <span className="c-pos">
@@ -244,7 +241,7 @@ function Compare() {
   const bName = mode === "player" ? Bp.name : mode === "pos" ? `${curPos} 平均` : "全隊平均";
   const avgLike = mode !== "player";
   const top = mode === "pos-empty" ? [] : diffs(A.scores!, bScores, RULES).slice(0, 5);
-  const diffStyle = (d: number): CSSProperties => ({ textAlign: "right", color: d > 0 ? "#2DD4BF" : d < 0 ? "#F5A524" : "#8A97AD" });
+  const diffStyle = (d: number): CSSProperties => ({ textAlign: "right", color: d > 0 ? "#2DD4BF" : d < 0 ? "#F59E0B" : "#8A97AD" });
   const bColor = mode === "player" ? "#F59E0B" : "#8A97AD";
 
   return (

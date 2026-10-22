@@ -10,6 +10,7 @@ import { rank, strengths } from "@/lib/rating";
 import { useTeamView } from "@/lib/team";
 import { Bar, CaptainBadge, dateLabel, Feet, fmt, footText, Kpi, LegendLine, PrefTag, Radar } from "@/components/ui";
 import { AnimatedNumber } from "@/components/anim";
+import { rateTier } from "@/lib/rate-tier";
 import { CareerPanel } from "@/components/career";
 import { ProgressPanel } from "@/components/progress";
 import { AttendanceRateCard } from "@/components/attendance-rate";
@@ -64,7 +65,7 @@ export default function ReportPage() {
       {back}
       {header}
       <div className="kpis" style={{ marginTop: 16 }}>
-        <Kpi label="平均能力" value={<AnimatedNumber value={R.avg} />} sub={<>比隊平均 <AnimatedNumber value={R.avg - v.teamAvg} signed /></>} />
+        <Kpi label="平均能力" value={<span className={`rate tier-${rateTier(R.avg)}`} style={{ fontSize: "inherit", padding: "0 10px" }}><AnimatedNumber value={R.avg} /></span>} sub={<>比隊平均 <AnimatedNumber value={R.avg - v.teamAvg} signed /></>} />
         <Kpi label="隊內排名" value={`#${rank(R.avg, avgs)}`} sub={`共 ${v.rated.length} 人（依平均能力）`} />
         <Kpi label="數據推薦位置" value={R.rec[0]} sub={`其次 ${R.rec.slice(1).join("、")}`} />
         <Kpi label="最強能力" value={best.label} sub={`${best.score} 分，隊內 #${best.rank}`} />

@@ -37,11 +37,11 @@ export function AttendanceButtons({ answer, locked, onAnswer, what = "比賽" }:
   return (
     <div className="chips" role="group" aria-label="出席登記">
       <button type="button" className="btn btn-lg" disabled={busy} aria-pressed={answer === "in"} onClick={() => tap("in")}
-        style={answer === "in" ? { background: "#2DD4BF", color: "#06201C", border: 0, fontWeight: 700 } : { border: "1px solid #2DD4BF", background: "transparent", color: "#86EFAC" }}>
+        style={answer === "in" ? { background: "#3B82F6", color: "#FFFFFF", border: 0, fontWeight: 700 } : { border: "1px solid #60A5FA", background: "transparent", color: "#93C5FD" }}>
         出席
       </button>
       <button type="button" className="btn btn-lg" disabled={busy} aria-pressed={answer === "out"} onClick={() => tap("out")}
-        style={answer === "out" ? { background: "#FB7185", color: "#2A0A10", border: 0, fontWeight: 700 } : { border: "1px solid #FB7185", background: "transparent", color: "#FCA5A5" }}>
+        style={answer === "out" ? { background: "#F59E0B", color: "#1A1206", border: 0, fontWeight: 700 } : { border: "1px solid #F59E0B", background: "transparent", color: "#FBBF5A" }}>
         請假
       </button>
     </div>

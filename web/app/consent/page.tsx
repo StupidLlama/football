@@ -36,7 +36,7 @@ function Consent() {
     router.replace("/");
   }
 
-  const box = { width: 22, height: 22, accentColor: "#2DD4BF", flex: "none", marginTop: 3 } as const;
+  const box = { width: 22, height: 22, accentColor: "#3B82F6", flex: "none", marginTop: 3 } as const;
   return (
     <div style={{ maxWidth: 560, margin: "0 auto", padding: "32px 20px 48px" }}>
       <p style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 700, margin: "0 0 24px" }}><Logo size={28} text /></p>

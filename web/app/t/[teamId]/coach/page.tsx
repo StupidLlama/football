@@ -269,7 +269,7 @@ function Progress() {
           <div key={p.id} className="tr" role="row" style={{ gridTemplateColumns: cols }}>
             <span role="cell">{p.name}{p.jersey_number && <span className="faint num" style={{ marginLeft: 6, fontSize: 13 }}>#{p.jersey_number}</span>}</span>
             <span role="cell" className={p.accountId ? "" : "faint"} style={{ fontSize: 14 }}>{p.accountId ? "已連結" : "還沒有"}</span>
-            <span role="cell" style={{ fontSize: 14, color: p.scores ? "#2DD4BF" : "#F5A524" }}>{p.scores ? `✓ ${dateLabel(p.submittedAt)}` : "還沒填"}</span>
+            <span role="cell" style={{ fontSize: 14, color: p.scores ? "#2DD4BF" : "#F59E0B" }}>{p.scores ? `✓ ${dateLabel(p.submittedAt)}` : "還沒填"}</span>
             <span role="cell" style={{ textAlign: "right" }}>
               {!p.accountId && <ConfirmButton label="刪除" confirm="確定刪除？" onConfirm={() => removeName(p.id, p.name)} />}
             </span>
@@ -387,7 +387,7 @@ function Codes() {
       {error && <ErrorBox text={error} />}
       <div className="panel pad">
         <p className="muted" style={{ margin: 0, fontSize: 14 }}>Team ID（傳給隊友，他們輸入就能加入）</p>
-        <p className="num" style={{ margin: "4px 0 12px", fontSize: 34, letterSpacing: "0.08em", color: "#F5A524" }}>{v.data.team.code}</p>
+        <p className="num" style={{ margin: "4px 0 12px", fontSize: 34, letterSpacing: "0.08em", color: "#F59E0B" }}>{v.data.team.code}</p>
         <div className="chips">
           <button type="button" className="btn btn-line" onClick={() => copy(v.data.team.code)}>複製 Team ID</button>
           <ConfirmButton label="重設 Team ID" confirm="確定重設？舊的會失效" className="btn btn-danger" disabled={busy} onConfirm={reset} />
@@ -407,7 +407,7 @@ function Codes() {
         </div>
         <p className="faint" style={{ margin: "8px 0 0", fontSize: 13 }}>期限內可以給好幾位球隊管理員用。輸錯 5 次的人會被封鎖，要在「成員」解除。</p>
         {newCode && (
-          <div role="status" style={{ margin: "12px 0 0", padding: "12px 16px", borderRadius: 10, border: "1px dashed #F5A524" }}>
+          <div role="status" style={{ margin: "12px 0 0", padding: "12px 16px", borderRadius: 10, border: "1px dashed #F59E0B" }}>
             新的管理員碼：<b className="num accent" style={{ fontSize: 22, letterSpacing: "0.06em" }}>{newCode}</b>
             <button type="button" className="btn btn-text" onClick={() => copy(newCode)}>複製</button>
             <span className="faint" style={{ display: "block", fontSize: 13 }}>只會顯示這一次，請私訊給要當球隊管理員的人。</span>

@@ -55,7 +55,7 @@ function Row({ m, teamId, myUserId, isCoach, nameOf, lineups, now, onChanged, is
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "baseline" }}>
         <b style={{ fontSize: isReply ? 14 : 16 }}>{author}</b>
         {label && <span className="tag" style={{ ...KIND_STYLE[m.kind as "note" | "tactic"], border: "none" }}>{label}</span>}
-        {m.pinned_at && !isReply && <span className="tag" style={{ border: "1px solid #F5A524", color: "#F5A524" }}>已置頂</span>}
+        {m.pinned_at && !isReply && <span className="tag" style={{ border: "1px solid #F59E0B", color: "#F59E0B" }}>已置頂</span>}
         <span className="faint" style={{ fontSize: 13 }}>{relativeTime(m.created_at, now)}{m.edited_at ? "（已編輯）" : ""}</span>
       </div>
 
@@ -97,7 +97,7 @@ export function ChatMessage({ thread, teamId, myUserId, isCoach, nameOf, lineups
 }) {
   const { post, replies } = thread;
   return (
-    <article className="panel pad stack" style={{ gap: 10, borderLeft: post.pinned_at ? "3px solid #F5A524" : undefined }}>
+    <article className="panel pad stack" style={{ gap: 10, borderLeft: post.pinned_at ? "3px solid #F59E0B" : undefined }}>
       <Row m={post} teamId={teamId} myUserId={myUserId} isCoach={isCoach} nameOf={nameOf} lineups={lineups} now={now} onChanged={onChanged} isReply={false} />
       <button type="button" className="btn btn-text btn-sm" style={{ alignSelf: "flex-start" }} onClick={onToggleOpen}>
         {open ? "收起回覆" : replies.length > 0 ? `${replies.length} 則回覆` : "回覆"}

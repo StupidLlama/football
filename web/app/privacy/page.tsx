@@ -58,7 +58,7 @@ export default function PrivacyPage() {
           <tbody>
             <tr><th>Supabase</th><td>資料庫和登入系統，資料存在{DATA_REGION}</td></tr>
             <tr><th>Vercel</th><td>網站主機，把網頁送到你的瀏覽器（全球多個節點）</td></tr>
-            <tr><th>Google</th><td>用 Google 登入時，由 Google 確認你的身分；我們只拿到 Email 和名字</td></tr>
+            <tr><th>Google</th><td>用 Google 登入時，由 Google 確認你的身分；我們只拿到 Email 和名字。在 Android 手機按「加到 Google 日曆」時，那一場練習或比賽的名稱、時間、地點和備註會放在網址裡交給 Google 日曆；只有你自己按的時候才會送出，網站本身不會連到 Google</td></tr>
             <tr><th>Discord</th><td>你送出意見回饋（聯絡我們）時，訊息內容、頁面、網站版本、裝置種類和你的 Email 會通知到網站管理員的私人 Discord 頻道；如果你的球隊管理員設定了聊天室通知，聊天室的新貼文（不包含回覆）也會推到球隊自己的 Discord 頻道</td></tr>
           </tbody>
         </table></div>

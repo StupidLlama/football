@@ -15,7 +15,7 @@ import { feedbackChanged } from "@/components/feedback";
 import { dateLabel, ErrorBox, Footer, Loading, useToast } from "@/components/ui";
 
 const CATEGORY = Object.fromEntries(CONTACT_CATEGORIES);
-const STATUS_COLOR: Record<string, string> = { new: "#F5A524", doing: "#60A5FA", done: "#4ADE80" };
+const STATUS_COLOR: Record<string, string> = { new: "#F59E0B", doing: "#60A5FA", done: "#4ADE80" };
 
 function StatusTag({ status }: { status: string }) {
   const c = STATUS_COLOR[status] ?? "#8A97AD";
@@ -33,7 +33,7 @@ function Body({ text }: { text: string }) {
 
 function ReplyBox({ m, fresh }: { m: ContactMessage; fresh: boolean }) {
   return (
-    <div style={{ marginTop: 10, padding: "10px 14px", borderRadius: 10, background: "#10203A", borderLeft: `4px solid ${fresh ? "#F5A524" : "#3B82F6"}` }}>
+    <div style={{ marginTop: 10, padding: "10px 14px", borderRadius: 10, background: "#10203A", borderLeft: `4px solid ${fresh ? "#F59E0B" : "#3B82F6"}` }}>
       <span className="faint" style={{ fontSize: 13 }}>網站管理員回覆・{dateLabel(m.replied_at)}{fresh ? "・新的" : ""}</span>
       <Body text={m.reply} />
     </div>

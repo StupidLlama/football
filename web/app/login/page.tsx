@@ -89,7 +89,7 @@ export default function LoginPage() {
             autoComplete={mode === "login" ? "current-password" : "new-password"} value={password} onChange={(e) => setPassword(e.target.value)} />
         </label>
         <button type="submit" className="btn btn-line" disabled={busy || !configured}
-          style={{ minHeight: 48, borderColor: "#2DD4BF", color: "#2DD4BF", fontWeight: 700 }}>
+          style={{ minHeight: 48, borderColor: "#60A5FA", color: "#93C5FD", fontWeight: 700 }}>
           {busy ? "處理中…" : mode === "login" ? "用 Email 登入" : "註冊"}
         </button>
       </form>

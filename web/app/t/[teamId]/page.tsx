@@ -51,7 +51,7 @@ export default function MePage() {
                 <span className="faint" style={{ width: 120, flex: "none", fontSize: 14 }}>{d.fixture ? whenLabel(d.fixture) : ""}</span>
                 <span style={{ flex: 1, minWidth: 0 }}><b>{d.fixture ? `${d.fixture.home} vs ${d.fixture.away}` : "比賽"}</b>
                   <span className="faint" style={{ display: "block", fontSize: 14 }}>{d.role}</span></span>
-                <span className="tag" style={past ? { color: "#8A97AD" } : { color: "#F5A524", border: "1px solid #F5A52466" }}>{past ? "已結束" : "即將到來"}</span>
+                <span className="tag" style={past ? { color: "#8A97AD" } : { color: "#F59E0B", border: "1px solid #F59E0B66" }}>{past ? "已結束" : "即將到來"}</span>
               </div>
             );
           })}

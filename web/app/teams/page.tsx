@@ -11,11 +11,11 @@ import { RequireLogin } from "@/components/guard";
 import { Footer, Logo, RoleBadge } from "@/components/ui";
 
 const NOTE_STYLE: Record<TeamNote["kind"], { icon: string; color: string; kind: string }> = {
-  form: { icon: "✎", color: "#2DD4BF", kind: "能力表" },
+  form: { icon: "✎", color: "#60A5FA", kind: "能力表" },
   claim: { icon: "?", color: "#60A5FA", kind: "認領" },
   pending: { icon: "…", color: "#8A97AD", kind: "認領" },
-  claims: { icon: "!", color: "#F5A524", kind: "管理" },
-  match: { icon: "◷", color: "#F5A524", kind: "比賽" },
+  claims: { icon: "!", color: "#F59E0B", kind: "管理" },
+  match: { icon: "◷", color: "#F59E0B", kind: "比賽" },
 };
 
 function Picker() {
@@ -48,7 +48,7 @@ function Picker() {
           const list = notes?.[team.id] ?? [];
           return (
             <article key={team.id} className="panel" style={{ padding: "16px 20px", display: "flex", flexWrap: "wrap", gap: 16,
-              borderLeft: `4px solid ${coach ? "#F5A524" : "#3B82F6"}` }}>
+              borderLeft: `4px solid ${coach ? "#F59E0B" : "#3B82F6"}` }}>
               <div style={{ flex: "1 1 240px", minWidth: 0, display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-start" }}>
                 <h2 style={{ margin: 0, fontSize: 22 }}>{team.name}</h2>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>

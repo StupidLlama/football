@@ -5,6 +5,8 @@ import Link from "next/link";
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { lineOf } from "@/lib/positions";
 import { radarPoints } from "@/lib/rating";
+import { rateTier } from "@/lib/rate-tier";
+import type { Result } from "@/lib/teamview";
 import type { Ability } from "@/lib/rating";
 import { useInView } from "motion/react";
 import { useTween } from "@/components/anim";
@@ -93,7 +95,7 @@ export function ComingSoon({ title, version, children }: { title: string; versio
       <div className="panel" style={{ padding: 24, display: "flex", gap: 16, alignItems: "flex-start" }}>
         <svg width="56" height="56" viewBox="0 0 56 56" aria-hidden="true" focusable="false" style={{ flex: "none" }}>
           <rect x="6" y="10" width="44" height="36" rx="4" fill="none" stroke="#4A5A7A" strokeWidth="2" />
-          <path d="M14 34 C 22 24, 30 32, 42 18" fill="none" stroke="#F5A524" strokeWidth="2.5" strokeLinecap="round" filter="url(#chalk)" />
+          <path d="M14 34 C 22 24, 30 32, 42 18" fill="none" stroke="#F59E0B" strokeWidth="2.5" strokeLinecap="round" />
         </svg>
         <div>
           <p style={{ margin: 0, fontWeight: 700, fontSize: 18 }}>即將推出 <Soon text={version} /></p>
@@ -107,7 +109,7 @@ export function ComingSoon({ title, version, children }: { title: string; versio
 // ---------- 身分 ----------
 export function RoleBadge({ coach, long = false }: { coach: boolean; long?: boolean }) {
   const style: CSSProperties = coach
-    ? { background: "#F5A524", color: "#1A1206" }
+    ? { background: "#F59E0B", color: "#1A1206" }
     : { background: "#1A2540", color: "#E9EDF3", border: "1px solid #4A5A7A" };
   return (
     <span style={{ padding: "1px 10px", borderRadius: 99, fontSize: 14, fontWeight: 700, whiteSpace: "nowrap", ...style }}>
@@ -118,7 +120,7 @@ export function RoleBadge({ coach, long = false }: { coach: boolean; long?: bool
 
 export function CaptainBadge({ badge, size = 13 }: { badge: "C" | "VC" | null; size?: number }) {
   if (!badge) return null;
-  const style: CSSProperties = badge === "C" ? { background: "#F5A524", color: "#1A1206" } : { background: "#2DD4BF", color: "#06201C" };
+  const style: CSSProperties = badge === "C" ? { background: "#F59E0B", color: "#1A1206" } : { background: "#2DD4BF", color: "#06201C" };
   return (
     <span title={badge === "C" ? "隊長" : "副隊長"} style={{ padding: "0 8px", borderRadius: 6, fontSize: size, fontWeight: 700, ...style }}>{badge}</span>
   );
@@ -139,6 +141,31 @@ export function PrefTag({ pos, kind }: { pos: string; kind: "good" | "bad" | "re
     : kind === "bad" ? { background: "rgba(248,113,113,.14)", border: "1px dashed rgba(248,113,113,.65)", color: "#FCA5A5" }
     : { background: "rgba(96,165,250,.16)", border: "1px solid rgba(96,165,250,.55)", color: "#BFDBFE" };
   return <span className="tag" style={style}>{kind === "rec" ? `★ ${pos}` : pos}</span>;
+}
+
+// ---------- v2.11 戰情室的小元件 ----------
+const RES: Record<Result, string> = { W: "勝", D: "和", L: "負" };
+
+/** 勝／和／負的小方塊（W 藍、D 灰、L 橘）。 */
+export function ResultChip({ r }: { r: Result }) {
+  return <span className={`res res-${r}`} title={RES[r]}><span aria-hidden="true">{r}</span><span className="sr-only">{RES[r]}</span></span>;
+}
+
+/** Sofascore 風格的評分方塊：分數依高低上色。 */
+export function Rate({ v, max = 5, digits = 2 }: { v: number; max?: number; digits?: number }) {
+  return <span className={`rate tier-${rateTier(v, max)}`}>{Number.isFinite(v) ? v.toFixed(digits) : "—"}</span>;
+}
+
+/** 出席（藍）／請假（橘）／還沒回覆（灰）的比例條。 */
+export function AttendBar({ c }: { c: { in: number; out: number; pending: number } }) {
+  return (
+    <div>
+      <div className="attend-bar" role="img" aria-label={`出席 ${c.in}、請假 ${c.out}、還沒回覆 ${c.pending}`}>
+        <span style={{ flex: c.in, background: "#60A5FA" }} /><span style={{ flex: c.out, background: "#F59E0B" }} /><span style={{ flex: c.pending, background: "#22304A" }} />
+      </div>
+      <p className="faint" style={{ margin: "6px 0 0", fontSize: 13 }}><span style={{ color: "#93C5FD" }}>出席 {c.in}</span> · <span style={{ color: "#FBBF5A" }}>請假 {c.out}</span> · 還沒回覆 {c.pending}</p>
+    </div>
+  );
 }
 
 // ---------- KPI ----------
@@ -286,8 +313,8 @@ export function Feet({ weakSide, label }: { weakSide: "" | "left" | "right"; lab
   const strong = weakSide === "left" ? "right" : weakSide === "right" ? "left" : "";
   return (
     <svg width="120" height="80" viewBox="0 0 120 80" role="img" aria-label={label} style={{ flex: "none" }}>
-      <path d="M30 8c9 0 14 10 14 24s-3 26-6 34-14 10-17 2-5-20-5-34S21 8 30 8z" fill={strong === "left" ? "#60A5FA" : "#1E2A42"} stroke="#E9EDF3" strokeWidth="1.5" filter="url(#chalk)" />
-      <path d="M90 8c-9 0-14 10-14 24s3 26 6 34 14 10 17 2 5-20 5-34S99 8 90 8z" fill={strong === "right" ? "#60A5FA" : "#1E2A42"} stroke="#E9EDF3" strokeWidth="1.5" filter="url(#chalk)" />
+      <path d="M30 8c9 0 14 10 14 24s-3 26-6 34-14 10-17 2-5-20-5-34S21 8 30 8z" fill={strong === "left" ? "#60A5FA" : "#1E2A42"} stroke="#E9EDF3" strokeWidth="1.5" />
+      <path d="M90 8c-9 0-14 10-14 24s3 26 6 34 14 10 17 2 5-20 5-34S99 8 90 8z" fill={strong === "right" ? "#60A5FA" : "#1E2A42"} stroke="#E9EDF3" strokeWidth="1.5" />
       <text x="30" y="78" fontSize="10" fill="#8A97AD" textAnchor="middle">左</text>
       <text x="90" y="78" fontSize="10" fill="#8A97AD" textAnchor="middle">右</text>
     </svg>

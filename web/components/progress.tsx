@@ -13,7 +13,7 @@ import { LineChart, type LineSeries } from "@/components/line-chart";
 import { dateLabel, ErrorBox, Kpi, LegendLine, Loading, Radar } from "@/components/ui";
 
 const AVG = { key: "avg", name: "平均能力", color: "#E9EDF3" };
-const OLD = "#F5A524", NEW = "#2DD4BF";
+const OLD = "#F59E0B", NEW = "#2DD4BF";
 
 export function ProgressPanel({ teamId, playerId, name, extra }: { teamId: string; playerId: string; name: string; extra?: ReactNode }) {
   const [res, setRes] = useState<ProgressResult | null>(null);
@@ -53,7 +53,7 @@ export function ProgressPanel({ teamId, playerId, name, extra }: { teamId: strin
 }
 
 const ARROW: Record<Delta["kind"], string> = { up: "▲", down: "▼", same: "＝" };
-const COLOR: Record<Delta["kind"], string> = { up: "#2DD4BF", down: "#F5A524", same: "#8A97AD" };
+const COLOR: Record<Delta["kind"], string> = { up: "#2DD4BF", down: "#F59E0B", same: "#8A97AD" };
 
 function Body({ progress, name }: { progress: Progress; name: string }) {
   const ch = latestChange(progress, RULES)!;
@@ -156,7 +156,7 @@ function TwoSeasons({ progress, name }: { progress: Progress; name: string }) {
             <Kpi label="之後平均" value={<AnimatedNumber value={B.avg} />} sub={<>變化 <AnimatedNumber value={B.avg - A.avg} signed /></>} />
           </div>
           <ChangeList title="進步最多" rows={ch.up} color="#2DD4BF" empty="沒有進步的項目" />
-          <ChangeList title="退步最多" rows={ch.down} color="#F5A524" empty="沒有退步的項目" />
+          <ChangeList title="退步最多" rows={ch.down} color="#F59E0B" empty="沒有退步的項目" />
           {ch.same > 0 && <p className="faint" style={{ margin: 0, fontSize: 13 }}>另外 {ch.same} 項沒有變。</p>}
         </div>
       </div>

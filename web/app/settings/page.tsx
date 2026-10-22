@@ -200,7 +200,7 @@ function AdminCreateTeam({ onCreated }: { onCreated: () => void }) {
   }
 
   return (
-    <section aria-labelledby="s-admin" className="panel" style={{ marginTop: 16, padding: "20px 24px", borderColor: "#F5A52466" }}>
+    <section aria-labelledby="s-admin" className="panel" style={{ marginTop: 16, padding: "20px 24px", borderColor: "#F59E0B66" }}>
       {guard}
       <h2 id="s-admin" className="accent" style={{ margin: "0 0 4px", fontSize: 20 }}>網站管理員：建立隊伍</h2>
       <p className="faint" style={{ margin: "0 0 12px", fontSize: 14 }}>建立後會給你 Team ID 和第一組管理員碼（7 天有效）。你不會自動加入這一隊。</p>

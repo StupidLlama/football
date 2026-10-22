@@ -277,3 +277,25 @@ textarea.field { padding: 10px 12px; min-height: 96px; resize: vertical; line-he
 .update-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--orange); vertical-align: middle; margin-left: 4px; flex: none; }
 .update-pop { width: min(520px, calc(100vw - 32px)); max-height: calc(100vh - 48px); overflow-y: auto; box-sizing: border-box; padding: 24px; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); color: var(--text); line-height: 1.65; }
 .update-pop::backdrop { background: rgba(5, 9, 18, .72); }
+
+/* v2.11 戰情室：勝和負小方塊（FotMob）、評分方塊（Sofascore）、出席比例條、比賽卡片 */
+.res { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; flex: none; border-radius: 6px;
+  font-family: var(--font-barlow, 'Barlow Semi Condensed'), sans-serif; font-weight: 700; }
+.res-W { background: #1D3357; color: #93C5FD; } .res-D { background: #22304A; color: #C9D3E3; } .res-L { background: #3A2A12; color: #FBBF5A; }
+.rate { display: inline-block; min-width: 44px; padding: 1px 6px; border-radius: 6px; text-align: center; font-weight: 700; color: #0B1220;
+  font-family: var(--font-barlow, 'Barlow Semi Condensed'), sans-serif; font-variant-numeric: tabular-nums; }
+.tier-low { background: #F87171; color: #0B1220; } .tier-mid { background: #FBBF24; color: #0B1220; }
+.tier-good { background: #4ADE80; color: #0B1220; } .tier-great { background: #60A5FA; color: #0B1220; }
+.attend-bar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; gap: 2px; background: #22304A; }
+.match-card { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; gap: 4px 16px; align-items: center; padding: 14px 16px;
+  background: var(--panel); border-radius: 16px; }
+.match-card .when { text-align: center; line-height: 1.15; }
+.match-card .when b { display: block; font-size: 22px; }
+.match-card .more { grid-column: 2 / -1; }
+@media (max-width: 480px) { .match-card { grid-template-columns: 52px minmax(0, 1fr); } .match-card .side { grid-column: 2; } }
+.dl-grid { margin: 16px 0 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px 24px; }
+.dl-grid dt { color: var(--muted); font-size: 12px; } .dl-grid dd { margin: 0; }
+.hero { margin-top: 24px; padding: 28px; display: flex; flex-wrap: wrap; gap: 28px; justify-content: space-between; }
+.hero-kicker { margin: 0; font-family: inherit; font-weight: 400; font-size: 13px; color: var(--muted); }
+.hero-title { display: block; margin: 4px 0 0; font-family: var(--font-wenkai, 'LXGW WenKai TC'), serif; font-weight: 700; font-size: clamp(30px, 6vw, 40px); line-height: 1.2; color: var(--text); text-decoration: none; }
+@media (max-width: 480px) { .hero { padding: 20px; } }

@@ -71,7 +71,7 @@ function SlotBox({ slot, label, locked, selected, draggable, onClick, onDragOver
   return (
     <g className="pop-in" style={dragStyle} onClick={onClick} {...dragProps}>
       <rect x={x0} y={y0} width={bw} height={bh} rx={1.6}
-        fill={label ? `${color}33` : "transparent"} stroke={selected ? "#F5A524" : color}
+        fill={label ? `${color}33` : "transparent"} stroke={selected ? "#F59E0B" : color}
         strokeWidth={selected ? 1.4 : 0.9} strokeDasharray={dashed && !selected ? "1.4 1.1" : undefined} />
       <text x={slot.x} y={y0 + 4.3} textAnchor="middle" fontSize={3.4} fontWeight={700} fill="#E2E8F0">{slot.code}</text>
       {label ? (

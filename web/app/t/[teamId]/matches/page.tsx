@@ -5,11 +5,14 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { matchFromFixture, setAttendance, type AttendanceAnswer } from "@/lib/api";
-import { answerOf, countsFor, importableFixtures, isLocked, kickoffLabel, scoreLabel, splitGames } from "@/lib/matches";
+import { answerOf, countsFor, importableFixtures, isLocked, resultOf, scoreLabel, splitGames } from "@/lib/matches";
 import { useTeamView } from "@/lib/team";
 import { AttendanceButtons } from "@/components/attendance-buttons";
 import { MatchForm } from "@/components/match-form";
-import { useNow, useToast } from "@/components/ui";
+import { AttendBar, ResultChip, useNow, useToast } from "@/components/ui";
+
+const WEEK = ["日", "一", "二", "三", "四", "五", "六"];
+const pad = (n: number) => String(n).padStart(2, "0");
 
 type Tab = "upcoming" | "done";
 
@@ -87,23 +90,29 @@ export default function MatchesPage() {
         {list.map((m) => {
           const c = countsFor(v.data.attendance, m.id, roster);
           const mine = myId ? answerOf(v.data.attendance, m.id, myId) : null;
+          const d = new Date(m.kickoff);
+          const res = resultOf(m);
           return (
-            <div key={m.id} className="panel pad stack" style={{ gap: 10 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-                <Link href={`/t/${teamId}/matches/${m.id}`} style={{ fontSize: 20, fontWeight: 700 }}>vs {m.opponent}</Link>
-                {tab === "done" && scoreLabel(m) && <span className="num" style={{ fontSize: 20 }}>{scoreLabel(m)}</span>}
-              </div>
-              <p style={{ margin: 0, display: "flex", flexWrap: "wrap", gap: 8 }}>
-                <span className="pill">{kickoffLabel(m.kickoff)}</span>
-                {m.jersey && <span className="pill">球衣 {m.jersey}</span>}
-                {m.location && <span className="pill">{m.location}</span>}
-                <span className="pill">{m.size} 人制</span>
+            <div key={m.id} className="match-card">
+              <p className="when" style={{ margin: 0 }}>
+                <b className="num">{pad(d.getMonth() + 1)}/{pad(d.getDate())}</b>
+                <span className="muted" style={{ fontSize: 13 }}>週{WEEK[d.getDay()]} <span className="num">{pad(d.getHours())}:{pad(d.getMinutes())}</span></span>
               </p>
-              <p className="faint" style={{ margin: 0, fontSize: 13 }}>出席 {c.in}・請假 {c.out}・還沒回覆 {c.pending}</p>
+              <div style={{ minWidth: 0 }}>
+                <Link href={`/t/${teamId}/matches/${m.id}`} style={{ fontSize: 20, fontWeight: 700, color: "var(--text)" }}>vs {m.opponent}</Link>
+                <p className="muted" style={{ margin: 0, fontSize: 14 }}>{[m.location, m.jersey && `球衣 ${m.jersey}`, `${m.size} 人制`].filter(Boolean).join(" · ")}</p>
+              </div>
+              <div className="side" style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                {tab === "done" && scoreLabel(m) && <span className="num" style={{ fontSize: 24 }}>{scoreLabel(m)}</span>}
+                {tab === "done" && res && <ResultChip r={res} />}
+              </div>
+              <div className="more stack" style={{ gap: 10 }}>
+              <AttendBar c={c} />
               {tab === "upcoming" && myId && <AttendanceButtons answer={mine} locked={isLocked(m, now)} onAnswer={(next) => onAnswer(m.id, next)} />}
               <div className="chips">
                 <Link className="btn btn-line btn-sm" href={`/t/${teamId}/matches/${m.id}`}>詳情</Link>
                 {tab === "upcoming" && !v.archived && <Link className="btn btn-line btn-sm" href={`/t/${teamId}/lineup?match=${m.id}`}>去排陣容</Link>}
+              </div>
               </div>
             </div>
           );

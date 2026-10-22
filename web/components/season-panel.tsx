@@ -99,7 +99,7 @@ function Ranking() {
                 <span role="cell">{name(r.playerId)}</span>
                 <span role="cell" className="num faint" style={{ textAlign: "right" }}>{r.from.toFixed(2)}</span>
                 <span role="cell" className="num" style={{ textAlign: "right" }}>{r.to.toFixed(2)}</span>
-                <span role="cell" className="num" style={{ textAlign: "right", color: kind === "up" ? "#2DD4BF" : kind === "down" ? "#F5A524" : "#8A97AD" }}>
+                <span role="cell" className="num" style={{ textAlign: "right", color: kind === "up" ? "#2DD4BF" : kind === "down" ? "#F59E0B" : "#8A97AD" }}>
                   <span aria-hidden="true">{kind === "up" ? "▲" : kind === "down" ? "▼" : "＝"} </span>{r.delta > 0 ? "+" : ""}{r.delta.toFixed(2)}
                 </span>
               </div>
