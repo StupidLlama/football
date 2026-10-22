@@ -94,7 +94,7 @@ function MyCard({ p }: { p: PlayerView }) {
             </dl>
           )}
           <div style={{ maxWidth: 460, marginTop: 16 }}><PositionMap good={p.good_positions} bad={p.bad_positions} />
-            <p className="faint" style={{ margin: "6px 0 0", fontSize: 13 }}>標籤：擅長的位置　✕：不擅長　框：該位置的活動範圍</p></div>
+            <p className="faint" style={{ margin: "6px 0 0", fontSize: 13 }}>彩色框：擅長的位置和活動範圍　灰色虛線框 ✕：不擅長</p></div>
         </div>
         {p.scores ? (
           <figure style={{ margin: 0, flex: "1 1 300px", minWidth: 0, maxWidth: 420 }}>
