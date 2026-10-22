@@ -93,7 +93,7 @@ function MyCard({ p }: { p: PlayerView }) {
               <div><dt>最強能力</dt><dd>{best.label}</dd></div>
             </dl>
           )}
-          <div style={{ maxWidth: 300, marginTop: 16 }}><PositionMap good={p.good_positions} bad={p.bad_positions} /></div>
+          <div style={{ maxWidth: 460, marginTop: 16 }}><PositionMap good={p.good_positions} bad={p.bad_positions} /></div>
         </div>
         {p.scores ? (
           <figure style={{ margin: 0, flex: "1 1 300px", minWidth: 0, maxWidth: 420 }}>
