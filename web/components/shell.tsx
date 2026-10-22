@@ -142,7 +142,7 @@ export function TeamShell({ teamId, children }: { teamId: string; children: Reac
       <div className="app">
         <aside className="sidebar" aria-label="主選單">
           <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 8px 16px" }}>
-            <Logo size={30} /><span style={{ fontWeight: 700, fontSize: 16, lineHeight: 1.3 }}>Football Analysis Potato</span>
+            <Logo size={30} text />
           </div>
           <TeamCard v={view} canSwitch={canSwitch} />
           <NavList items={items} path={path} />
@@ -159,7 +159,7 @@ export function TeamShell({ teamId, children }: { teamId: string; children: Reac
         <div className="drawer">
           <div className="drawer-panel" role="dialog" aria-modal="true" aria-label="主選單">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: 12 }}>
-              <span style={{ fontWeight: 700 }}>Football Analysis Potato</span>
+              <Logo size={26} text />
               <button type="button" className="btn btn-line" onClick={() => setDrawer(false)} aria-label="關閉選單" style={{ padding: "0 12px" }}>✕</button>
             </div>
             <TeamCard v={view} canSwitch={canSwitch} />

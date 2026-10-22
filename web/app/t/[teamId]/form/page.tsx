@@ -216,7 +216,7 @@ function AbilityForm({ p, teamId }: { p: PlayerView; teamId: string }) {
           <figcaption className="faint" style={{ fontSize: 13, marginBottom: 4 }}>你的雷達圖（灰色虛線是全隊平均）</figcaption>
           <Radar abilities={ABILITIES} showLabels={false} label="目前填的能力雷達圖" series={[
             ...(v.rated.length ? [{ values: ABILITIES.map((a) => v.teamScores[a.key] ?? 0), color: "#8A97AD", dashed: true, width: 0.6 }] : []),
-            { values: radarValues, color: "#11A595", fill: "rgba(17,165,149,.22)" },
+            { values: radarValues, color: "#60A5FA", fill: "rgba(96,165,250,.18)" },
           ]} />
         </figure>
       </div>

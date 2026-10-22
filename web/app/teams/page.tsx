@@ -33,7 +33,7 @@ function Picker() {
   return (
     <div style={{ maxWidth: 920, margin: "0 auto", padding: "16px 20px 48px" }}>
       <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "8px 0 24px", flexWrap: "wrap" }}>
-        <span style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 700, fontSize: 18 }}><Logo size={28} />Football Analysis Potato</span>
+        <span style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 700, fontSize: 18 }}><Logo size={28} text /></span>
         <div style={{ display: "flex", gap: 8 }}>
           <Link className="btn btn-line" href="/settings">設定</Link>
           <button type="button" className="btn btn-line" onClick={auth.signOut}>登出</button>

@@ -1,35 +1,27 @@
 "use client";
-// 共用的小元件：標誌、提示訊息、位置標籤、雷達圖、KPI 卡、即將推出。
+// 共用的小元件：Logo、提示訊息、位置標籤、雷達圖、KPI 卡、即將推出。
 import { UpdateDot } from "./updates";
 import Link from "next/link";
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { lineOf } from "@/lib/positions";
 import { radarPoints } from "@/lib/rating";
 import type { Ability } from "@/lib/rating";
+import { useInView } from "motion/react";
 import { useTween } from "@/components/anim";
 
 export const REPO_URL = "https://github.com/StupidLlama/football";
 
-// ---------- 粉筆質感（SVG 濾鏡，整頁放一次）----------
-export function ChalkDefs() {
+// ---------- Logo（v2.11）----------
+// 球的圖是使用者提供的透明 PNG，放在 public/logo.png。text = 旁邊加「FOOTBALL ANALYSIS Potato」字樣。
+export function Logo({ size = 32, text = false }: { size?: number; text?: boolean }) {
+  // eslint-disable-next-line @next/next/no-img-element
+  const ball = <img src="/logo.png" width={size} height={size} alt="" style={{ flex: "none", display: "block" }} />;
+  if (!text) return ball;
   return (
-    <svg width="0" height="0" style={{ position: "absolute" }} aria-hidden="true" focusable="false">
-      <defs>
-        <filter id="chalk" x="-5%" y="-5%" width="110%" height="110%">
-          <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves={2} seed={4} result="n" />
-          <feDisplacementMap in="SourceGraphic" in2="n" scale="2.2" />
-        </filter>
-      </defs>
-    </svg>
-  );
-}
-
-export function Logo({ size = 32 }: { size?: number }) {
-  return (
-    <svg width={size} height={size * 0.875} viewBox="0 0 34 30" aria-hidden="true" focusable="false">
-      <path d="M6 15c-1-7 6-12 13-11 8 1 13 6 12 13-1 6-7 10-14 9C10 25 7 21 6 15z" fill="#C9A267" stroke="#E9EDF3" strokeWidth="1.6" filter="url(#chalk)" />
-      <circle cx="14" cy="12" r="1.3" fill="#0B1220" /><circle cx="21" cy="11" r="1.3" fill="#0B1220" /><circle cx="18" cy="19" r="1" fill="#8A6A3A" />
-    </svg>
+    <span className="logo" style={{ fontSize: size * 0.5 }}>
+      {ball}<span className="logo-fa">FOOTBALL ANALYSIS</span><span className="logo-potato">Potato</span>
+      <span className="sr-only">Football Analysis Potato</span>
+    </span>
   );
 }
 
@@ -161,10 +153,13 @@ export function Kpi({ label, value, sub }: { label: string; value: ReactNode; su
 }
 
 /** 長條：第一次出現時從 0 長到數值，數值改變時平滑變長變短。 */
-export function Bar({ frac, color = "#11A595", height = 8, delay = 0 }: { frac: number; color?: string; height?: number; delay?: number }) {
-  const [f] = useTween([Math.max(0, Math.min(1, Number.isFinite(frac) ? frac : 0))], { duration: 650, delay });
+export function Bar({ frac, color = "#60A5FA", height = 8, delay = 0 }: { frac: number; color?: string; height?: number; delay?: number }) {
+  // v2.11：捲到畫面裡才從 0 長出來
+  const ref = useRef<HTMLSpanElement | null>(null);
+  const seen = useInView(ref, { once: true });
+  const [f] = useTween([seen ? Math.max(0, Math.min(1, Number.isFinite(frac) ? frac : 0)) : 0], { duration: 650, delay });
   return (
-    <span className="bar" style={{ height }}>
+    <span ref={ref} className="bar" style={{ height }}>
       <span style={{ width: `${(f * 100).toFixed(1)}%`, background: color }} />
     </span>
   );
@@ -175,8 +170,8 @@ export function Bar({ frac, color = "#11A595", height = 8, delay = 0 }: { frac: 
 export type RadarSeries = { values: number[]; color: string; fill?: string; dashed?: boolean; width?: number; name?: string };
 
 /** 一條雷達圖的線：進場時從中心長出來，數值改變（換球員、換比較對象）時平滑變形。 */
-function RadarShape({ s, max, delay }: { s: RadarSeries; max: number; delay: number }) {
-  const values = useTween(s.values, { duration: 750, delay });
+function RadarShape({ s, max, delay, seen }: { s: RadarSeries; max: number; delay: number; seen: boolean }) {
+  const values = useTween(seen ? s.values : s.values.map(() => 0), { duration: 750, delay });
   return (
     <polygon points={radarPoints(values, max)} fill={s.fill ?? "none"} stroke={s.color}
       strokeWidth={s.width ?? 0.8} strokeDasharray={s.dashed ? "1.6 1.2" : undefined} strokeLinejoin="round" />
@@ -190,6 +185,9 @@ export function Radar({ abilities, series, max = 5, label, showLabels = true }: 
   const [hover, setHover] = useState<number | null>(null);
   const boxRef = useRef<HTMLDivElement | null>(null);
   const [boxWidth, setBoxWidth] = useState(0);
+  // v2.11：捲到畫面裡才從中心擴散
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const seen = useInView(svgRef, { once: true });
   useEffect(() => {
     const el = boxRef.current;
     if (!el || typeof ResizeObserver === "undefined") return;
@@ -210,14 +208,14 @@ export function Radar({ abilities, series, max = 5, label, showLabels = true }: 
   }
   const named = series.filter((s) => s.name);
   const svg = (
-    <svg viewBox="0 0 100 100" role="img" aria-label={label}
+    <svg ref={svgRef} viewBox="0 0 100 100" role="img" aria-label={label}
       style={showLabels ? { position: "absolute", inset: 0, width: "100%", height: "100%", overflow: "visible" } : { width: "100%", height: "auto", display: "block" }}>
       {[5, 4, 3, 2].filter((l) => l <= max).map((l) => (
         <polygon key={l} points={ring(l)} fill="none" stroke="#22304A" strokeWidth={0.3} />
       ))}
       <path d={spokes} stroke="#1E2A42" strokeWidth={0.3} />
       {hover !== null && (() => { const [x, y] = axis(hover, 40); return <line x1={50} y1={50} x2={x} y2={y} stroke="#60A5FA" strokeWidth={0.5} />; })()}
-      {series.map((s, i) => <RadarShape key={i} s={s} max={max} delay={i * 90} />)}
+      {series.map((s, i) => <RadarShape key={i} s={s} max={max} delay={i * 90} seen={seen} />)}
       {hover !== null && named.map((s, i) => {
         const [x, y] = axis(hover, (40 * Math.max(0, Math.min(s.values[hover] ?? 0, max))) / max);
         return <circle key={i} cx={x} cy={y} r={1.4} fill={s.color} stroke="#0B1220" strokeWidth={0.4} />;
@@ -288,8 +286,8 @@ export function Feet({ weakSide, label }: { weakSide: "" | "left" | "right"; lab
   const strong = weakSide === "left" ? "right" : weakSide === "right" ? "left" : "";
   return (
     <svg width="120" height="80" viewBox="0 0 120 80" role="img" aria-label={label} style={{ flex: "none" }}>
-      <path d="M30 8c9 0 14 10 14 24s-3 26-6 34-14 10-17 2-5-20-5-34S21 8 30 8z" fill={strong === "left" ? "#11A595" : "#1E2A42"} stroke="#E9EDF3" strokeWidth="1.5" filter="url(#chalk)" />
-      <path d="M90 8c-9 0-14 10-14 24s3 26 6 34 14 10 17 2 5-20 5-34S99 8 90 8z" fill={strong === "right" ? "#11A595" : "#1E2A42"} stroke="#E9EDF3" strokeWidth="1.5" filter="url(#chalk)" />
+      <path d="M30 8c9 0 14 10 14 24s-3 26-6 34-14 10-17 2-5-20-5-34S21 8 30 8z" fill={strong === "left" ? "#60A5FA" : "#1E2A42"} stroke="#E9EDF3" strokeWidth="1.5" filter="url(#chalk)" />
+      <path d="M90 8c-9 0-14 10-14 24s3 26 6 34 14 10 17 2 5-20 5-34S99 8 90 8z" fill={strong === "right" ? "#60A5FA" : "#1E2A42"} stroke="#E9EDF3" strokeWidth="1.5" filter="url(#chalk)" />
       <text x="30" y="78" fontSize="10" fill="#8A97AD" textAnchor="middle">左</text>
       <text x="90" y="78" fontSize="10" fill="#8A97AD" textAnchor="middle">右</text>
     </svg>

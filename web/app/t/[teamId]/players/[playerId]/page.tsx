@@ -88,12 +88,12 @@ export default function ReportPage() {
             ) : (
               <>
                 <div style={{ display: "flex", gap: 16, flexWrap: "wrap", fontSize: 14, marginBottom: 8 }}>
-                  <LegendLine color="#11A595">{R.name}（自評）</LegendLine><LegendLine color="#8A97AD" dashed>全隊平均</LegendLine>
+                  <LegendLine color="#60A5FA">{R.name}（自評）</LegendLine><LegendLine color="#8A97AD" dashed>全隊平均</LegendLine>
                   {mode === "both" && <span className="faint">比賽表現：尚無比賽數據</span>}
                 </div>
                 <Radar abilities={ABILITIES} label={`${R.name} 的 21 項能力雷達圖，和全隊平均比較。最強：${strong.map((s) => s.label).join("、")}`} series={[
                   { values: ABILITIES.map((a) => v.teamScores[a.key] ?? 0), color: "#8A97AD", dashed: true, width: 0.6, name: "全隊平均" },
-                  { values: ABILITIES.map((a) => S[a.key] ?? 0), color: "#11A595", fill: "rgba(17,165,149,.22)", name: `${R.name}（自評）` },
+                  { values: ABILITIES.map((a) => S[a.key] ?? 0), color: "#60A5FA", fill: "rgba(96,165,250,.18)", name: `${R.name}（自評）` },
                 ]} />
               </>
             )}

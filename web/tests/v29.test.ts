@@ -168,3 +168,14 @@ test("瀏覽器提醒：iOS 內建瀏覽器、其他瀏覽器、Android", () => 
   const lineAndroid = "Mozilla/5.0 (Linux; Android 14; Pixel 8; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/126.0 Mobile Safari/537.36 Line/14.9.0";
   assert.equal(browserNotice(lineAndroid)?.kind, "android-inapp");
 });
+
+// ---------- v2.11 Android：加到 Google 日曆 ----------
+test("Google 日曆網址：UTC 時間、中文和換行有編碼、沒有地點就不放", async () => {
+  const { googleCalendarUrl } = await import("../lib/ics.ts");
+  const url = new URL(googleCalendarUrl({ uid: "x", start: "2026-10-17T09:00:00Z", end: "2026-10-17T11:00:00Z", title: "測試隊｜比賽 vs 機械系", description: "集合 16:15\n8 人制" }));
+  assert.equal(url.origin + url.pathname, "https://calendar.google.com/calendar/render");
+  assert.equal(url.searchParams.get("dates"), "20261017T090000Z/20261017T110000Z");
+  assert.equal(url.searchParams.get("text"), "測試隊｜比賽 vs 機械系");
+  assert.equal(url.searchParams.get("details"), "集合 16:15\n8 人制");
+  assert.equal(url.searchParams.has("location"), false);
+});

@@ -9,7 +9,7 @@ export function DocPage({ title, version, intro, children }: { title: string; ve
     <div style={{ maxWidth: 760, margin: "0 auto", padding: "16px 20px 48px" }}>
       <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "8px 0 24px" }}>
         <Link href="/" style={{ display: "flex", alignItems: "center", gap: 8, color: "#E9EDF3", textDecoration: "none", fontWeight: 700 }}>
-          <Logo size={28} />Football Analysis Potato
+          <Logo size={28} text />
         </Link>
       </header>
       <div style={{ marginBottom: 16 }}><BackButton fallback="/" /></div>

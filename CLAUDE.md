@@ -71,11 +71,15 @@ docs/SECURITY_REVIEW.md    v2.10 資安檢查報告（OWASP 對照、分級、�
 docs/HANDOFF.md            交接說明：上一版做了什麼、下一版要做什麼、環境的坑（新工作階段先讀它）
 ```
 
-## UI 風格
+## UI 風格（v2.11 起：C「戰情室」）
 
-專業分析軟體風（深色、數據優先）：背景 #0B1220、卡片 #131C2E、強調色青綠 #2DD4BF、比較用橘 #F59E0B。
-配色集中在 `infra/charts/style.py` 和 `.streamlit/config.toml`，改顏色兩邊要一致。
-v2 新網站照 v2.1.1 設計稿：字體霞鶩文楷 TC、圓角 10 / 16、強調藍 #60A5FA / #3B82F6、提醒橘 #F5A524；位置三線顏色進攻紅 #F87171、中場綠 #4ADE80、防守黃 #FACC15；擅長綠、不擅長紅虛線、數據推薦藍 ★。樣式在 `web/app/globals.css`。
+- 示範稿：使用者的 Design 畫布「Potato 視覺改版示範」的 C 那一排；參考網站 FotMob、Sofascore。
+- 顏色：背景 #0B1220、區塊 #111A2B（**不加框線**）、分隔線 #1F2B42、主按鈕藍 #3B82F6、強調藍 #60A5FA、提醒橘 #F59E0B；圖表兩個系列藍 #60A5FA／橘 #F59E0B，全隊平均灰色虛線。位置三線顏色進攻紅 #F87171、中場綠 #4ADE80、防守黃 #FACC15；擅長綠、不擅長紅虛線、數據推薦藍 ★。
+- 字體（都用 `next/font`，打包在自己網站上，CSP 不用改）：標題 h1–h3 霞鶩文楷 TC、內文思源黑體、數字 Barlow Semi Condensed（`.num`、KPI）、Logo 的「Potato」Kaushan Script。
+- 少卡片：KPI 一律放在 `.kpis` 裡（合成一條、細線分格）；列表用分隔線，不要每列一張卡。圓角 10／16。
+- Logo：`components/ui.tsx` 的 `Logo`（`text` = 加「FOOTBALL ANALYSIS Potato」字樣）；球的圖是 `web/public/logo.png`（使用者提供的透明 PNG），favicon 是簡化的 `app/icon.svg`。不畫手繪／插畫風元素。
+- 樣式都在 `web/app/globals.css`；不用 Tailwind、shadcn。舊網站（Streamlit）已退役，`infra/charts/style.py` 不用跟著改。
+- **動畫**：圖表用 `components/anim.tsx` 的 `useTween`，捲到才播用 Motion 的 `useInView(ref, { once: true })`（`Bar`、`Radar` 的寫法）；其他動畫用 Motion（`motion/react`）。整站包在 `app/providers.tsx` 的 `<MotionConfig reducedMotion="user">` 裡，**Motion 只動 transform（x、y、scale、rotate）**，這樣「減少動態效果」才會關掉（`cx`、`cy` 這類屬性動畫不會被關）。CSS 動畫一樣要加進 `@media (prefers-reduced-motion: reduce)`。
 
 ## 常用指令（Windows，用 `py`，不是 `python`）
 

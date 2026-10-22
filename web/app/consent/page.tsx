@@ -39,7 +39,7 @@ function Consent() {
   const box = { width: 22, height: 22, accentColor: "#2DD4BF", flex: "none", marginTop: 3 } as const;
   return (
     <div style={{ maxWidth: 560, margin: "0 auto", padding: "32px 20px 48px" }}>
-      <p style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 700, margin: "0 0 24px" }}><Logo size={28} />Football Analysis Potato</p>
+      <p style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 700, margin: "0 0 24px" }}><Logo size={28} text /></p>
       <h1 style={{ margin: "0 0 8px", fontSize: 28 }}>{updated ? "政策更新了" : "開始之前"}</h1>
       <p className="muted" style={{ margin: "0 0 20px" }}>
         {updated ? `隱私權政策和服務條款更新了（版本 ${POLICY_VERSION}），請看過後再同意一次。`

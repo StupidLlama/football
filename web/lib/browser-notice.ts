@@ -56,7 +56,8 @@ export function browserNotice(ua: string, touchPoints = 0): BrowserNotice | null
     kind: "android",
     title: "Android 的「加到日曆」要多一步",
     items: [
-      "按「加到日曆」會下載 .ics 檔；到通知列或「檔案」App 點開它，選 Google 日曆（或三星日曆）就能加入。",
+      "單一場練習或比賽：按「加到 Google 日曆」就能直接加入。",
+      "整季的「加到日曆」會下載 .ics 檔；到通知列或「檔案」App 點開它，選 Google 日曆（或三星日曆）就能加入。",
       "有些手機的 Google 日曆 App 不能直接開 .ics，這時請改用「檔案」App 裡的「用其他 App 開啟」。",
       "其他功能（能力表、出席、組隊、聊天室）不受影響。",
     ],

@@ -113,7 +113,7 @@ export function SharedLineupView({ token }: { token: string }) {
 
   return (
     <Centered>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}><Logo /><span style={{ fontWeight: 700 }}>Football Analysis Potato</span></div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}><Logo text /></div>
       <h1 style={{ fontSize: 26, margin: "0 0 4px" }}>{title}</h1>
       <p className="faint" style={{ margin: "0 0 16px" }}>
         {data.team_name}{data.season ? `（${data.season}）` : ""} · {formation.name}

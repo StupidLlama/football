@@ -13,6 +13,15 @@ export type Update = {
 
 export const UPDATES: Update[] = [
   {
+    version: "v2.11", date: "2026-10-22", title: "新樣子：戰情室", big: true,
+    items: [
+      "整個網站換了新樣子：卡片變少、重點數字合成一條，看數據更清楚。",
+      "新的 Logo：馬鈴薯足球。",
+      "長條圖和雷達圖捲到才開始動；手機開了「減少動態效果」就不播動畫。",
+      "Android 手機的單場練習和比賽多了「加到 Google 日曆」按鈕，一按就加好。",
+    ],
+  },
+  {
     version: "v2.10", date: "2026-10-14", title: "資安檢查", big: true,
     items: [
       "整個網站做了一次完整的資安檢查，找到的問題都修好了；畫面和用法都沒有變。",

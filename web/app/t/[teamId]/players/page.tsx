@@ -245,12 +245,12 @@ function Compare() {
   const avgLike = mode !== "player";
   const top = mode === "pos-empty" ? [] : diffs(A.scores!, bScores, RULES).slice(0, 5);
   const diffStyle = (d: number): CSSProperties => ({ textAlign: "right", color: d > 0 ? "#2DD4BF" : d < 0 ? "#F5A524" : "#8A97AD" });
-  const bColor = mode === "player" ? "#D08000" : "#8A97AD";
+  const bColor = mode === "player" ? "#F59E0B" : "#8A97AD";
 
   return (
     <>
       <div className="panel pad">
-        <p style={{ margin: "0 0 8px", fontWeight: 700 }}><span style={{ display: "inline-block", width: 12, height: 12, borderRadius: 3, background: "#11A595", marginRight: 8 }} />球員 A</p>
+        <p style={{ margin: "0 0 8px", fontWeight: 700 }}><span style={{ display: "inline-block", width: 12, height: 12, borderRadius: 3, background: "#60A5FA", marginRight: 8 }} />球員 A</p>
         <div className="chips">{P.map((p) => <button key={p.id} type="button" className="chip" aria-pressed={p.id === A.id} onClick={() => setA(p.id)}>{p.name}</button>)}</div>
         <p style={{ margin: "16px 0 8px", fontWeight: 700 }}>和誰比</p>
         <div role="radiogroup" aria-label="和誰比" className="seg">
@@ -261,7 +261,7 @@ function Compare() {
         </div>
         {mode === "player" && (
           <>
-            <p style={{ margin: "16px 0 8px", fontWeight: 700 }}><span style={{ display: "inline-block", width: 12, height: 12, borderRadius: 3, background: "#D08000", marginRight: 8 }} />球員 B</p>
+            <p style={{ margin: "16px 0 8px", fontWeight: 700 }}><span style={{ display: "inline-block", width: 12, height: 12, borderRadius: 3, background: "#F59E0B", marginRight: 8 }} />球員 B</p>
             <div className="chips">{P.map((p) => <button key={p.id} type="button" className="chip" aria-pressed={p.id === Bp.id} onClick={() => setB(p.id)}>{p.name}</button>)}</div>
           </>
         )}
@@ -277,12 +277,12 @@ function Compare() {
       <div style={{ marginTop: 16, display: "flex", flexWrap: "wrap", gap: 16 }}>
         <figure className="panel" style={{ flex: "3 1 340px", minWidth: 0, margin: 0, padding: 16 }}>
           <figcaption style={{ display: "flex", gap: 16, flexWrap: "wrap", fontSize: 14, marginBottom: 8 }}>
-            <LegendLine color="#11A595">{A.name}</LegendLine>
+            <LegendLine color="#60A5FA">{A.name}</LegendLine>
             {mode !== "pos-empty" && <LegendLine color={bColor} dashed={avgLike}>{bName}{group ? `（${group.n} 人）` : ""}</LegendLine>}
           </figcaption>
           <Radar abilities={ABILITIES} label={`${A.name} 和 ${bName} 的 21 項能力雷達圖`} series={[
-            ...(mode === "pos-empty" ? [] : [{ values: ABILITIES.map((x) => bScores[x.key] ?? 0), color: bColor, fill: avgLike ? "none" : "rgba(208,128,0,.18)", dashed: avgLike, width: 0.7, name: bName }]),
-            { values: ABILITIES.map((x) => A.scores![x.key] ?? 0), color: "#11A595", fill: "rgba(17,165,149,.22)", name: A.name },
+            ...(mode === "pos-empty" ? [] : [{ values: ABILITIES.map((x) => bScores[x.key] ?? 0), color: bColor, fill: avgLike ? "none" : "rgba(245,158,11,.16)", dashed: avgLike, width: 0.7, name: bName }]),
+            { values: ABILITIES.map((x) => A.scores![x.key] ?? 0), color: "#60A5FA", fill: "rgba(96,165,250,.18)", name: A.name },
           ]} />
         </figure>
         <div style={{ flex: "2 1 280px", minWidth: 0, display: "flex", flexDirection: "column", gap: 12 }}>

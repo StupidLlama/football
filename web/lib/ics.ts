@@ -95,3 +95,11 @@ export function seasonEvents(practices: Practice[], matches: Match[], teamName: 
 export function icsFileName(name: string): string {
   return `${name.replace(/[\\/:*?"<>|\s]+/g, "-").replace(/^-+|-+$/g, "") || "calendar"}.ics`;
 }
+
+/** v2.11 Android：「加到 Google 日曆」的網址（一次只能一個行程）。使用者按了才會打開 Google，網站自己不連 Google。 */
+export function googleCalendarUrl(e: CalEvent): string {
+  const q = new URLSearchParams({ action: "TEMPLATE", text: e.title, dates: `${icsTime(e.start)}/${icsTime(e.end)}` });
+  if (e.location) q.set("location", e.location);
+  if (e.description) q.set("details", e.description);
+  return `https://calendar.google.com/calendar/render?${q}`;
+}
