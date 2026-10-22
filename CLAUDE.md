@@ -196,7 +196,9 @@ py web/scripts/sync_config.py              # 改了 config/settings.toml 的能�
 - 跳轉網址一律經過 `lib/nav.ts` 的 `safeNext`（擋控制字元、用 URL 解析確認同一個網站）。
 - 資安問題修好、上線**之後**才把細節寫進公開 repo（commit 訊息不寫怎麼攻擊）。
 
-## 下一步（2026-10-14）
+## 下一步（2026-10-22）
+
+- **v2 完成，下一版 v3.0（影片分析排隊、品質檢查）。** v2.11 視覺改版已上線（main @ `1a9819b`），標籤 `v2.11` 還沒打。v2 → v3 交接說明在 `docs/HANDOFF.md`（含資料庫全貌、v3 新工具、風險）。使用者決定：影片不經過網站、在 Google Colab 跑（使用者筆電沒有 NVIDIA 顯卡），其他隊的球隊管理員用自己的帳號跑同一份筆記本；先用網路比賽影片測；期限學期末。首頁轉播動畫做成 v2.11.1（另一個討論串）。多語系、左右邊位置分開存往後排。
 
 - **v2.10 完整資安檢查：已上線（main @ `0cfbf1f`，0014 已執行，rls_test RLS OK）。** 報告 `docs/SECURITY_REVIEW.md`（沒有高風險；中風險 2 個、低風險 11 個，該修的都修了）；第二輪用 Trail of Bits 的 differential-review／insecure-defaults／sharp-edges 檢查清單。Supabase Auth：Email 確認開、密碼最短 8、擋外洩密碼開。還沒做：使用者清空 Streamlit secrets、停用 Google 服務帳號金鑰（`V2_10_SETUP.md` 第 6 節）、打標籤 `v2.10`。交接說明在 `docs/HANDOFF.md`（v2.10 → v2.11）。
 - **下一版 v2.11（v2 最後一版）：視覺改版**（SPEC 版本表），適合 Sonnet；上線後是階段切換（v2 → v3），交接說明要寫得更詳細。多語系往後變 v2.12。
