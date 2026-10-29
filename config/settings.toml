@@ -103,6 +103,22 @@ abilities = [
 good_bonus = 10    # 自評擅長這個位置
 bad_penalty = 15   # 自評不擅長這個位置
 
+# ---------- 比賽影片品質檢查（v3.0，domain/video.py）----------
+# 解析度、幀率、長度不合格 = 拒絕；糊、暗、晃、看不到場地線 = 可以分析但「可信度低」
+[video]
+min_width = 1920
+min_height = 1080
+min_fps = 25
+max_fps = 60
+min_minutes = 1
+max_minutes = 120
+min_sharpness = 100     # 畫面清晰度（Laplacian 變異數）
+min_brightness = 60     # 亮度 0–255
+max_brightness = 200
+max_shake = 25          # 相鄰兩格差多少算晃
+min_line_ratio = 0.5    # 至少一半的取樣畫面看得到場地白線
+sample_every = 10       # 每幾秒取一格來量（Colab 才跑得完整場）
+
 # ---------- 位置適合度 ----------
 # 適合度 =相關能力的加權平均 × 20（滿分 100），每個位置的權重加起來應該是 1
 [recommend]

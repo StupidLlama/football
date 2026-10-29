@@ -66,6 +66,8 @@ NOT_PERSONAL = {
     "matches": "球隊的比賽（出席紀錄會帶出對手和時間）",
     "practices": "球隊的練習（練習出席會帶出時間地點）",
     "chat_discord": "球隊的 Discord 設定",
+    "match_videos": "球隊的比賽影片分析（只有檔名和品質數字，影片本身不在資料庫）",
+    "video_tokens": "分析權杖只有雜湊值",
 }
 
 

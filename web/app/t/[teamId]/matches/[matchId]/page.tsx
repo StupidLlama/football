@@ -13,6 +13,7 @@ import { MatchForm } from "@/components/match-form";
 import { AddToCalendar } from "@/components/add-to-calendar";
 import { matchEvent } from "@/lib/ics";
 import { ErrorBox, useNow, useToast } from "@/components/ui";
+import { MatchVideo } from "@/components/match-video";
 
 const BUCKET_LABEL = { in: "出席", out: "請假", pending: "還沒回覆" } as const;
 
@@ -111,6 +112,8 @@ export default function MatchDetailPage() {
         {done && <p style={{ margin: 0 }}>比分：<span className="num" style={{ fontSize: 22 }}>{scoreLabel(m)}</span></p>}
         {m.note && <p className="muted" style={{ margin: 0 }}>{m.note}</p>}
       </div>
+
+      <MatchVideo matchId={m.id} ended={locked} />
 
       {myId && (
         <div className="panel pad stack" style={{ gap: 8 }}>

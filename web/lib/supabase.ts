@@ -6,6 +6,10 @@ const url = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").trim();
 // 新版 Supabase 叫 publishable key；舊版叫 anon key，兩個名字都接受
 const key = (process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "").trim();
 
+/** v3.0：給 Colab 的連線碼要帶網址和 publishable key（都是公開的值） */
+export const SUPABASE_URL = url;
+export const SUPABASE_KEY = key;
+
 export const configured = url.startsWith("https://") && key.length > 20;
 
 let client: SupabaseClient | null = null;

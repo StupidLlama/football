@@ -151,7 +151,7 @@ function viewWith(practices: Practice[], attendance: PracticeAttendance[]) {
     members: [], profiles: [], players: [{ id: "p1", team_id: "t", name: "甲", nickname: "", jersey_number: null, badge: null,
       good_positions: [], bad_positions: [], weak_side: "" as const, message: "" }],
     ratings: [{ player_id: "p1", scores: { passing: 3 }, submitted_at: "2026-10-01T00:00:00Z", source: "form" }],
-    fixtures: [], duties: [], guards: [], matches: [], attendance: [], practices, practiceAttendance: attendance,
+    fixtures: [], duties: [], guards: [], matches: [], attendance: [], practices, practiceAttendance: attendance, videos: [],
     chat: { lastReadAt: null, unread: 0, newPinned: false },
   };
   return buildTeamView(data, RULES);

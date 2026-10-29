@@ -10,6 +10,7 @@ import { useTeamView } from "@/lib/team";
 import { AttendanceButtons } from "@/components/attendance-buttons";
 import { MatchForm } from "@/components/match-form";
 import { AttendBar, ResultChip, useNow, useToast } from "@/components/ui";
+import { latestVideo, videoLabel } from "@/lib/video";
 
 const WEEK = ["日", "一", "二", "三", "四", "五", "六"];
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -101,6 +102,9 @@ export default function MatchesPage() {
               <div style={{ minWidth: 0 }}>
                 <Link href={`/t/${teamId}/matches/${m.id}`} style={{ fontSize: 20, fontWeight: 700, color: "var(--text)" }}>vs {m.opponent}</Link>
                 <p className="muted" style={{ margin: 0, fontSize: 14 }}>{[m.location, m.jersey && `球衣 ${m.jersey}`, `${m.size} 人制`].filter(Boolean).join(" · ")}</p>
+                {tab === "done" && videoLabel(latestVideo(v.data.videos, m.id)) && (
+                  <p style={{ margin: 0, fontSize: 14, color: "var(--blue)" }}>已結束 · {videoLabel(latestVideo(v.data.videos, m.id))}</p>
+                )}
               </div>
               <div className="side" style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 {tab === "done" && scoreLabel(m) && <span className="num" style={{ fontSize: 24 }}>{scoreLabel(m)}</span>}

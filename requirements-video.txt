@@ -1,0 +1,3 @@
+-r requirements.txt
+# v3.0 影片分析（Colab 已經有，本機要跑 OpenCV 測試才需要裝）
+opencv-python-headless

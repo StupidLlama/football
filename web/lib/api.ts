@@ -7,6 +7,7 @@ import type { Scores } from "./rating";
 import type { CareerResult } from "./career";
 import type { ProgressResult, TeamProgressResult } from "./progress";
 import type { PracticeRow } from "./practice-import";
+import type { MatchVideo } from "./video";
 
 export type Role = "player" | "coach";
 export type Team = {
@@ -77,6 +78,8 @@ export type TeamData = {
   team: Team; me: Membership; members: Membership[]; profiles: Profile[]; players: Player[]; ratings: Rating[];
   fixtures: Fixture[]; duties: Duty[]; guards: Guard[]; matches: Match[]; attendance: Attendance[];
   practices: Practice[]; practiceAttendance: PracticeAttendance[]; chat: ChatMeta;
+  /** v3.0 比賽影片分析 */
+  videos: MatchVideo[];
 };
 
 // 只選需要的欄位（coach_codes 的 salt、code_hash 根本沒有開放，select * 會被拒絕）
@@ -96,6 +99,7 @@ const COLS = {
   practice: "id, team_id, starts_at, ends_at, meet_at, location, title, content, note, series_id, created_by, created_at, updated_at",
   practiceAttendance: "practice_id, player_id, team_id, status, note, updated_by, updated_at",
   message: "id, team_id, author_id, parent_id, kind, body, lineup_id, pinned_at, edited_at, deleted_at, created_at",
+  video: "id, team_id, match_id, file_name, status, progress, grade, reasons, width, height, fps, seconds, error, created_at, updated_at",
 };
 
 // 欄位清單是變數（COLS），supabase-js 沒辦法從字串推出型別，所以在這裡統一轉成我們自己定義的型別。
@@ -136,7 +140,7 @@ export async function getMyTeams(userId: string): Promise<MyTeam[]> {
 // ---------- 一支球隊的全部資料 ----------
 export async function getTeamData(teamId: string, userId: string): Promise<TeamData | null> {
   const db = supabase();
-  const [team, members, players, ratings, fixtures, duties, guards, matches, attendance, practices, practiceAttendance] = await Promise.all([
+  const [team, members, players, ratings, fixtures, duties, guards, matches, attendance, practices, practiceAttendance, videos] = await Promise.all([
     db.from("teams").select(COLS.team).eq("id", teamId).maybeSingle(),
     db.from("memberships").select(COLS.membership).eq("team_id", teamId).order("joined_at", { ascending: true }),
     db.from("players").select(COLS.player).eq("team_id", teamId).order("name", { ascending: true }),
@@ -148,6 +152,7 @@ export async function getTeamData(teamId: string, userId: string): Promise<TeamD
     db.from("attendance").select(COLS.attendance).eq("team_id", teamId),
     db.from("practices").select(COLS.practice).eq("team_id", teamId).order("starts_at", { ascending: true }),
     db.from("practice_attendance").select(COLS.practiceAttendance).eq("team_id", teamId),
+    db.from("match_videos").select(COLS.video).eq("team_id", teamId).order("created_at", { ascending: true }),
   ]);
   if (team.error) throw new Error(`讀取球隊失敗：${team.error.message}`);
   if (!team.data) return null;   // 不存在，或不是這一隊的成員（RLS 看不到）
@@ -165,6 +170,7 @@ export async function getTeamData(teamId: string, userId: string): Promise<TeamD
     matches: must<Match[]>(matches, "比賽"), attendance: must<Attendance[]>(attendance, "出席登記"),
     practices: must<Practice[]>(practices, "練習"),
     practiceAttendance: must<PracticeAttendance[]>(practiceAttendance, "練習出席"),
+    videos: must<MatchVideo[]>(videos, "影片分析"),
     chat,
   };
 }
@@ -336,6 +342,24 @@ export async function matchFromFixture(team: string, fixture: string): Promise<R
 export async function setAttendance(match: string, answer: AttendanceAnswer | null, note = "", player?: string | null):
   Promise<RpcResult & { answer?: AttendanceAnswer | null }> {
   return (await rpc("set_attendance", { match, answer, note, player: player ?? null })) as RpcResult & { answer?: AttendanceAnswer | null };
+}
+
+// ---------- 比賽影片分析（v3.0）----------
+/** 球隊管理員建立一次影片分析；成功時 token 只會出現這一次（貼進 Colab 筆記本）。 */
+export async function createVideoJob(match: string, fileName: string): Promise<RpcResult & { id?: string; token?: string }> {
+  return (await rpc("create_video_job", { match, file_name: fileName })) as RpcResult & { id?: string; token?: string };
+}
+
+export async function cancelVideoJob(video: string): Promise<RpcResult> {
+  return rpc("cancel_video_job", { video });
+}
+
+/** 即時訂閱這一隊的影片分析進度；回傳取消訂閱的函式。 */
+export function subscribeVideos(teamId: string, onChange: () => void): () => void {
+  const channel = supabase().channel(`videos-${teamId}`)
+    .on("postgres_changes", { event: "*", schema: "public", table: "match_videos", filter: `team_id=eq.${teamId}` }, onChange)
+    .subscribe();
+  return () => { supabase().removeChannel(channel); };
 }
 
 // ---------- 練習行事曆＋出席（v2.7 F11）----------

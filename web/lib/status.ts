@@ -24,6 +24,7 @@ export const STATUS: Record<string, string> = {
   too_many: "存的陣容或比賽太多了，請先刪掉幾筆舊的",
   closed: "比賽已經開始，不能再改出席；需要更正請找球隊管理員",
   archived: "這是舊賽季，只能看、不能修改；請到最新的賽季",
+  busy: "這場比賽的影片還在分析，等它完成或先取消",
 };
 
 /** 成功的 status（其他都算失敗，要顯示訊息）。 */

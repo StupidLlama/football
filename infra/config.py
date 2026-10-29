@@ -8,6 +8,7 @@ from adapters.form import FormSpec
 from domain.formations import Formation, Slot
 from domain.models import Ability, Category, RatingRules
 from domain.performance import Dimension, PerformanceRules
+from domain.video import VideoRules
 
 ROOT = Path(__file__).resolve().parent.parent
 SETTINGS_PATH = ROOT / "config" / "settings.toml"
@@ -84,6 +85,13 @@ def load_performance(path: Path = PERFORMANCE_PATH) -> PerformanceRules:
         tasks={role: p["task"] for role, p in raw["positions"].items()},
         weights={role: p["weights"] for role, p in raw["positions"].items()},
     )
+
+
+def load_video(path: Path = SETTINGS_PATH) -> tuple[VideoRules, float]:
+    """[video]：品質門檻，和每幾秒取一格（sample_every，給 infra/video 用）。"""
+    raw = dict(_read(path).get("video", {}))
+    every = float(raw.pop("sample_every", 10))
+    return VideoRules(**raw), every
 
 
 @lru_cache(maxsize=1)

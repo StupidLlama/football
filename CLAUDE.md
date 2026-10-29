@@ -28,10 +28,11 @@
 
 ```
 app.py                     入口：頁面導覽、隊伍密碼（網站名稱 Football Analysis Potato 🥔）；v2.9 起 [site] moved_to 有值就只顯示搬家公告
-domain/                    Core：models.py、rating.py、positions.py、foot.py（慣用腳）、formations.py（陣型）、performance.py（表現評分權重）、fixture.py（聯賽比賽、裁判任務）
+domain/                    Core：models.py、rating.py、positions.py、foot.py（慣用腳）、formations.py（陣型）、performance.py（表現評分權重）、fixture.py（聯賽比賽、裁判任務）、video.py（v3.0 影片品質規則）
 stats/                     Inner shell：player.py、team.py、match.py、ranking.py（排行榜）、lineup.py + assignment.py（自動排人）、schedule.py（戰績、裁判任務）、referee.py（抽裁判，Picker 可替換）
-adapters/                  Translate shell：form.py（表單翻譯）、repository.py（資料庫讀寫）、schedule.py（系際聯賽賽程表 → Fixture，修年份、合併儲存格）
-infra/config.py            讀 config/*.toml → RatingRules、FormSpec、陣型、表現評分規則
+adapters/                  Translate shell：form.py（表單翻譯）、repository.py（資料庫讀寫）、schedule.py（系際聯賽賽程表 → Fixture，修年份、合併儲存格）、video.py（品質結果 → report_video_job 參數、進度）
+infra/config.py            讀 config/*.toml → RatingRules、FormSpec、陣型、表現評分規則、影片門檻 [video]
+infra/video/               v3.0 OpenCV：quality.py（讀影片資訊、取樣量模糊／亮度／晃動／場地線）；v3.1 的 YOLO 也放這裡
 infra/db.py                SQLite 連線；MIGRATIONS 只能往後加
 infra/sources.py           Google 試算表（有 secrets 時）/ data/team.xlsx
 infra/pipeline.py          組裝：來源 → 翻譯 → 資料庫
@@ -46,11 +47,11 @@ web/                       v2.2 Next.js 網站（Tools shell，TypeScript）：�
   lib/config.json          由 config/settings.toml 產生：py web/scripts/sync_config.py（不要手改）
   tests/                   node --test 的計算測試（npm test）
 backend/                   v2 後端（Tools shell）：main.py（FastAPI）、accounts.py（v2.1 帳號 API：加入、教練碼、認領、教練管理）、db.py（as_user = 用使用者身分查詢，RLS 生效）、auth.py（驗證 Supabase JWT）、importer.py（v1 資料匯入）、scripts/（migrate、rls_check）；v2.2 起網站不經過這個 API
-supabase/migrations/       v2 資料表與 RLS 的 SQL，編號只能往後加（0014_security.sql：v2.10 資安修補（能力表只能用函式寫、資料表字數上限、下載資料補齊）；0013_feedback.sql：聯絡我們升級成意見回饋、set_feedback_status / reply_feedback / mark_feedback_read；0012_seasons.sql：賽季系列 lineage_id、開新賽季 start_new_season、舊賽季唯讀 season_guard、進步資料 get_progress；0010_roster.sql：球隊管理員新增球員、改姓名／背號／隊長；0004_web.sql：網站用的資料表權限、submit_self_rating；0005_privacy.sql：同意紀錄、刪除帳號、下載資料、聯絡訊息；0006_career.sql：生涯開關 career_shared、set_career_shared、get_career）；supabase/tests/ 是權限測試
+supabase/migrations/       v2 資料表與 RLS 的 SQL，編號只能往後加（0015_video.sql：v3.0 影片分析 match_videos、權杖 video_tokens、create / cancel / report_video_job；0014_security.sql：v2.10 資安修補（能力表只能用函式寫、資料表字數上限、下載資料補齊）；0013_feedback.sql：聯絡我們升級成意見回饋、set_feedback_status / reply_feedback / mark_feedback_read；0012_seasons.sql：賽季系列 lineage_id、開新賽季 start_new_season、舊賽季唯讀 season_guard、進步資料 get_progress；0010_roster.sql：球隊管理員新增球員、改姓名／背號／隊長；0004_web.sql：網站用的資料表權限、submit_self_rating；0005_privacy.sql：同意紀錄、刪除帳號、下載資料、聯絡訊息；0006_career.sql：生涯開關 career_shared、set_career_shared、get_career）；supabase/tests/ 是權限測試
 config/settings.toml       能力分類、表單欄位、位置適合度權重、回饋網址
 config/formations.toml     11 人制、8 人制陣型（位置、座標）
 config/performance.toml    比賽表現評分的維度與各位置權重（v4 才用）
-analysis/                  影片分析腳本（之後）＋ import_match_csv.py
+analysis/                  v3.0 run_job.py（Colab 跑品質檢查、回報網站）、potato_v3.ipynb（Colab 筆記本，進 repo 前清掉輸出）＋ import_match_csv.py
 tests/                     test_architecture.py（分層規則）、test_layers.py、test_lineup_ranking.py、test_v13.py、test_v14.py、test_v20.py、test_v21.py、test_v22.py（網站和資料庫對得起來）、test_v221.py（政策、同意、刪帳號、安全標頭）、test_v23.py（生涯、雷達切換、同位置比較、動畫）
 docs/PROJECT_PLAN.md       軟工專題規劃
 docs/SPEC.md               產品規格與版本規劃
@@ -66,6 +67,7 @@ docs/V2_7_SETUP.md         v2.7 上線步驟（0011、練習月曆與出席、�
 docs/V2_8_SETUP.md         v2.8 上線步驟（0012、賽季進步、開新賽季、舊賽季唯讀、出席率；先跑 0012 再開網站）
 docs/V2_9_SETUP.md         v2.9 上線步驟（0013、意見回饋、加到日曆、舊網站退役、給隊友的加入訊息）
 docs/V2_10_SETUP.md        v2.10 上線步驟（舊資料檢查 v210_precheck.sql、0014、舊網站金鑰清理）
+docs/V3_0_SETUP.md         v3.0 上線步驟（0015、瀏覽器驗收、Colab 驗收、校正品質門檻）
 docs/SECURITY.md           金鑰保管、換金鑰、個資外洩處理順序
 docs/SECURITY_REVIEW.md    v2.10 資安檢查報告（OWASP 對照、分級、修了什麼、以後每版要做的）
 docs/HANDOFF.md            交接說明：上一版做了什麼、下一版要做什麼、環境的坑（新工作階段先讀它）
@@ -196,7 +198,18 @@ py web/scripts/sync_config.py              # 改了 config/settings.toml 的能�
 - 跳轉網址一律經過 `lib/nav.ts` 的 `safeNext`（擋控制字元、用 URL 解析確認同一個網站）。
 - 資安問題修好、上線**之後**才把細節寫進公開 repo（commit 訊息不寫怎麼攻擊）。
 
-## 下一步（2026-10-22）
+## v3 影片的規則
+
+- **影片不經過網站和資料庫**：放球隊管理員自己的 Google Drive，在 Colab 跑 `analysis/run_job.py`；資料庫只存檔名、影片資訊、進度和品質結果。要改成上傳影片前先改隱私權政策。
+- 品質規則在 `domain/video.py`（純 Python），門檻只放 `config/settings.toml` 的 `[video]`；OpenCV 只在 `infra/video/`。原因代碼三邊要一致：`domain/video.py` 的 `REASONS`、0015 `report_video_job` 的 `allowed`、`web/lib/video.ts` 的 `REASON_TEXT`（`tests/test_v30.py` 會檢查）。
+- Colab 用**分析權杖**回報（`report_video_job`，不用登入）：權杖只存 sha256、7 天到期、做完就刪、只能改那一筆。給 anon 的函式只有 `get_shared_lineup`、`report_video_job` 兩個；要再加先在 `SECURITY_REVIEW.md` 寫理由。
+- 網站給的「連線碼」= Supabase 網址＋publishable key＋權杖（JSON）；筆記本用 `getpass` 讀，不寫在筆記本裡。筆記本進 repo 前清掉輸出（`test_v30.py` 會檢查）。
+- 網路上的比賽影片有版權：只在自己的 Drive 測，不進 repo、不放網站。
+
+## 下一步（2026-10-29）
+
+- **v3.0 影片分析排隊＋品質檢查＋Colab：做好在 `v3.0` 分支，還沒上線。** 0015 還沒在 Supabase 執行；照 `docs/V3_0_SETUP.md` 驗收（含用網路影片校正品質門檻）。使用者 2026-10-29 的決定：權杖給 Colab（第二個 anon 函式）、網路影片自己放 Drive、轉播影片照規格標「可信度低」、進度 = 秒數 ÷ 總長、政策只補文字不升版本。下一版 v3.1 YOLO＋ByteTrack。
+
 
 - **v2 完成，下一版 v3.0（影片分析排隊、品質檢查）。** v2.11 視覺改版已上線（main @ `1a9819b`），標籤 `v2.11` 還沒打。v2 → v3 交接說明在 `docs/HANDOFF.md`（含資料庫全貌、v3 新工具、風險）。使用者決定：影片不經過網站、在 Google Colab 跑（使用者筆電沒有 NVIDIA 顯卡），其他隊的球隊管理員用自己的帳號跑同一份筆記本；先用網路比賽影片測；期限學期末。首頁轉播動畫做成 v2.11.1（另一個討論串）。多語系、左右邊位置分開存往後排。
 

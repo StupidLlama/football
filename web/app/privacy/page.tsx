@@ -24,6 +24,7 @@ export default function PrivacyPage() {
             <tr><th>球隊</th><td>你加入哪些球隊、身分（球員或球隊管理員）、名單上的名字、背號、隊長標記</td></tr>
             <tr><th>你自己填的</th><td>21 項能力自評（每次送出都保留紀錄）、擅長和不擅長的位置、弱腳、暱稱、給球隊的話</td></tr>
             <tr><th>比賽和練習</th><td>聯賽賽程、比分、裁判任務的指派；你對比賽和練習的出席／請假回覆（含你寫的備註，例如「會晚到」）</td></tr>
+            <tr><th>比賽影片分析</th><td>球隊管理員建立影片分析時填的檔名、建立的人和時間；分析後的影片長度、解析度、幀率和品質檢查結果（例如「畫面太暗」）。<b>影片本身不會上傳到本網站</b>，放在球隊管理員自己的 Google Drive，由他自己在 Google Colab 執行分析程式</td></tr>
             <tr><th>聊天室</th><td>你在隊伍聊天室發的訊息內容、時間、編輯和刪除紀錄</td></tr>
             <tr><th>意見回饋（聯絡我們）</th><td>你送出的訊息內容、類型、從哪一頁送出、當時的網站版本、粗略的裝置種類（例如「手機 · Safari」，不記錄型號或系統版本），以及網站管理員的回覆和處理狀態</td></tr>
             <tr><th>安全紀錄</th><td>Team ID 和管理員碼輸錯的次數與時間（防止有人亂猜）、你同意政策的版本和時間</td></tr>
@@ -59,6 +60,7 @@ export default function PrivacyPage() {
             <tr><th>Supabase</th><td>資料庫和登入系統，資料存在{DATA_REGION}</td></tr>
             <tr><th>Vercel</th><td>網站主機，把網頁送到你的瀏覽器（全球多個節點）</td></tr>
             <tr><th>Google</th><td>用 Google 登入時，由 Google 確認你的身分；我們只拿到 Email 和名字。在 Android 手機按「加到 Google 日曆」時，那一場練習或比賽的名稱、時間、地點和備註會放在網址裡交給 Google 日曆；只有你自己按的時候才會送出，網站本身不會連到 Google</td></tr>
+            <tr><th>Google Colab、Google Drive</th><td>球隊管理員用自己的 Google 帳號在 Colab 分析比賽影片，影片存在他自己的 Drive；網站只收到分析結果，不會拿到影片</td></tr>
             <tr><th>Discord</th><td>你送出意見回饋（聯絡我們）時，訊息內容、頁面、網站版本、裝置種類和你的 Email 會通知到網站管理員的私人 Discord 頻道；如果你的球隊管理員設定了聊天室通知，聊天室的新貼文（不包含回覆）也會推到球隊自己的 Discord 頻道</td></tr>
           </tbody>
         </table></div>

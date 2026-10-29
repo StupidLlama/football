@@ -110,9 +110,10 @@ def test_shared_lineup_adds_only_match_opponent_and_kickoff():
 
 
 def test_still_only_one_function_for_anon():
+    """v3.0 起多一個 report_video_job（Colab 拿權杖回報進度），理由在 0015 和 SECURITY_REVIEW.md。"""
     grants = re.findall(r"grant execute on function(.*?)to ([^;]+);", ALL_SQL, re.S)
-    to_anon = [fns for fns, who in grants if re.search(r"\banon\b", who)]
-    assert len(to_anon) == 1 and re.findall(r"public\.(\w+)\(", to_anon[0]) == [SHARED_FN]
+    to_anon = [re.findall(r"public\.(\w+)\(", fns) for fns, who in grants if re.search(r"\banon\b", who)]
+    assert to_anon == [[SHARED_FN], ["report_video_job"]], to_anon
 
 
 def test_privacy_functions_cover_attendance():

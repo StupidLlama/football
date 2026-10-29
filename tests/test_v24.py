@@ -100,10 +100,10 @@ def test_0007_every_function_revoked_from_anon_first():
 
 
 def test_only_the_share_function_is_granted_to_anon():
-    """全部 migration 裡，只有分享頁的函式開放給沒登入的人；資料表一律不給 anon。"""
+    """全部 migration 裡，只有分享頁的函式和 v3.0 Colab 回報進度的函式開放給沒登入的人；資料表一律不給 anon。"""
     grants = re.findall(r"grant execute on function(.*?)to ([^;]+);", ALL_SQL, re.S)
-    to_anon = [fns for fns, who in grants if re.search(r"\banon\b", who)]
-    assert len(to_anon) == 1 and re.findall(r"public\.(\w+)\(", to_anon[0]) == [SHARED_FN]
+    to_anon = [re.findall(r"public\.(\w+)\(", fns) for fns, who in grants if re.search(r"\banon\b", who)]
+    assert to_anon == [[SHARED_FN], ["report_video_job"]], to_anon
     assert not re.search(r"grant [^;]* on (table )?public\.\w+[^;]* to [^;]*\banon\b", ALL_SQL, re.I)
     assert not re.search(r"create policy[^;]*\bto anon\b", ALL_SQL)
 

@@ -1433,6 +1433,66 @@ reset role;
 select pg_temp.expect((select count(*) from public.ability_ratings where team_id = '10000000-0000-0000-0000-000000000210'), 1,
                       'v2.10 只有正常送出的那一份自評');
 
+-- ============================================================
+-- v3.0 影片分析（0015）：建立工作、權杖回報、取消；沿用 v2.10 測試隊（210 球員、211 球隊管理員）
+-- ============================================================
+insert into public.matches (id, team_id, opponent, kickoff) values
+  ('80000000-0000-0000-0000-000000000300', '10000000-0000-0000-0000-000000000210', '影片對手', now() - interval '1 day'),
+  ('80000000-0000-0000-0000-000000000301', '10000000-0000-0000-0000-000000000210', '還沒踢', now() + interval '1 day');
+set local role authenticated;
+select pg_temp.login('00000000-0000-0000-0000-000000000210');
+select pg_temp.st(public.create_video_job('80000000-0000-0000-0000-000000000300', 'match.mp4'), 'forbidden', '球員不能建立影片分析');
+select pg_temp.must_fail($q$insert into public.match_videos (team_id, match_id, file_name)
+                          values ('10000000-0000-0000-0000-000000000210', '80000000-0000-0000-0000-000000000300', 'x')$q$,
+                         '球員直接寫影片工作');
+select pg_temp.login('00000000-0000-0000-0000-000000000211');
+select pg_temp.st(public.create_video_job('80000000-0000-0000-0000-000000000301', 'match.mp4'), 'invalid', '比賽還沒踢不能建立');
+select pg_temp.st(public.create_video_job('80000000-0000-0000-0000-000000000300', '  '), 'invalid', '影片檔名空白');
+select set_config('test.vtok', public.create_video_job('80000000-0000-0000-0000-000000000300', 'match.mp4') ->> 'token', true);
+select pg_temp.expect((current_setting('test.vtok') like 'pv\_%')::int, 1, '球隊管理員建立影片分析，拿到權杖');
+select pg_temp.st(public.create_video_job('80000000-0000-0000-0000-000000000300', 'again.mp4'), 'busy', '同一場還在分析不能再建');
+select pg_temp.must_fail('select * from public.video_tokens', '權杖表誰都不能讀');
+reset role;
+
+-- Colab 不用登入，拿權杖回報
+set local role anon;
+select set_config('request.jwt.claims', '', true);
+select pg_temp.must_fail('select * from public.match_videos', '沒登入讀影片工作');
+select pg_temp.st(public.report_video_job('pv_not-a-real-token', 'processing', 10), 'not_found', '亂打的分析權杖');
+select pg_temp.st(public.report_video_job(current_setting('test.vtok'), 'processing', 100), 'invalid', '處理中進度不能 100');
+select pg_temp.st(public.report_video_job(current_setting('test.vtok'), 'processing', 35, p_width => 1920, p_height => 1080,
+                                          p_fps => 30, p_seconds => 5400), 'ok', '回報進度 35%');
+select pg_temp.st(public.report_video_job(current_setting('test.vtok'), 'done', p_grade => 'low', p_reasons => '{"<script>"}'),
+                  'invalid', '原因代碼亂填');
+select pg_temp.st(public.report_video_job(current_setting('test.vtok'), 'done', p_grade => 'low', p_reasons => '{dark,no_lines}'),
+                  'ok', '回報完成：可信度低');
+select pg_temp.st(public.report_video_job(current_setting('test.vtok'), 'processing', 5), 'not_found', '完成後權杖失效');
+reset role;
+select pg_temp.expect((select count(*) from public.match_videos where match_id = '80000000-0000-0000-0000-000000000300'
+                        and status = 'done' and progress = 100 and grade = 'low' and reasons = '{dark,no_lines}'
+                        and seconds = 5400), 1, '影片工作記下結果');
+select pg_temp.expect((select count(*) from public.video_tokens t join public.match_videos v on v.id = t.video_id
+                        where v.match_id = '80000000-0000-0000-0000-000000000300'), 0, '完成後權杖刪掉');
+
+-- 隊友看得到結果；取消只有球隊管理員
+set local role authenticated;
+select pg_temp.login('00000000-0000-0000-0000-000000000210');
+select pg_temp.expect((select count(*) from public.match_videos where match_id = '80000000-0000-0000-0000-000000000300'), 1,
+                      '隊友看得到影片分析結果');
+select pg_temp.login('00000000-0000-0000-0000-00000000000a');
+select pg_temp.expect((select count(*) from public.match_videos where match_id = '80000000-0000-0000-0000-000000000300'), 0,
+                      '別隊看不到影片分析');
+select pg_temp.login('00000000-0000-0000-0000-000000000211');
+select set_config('test.vid', public.create_video_job('80000000-0000-0000-0000-000000000300', 'second.mp4') ->> 'id', true);
+select pg_temp.login('00000000-0000-0000-0000-000000000210');
+select pg_temp.st(public.cancel_video_job(current_setting('test.vid')::uuid), 'forbidden', '球員不能取消影片分析');
+select pg_temp.login('00000000-0000-0000-0000-000000000211');
+select pg_temp.st(public.cancel_video_job(current_setting('test.vid')::uuid), 'ok', '球隊管理員取消影片分析');
+select pg_temp.st(public.cancel_video_job(current_setting('test.vid')::uuid), 'closed', '取消過的不能再取消');
+reset role;
+select pg_temp.expect((select count(*) from public.video_tokens where video_id = current_setting('test.vid')::uuid), 0,
+                      '取消後權杖刪掉');
+
 -- 5. 整個資料庫的總檢查（以後新增的表、函式也會被抓到）
 select pg_temp.expect((select count(*) from pg_class c where c.relnamespace = 'public'::regnamespace
                         and c.relkind = 'r' and not c.relrowsecurity), 0, '沒開 RLS 的表');
@@ -1445,8 +1505,9 @@ select pg_temp.expect((select count(*) from pg_proc p where p.pronamespace = 'pu
                         and not coalesce(array_to_string(p.proconfig, ',') like '%search_path=%', false)), 0,
                       'security definer 函式沒固定 search_path');
 select pg_temp.expect((select count(*) from pg_proc p where p.pronamespace = 'public'::regnamespace and p.prosecdef
-                        and p.proname <> 'get_shared_lineup' and has_function_privilege('anon', p.oid, 'execute')), 0,
-                      '沒登入的人能呼叫的 security definer 函式（只有 get_shared_lineup 可以）');
+                        and p.proname not in ('get_shared_lineup', 'report_video_job')
+                        and has_function_privilege('anon', p.oid, 'execute')), 0,
+                      '沒登入的人能呼叫的 security definer 函式（只有 get_shared_lineup、report_video_job 可以）');
 select pg_temp.expect((select count(*) from pg_proc p where p.pronamespace = 'public'::regnamespace and p.prosecdef
                         and p.prorettype = 'trigger'::regtype
                         and (has_function_privilege('anon', p.oid, 'execute')
