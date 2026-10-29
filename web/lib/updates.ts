@@ -13,6 +13,13 @@ export type Update = {
 
 export const UPDATES: Update[] = [
   {
+    version: "v2.11.1", date: "2026-10-29", title: "首頁新動畫", big: false,
+    items: [
+      "還沒登入時的首頁換成「轉播畫面」動畫：直塞、射中橫桿、補射進球。",
+      "手機開了「減少動態效果」就只顯示進球後的畫面，不會動。",
+    ],
+  },
+  {
     version: "v2.11", date: "2026-10-22", title: "新樣子：戰情室", big: true,
     items: [
       "整個網站換了新樣子：卡片變少、重點數字合成一條，看數據更清楚。",

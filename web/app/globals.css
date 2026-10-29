@@ -316,3 +316,20 @@ textarea.field { padding: 10px 12px; min-height: 96px; resize: vertical; line-he
 .statrow { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 12px 24px; margin: 20px 0 0; }
 .statrow dt { font-size: 12px; color: var(--muted); letter-spacing: .04em; }
 .statrow dd { margin: 2px 0 0; font-size: 22px; font-weight: 700; line-height: 1.2; }
+
+/* v2.11.1 未登入首頁的轉播動畫（components/broadcast-hero.tsx）：左上角比分條、進球橫幅 */
+.tv { position: relative; border-radius: 10px; overflow: hidden; background: #0A1F14; }
+.tv svg { display: block; width: 100%; height: auto; }
+.tv-bug { position: absolute; left: 12px; top: 12px; display: flex; align-items: stretch; font-size: 15px; font-weight: 700; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.4); }
+.tv-bug span { padding: 4px 9px; display: flex; align-items: center; }
+.tv-team { background: #0B1220; color: var(--text); font-family: var(--font-noto), sans-serif; font-size: 13px; }
+.tv-score { background: #F1ECE2; color: #0B1220; min-width: 52px; justify-content: center; }
+.tv-clock { background: #14223A; color: #60A5FA; }
+.tv-banner { position: absolute; left: 0; right: 0; bottom: 16px; display: flex; justify-content: center; pointer-events: none; }
+.tv-banner div { background: #F59E0B; color: #1A1206; font-size: 22px; font-weight: 700; letter-spacing: .1em; padding: 4px 18px; border-radius: 4px; }
+@media (max-width: 420px) {
+  .tv-bug { left: 8px; top: 8px; font-size: 13px; }
+  .tv-bug span { padding: 3px 7px; }
+  .tv-banner { bottom: 10px; }
+  .tv-banner div { font-size: 17px; padding: 3px 12px; }
+}
