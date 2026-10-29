@@ -117,7 +117,10 @@ export function TeamShell({ teamId, children }: { teamId: string; children: Reac
     if (!drawer) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setDrawer(false); };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    // 抽屜打開時鎖住後面的頁面，只捲抽屜
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { window.removeEventListener("keydown", onKey); document.body.style.overflow = prev; };
   }, [drawer]);
   // 被移出球隊、或網址打錯：回到選球隊
   useEffect(() => {

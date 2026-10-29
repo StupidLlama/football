@@ -13,6 +13,13 @@ export type Update = {
 
 export const UPDATES: Update[] = [
   {
+    version: "v2.11.3", date: "2026-10-29", title: "側邊選單可以自己捲動", big: false,
+    items: [
+      "電腦版左邊的選單現在可以單獨上下捲動，不用先把頁面捲到底。",
+      "手機版打開選單時，只會捲選單，後面的頁面不會跟著動。",
+    ],
+  },
+  {
     version: "v2.11.2", date: "2026-10-29", title: "加到手機主畫面", big: false,
     items: [
       "可以把網站加到手機主畫面了：點圖示就打開，沒有網址列，用起來像 App。",
