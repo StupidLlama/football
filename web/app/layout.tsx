@@ -22,6 +22,9 @@ const kaushan = Kaushan_Script({ weight: "400", subsets: ["latin"], display: "sw
 export const metadata: Metadata = {
   title: { default: "Football Analysis Potato", template: "%s｜Football Analysis Potato" },
   description: "球隊的球員能力、陣容、比賽和裁判任務，一個地方全看得到。",
+  // v2.11.2：iPhone 加到主畫面時的名字；manifest 在 app/manifest.ts，iPhone 圖示是 app/apple-icon.png
+  applicationName: "Potato",
+  appleWebApp: { capable: true, title: "Potato", statusBarStyle: "black" },
 };
 
 export const viewport: Viewport = { themeColor: "#0B1220", width: "device-width", initialScale: 1 };

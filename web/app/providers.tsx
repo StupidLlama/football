@@ -6,6 +6,8 @@ import { ToastProvider } from "@/components/ui";
 import { FeedbackFab } from "@/components/feedback";
 import { BrowserNoticePopup } from "@/components/browser-notice";
 import { loadTextSize } from "@/lib/prefs";
+// v2.11.2：一載入就開始聽 Android Chrome 的「可以安裝」事件（只會來一次）
+import "@/components/install-guide";
 
 export function Providers({ children }: { children: ReactNode }) {
   // 設定頁選的文字大小（存在這台裝置的瀏覽器）

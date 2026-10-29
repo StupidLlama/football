@@ -13,6 +13,14 @@ export type Update = {
 
 export const UPDATES: Update[] = [
   {
+    version: "v2.11.2", date: "2026-10-29", title: "加到手機主畫面", big: false,
+    items: [
+      "可以把網站加到手機主畫面了：點圖示就打開，沒有網址列，用起來像 App。",
+      "選單和「設定」多了「加到手機主畫面」的教學，iPhone 和 Android 都有一步一步的說明。",
+      "第一次用手機登入時會自動跳出教學一次。",
+    ],
+  },
+  {
     version: "v2.11.1", date: "2026-10-29", title: "首頁新動畫", big: false,
     items: [
       "還沒登入時的首頁換成「轉播畫面」動畫：直塞、射中橫桿、補射進球。",

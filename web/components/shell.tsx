@@ -10,6 +10,7 @@ import type { TeamView } from "@/lib/teamview";
 import { ErrorBox, Footer, Loading, Logo, RoleBadge, Soon } from "./ui";
 import { UpdateDot, UpdatePopup } from "./updates";
 import { FeedbackNavLink } from "./feedback";
+import { InstallGuideAuto, InstallGuideLink } from "./install-guide";
 
 type NavItem = { href: string; label: string; icon: string; soon?: string; badge?: number; match?: (p: string) => boolean };
 
@@ -89,6 +90,7 @@ function Bottom({ teamId, path, onGo }: { teamId: string; path: string; onGo?: (
       <Link className="side-item" href="/updates" onClick={onGo}>
         <span aria-hidden="true" className="ico">↻</span><span style={{ flex: 1 }}>更新紀錄</span><UpdateDot />
       </Link>
+      <InstallGuideLink onGo={onGo} />
       <FeedbackNavLink active={path === "/feedback"} onGo={onGo} />
       <button type="button" className="side-item" onClick={async () => { await signOut(); router.replace("/"); }}>
         <span aria-hidden="true" className="ico">←</span><span style={{ flex: 1 }}>登出</span>
@@ -155,6 +157,7 @@ export function TeamShell({ teamId, children }: { teamId: string; children: Reac
         </main>
       </div>
       <UpdatePopup />
+      <InstallGuideAuto />
       {drawer && (
         <div className="drawer">
           <div className="drawer-panel" role="dialog" aria-modal="true" aria-label="主選單">

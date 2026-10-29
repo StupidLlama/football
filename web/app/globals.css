@@ -277,6 +277,12 @@ textarea.field { padding: 10px 12px; min-height: 96px; resize: vertical; line-he
 .update-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--orange); vertical-align: middle; margin-left: 4px; flex: none; }
 .update-pop { width: min(520px, calc(100vw - 32px)); max-height: calc(100vh - 48px); overflow-y: auto; box-sizing: border-box; padding: 24px; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); color: var(--text); line-height: 1.65; }
 .update-pop::backdrop { background: rgba(5, 9, 18, .72); }
+/* v2.11.2：加到主畫面教學 */
+.install-tip { margin: 0 0 16px; color: #FBBF5A; font-size: 15px; }
+.install-steps { margin: 0; padding: 0; list-style: none; counter-reset: step; display: flex; flex-direction: column; }
+.install-steps li { counter-increment: step; display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 8px; padding: 10px 0; border-top: 1px solid var(--line); }
+.install-steps li:first-child { border-top: 0; }
+.install-steps li::before { content: counter(step); font-family: var(--font-barlow, 'Barlow Semi Condensed'), sans-serif; font-weight: 700; font-size: 22px; line-height: 1.2; color: var(--blue); }
 
 /* v2.11 戰情室：勝和負小方塊（FotMob）、評分方塊（Sofascore）、出席比例條、比賽卡片 */
 .res { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; flex: none; border-radius: 6px;
