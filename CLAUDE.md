@@ -80,6 +80,8 @@ docs/HANDOFF.md            交接說明：上一版做了什麼、下一版要�
 - 字體（都用 `next/font`，打包在自己網站上，CSP 不用改）：標題 h1–h3 霞鶩文楷 TC、內文思源黑體、數字 Barlow Semi Condensed（`.num`、KPI）、Logo 的「Potato」Kaushan Script。
 - 少卡片：KPI 一律放在 `.kpis` 裡（合成一條、細線分格）；列表用分隔線，不要每列一張卡。圓角 10／16。
 - Logo：`components/ui.tsx` 的 `Logo`（`text` = 加「FOOTBALL ANALYSIS Potato」字樣）；球的圖是 `web/public/logo.png`（使用者提供的透明 PNG），favicon 是簡化的 `app/icon.svg`。不畫手繪／插畫風元素。
+- **加到手機主畫面（v2.11.2）**：`app/manifest.ts`（產生 `/manifest.webmanifest`）、圖示 `public/icon-192.png`／`icon-512.png`／`icon-maskable-512.png`、iPhone 圖示 `app/apple-icon.png`（都從使用者的 Logo 原檔做，深色底）。教學視窗 `components/install-guide.tsx`（步驟和判斷在 `lib/install-guide.ts`）：側邊欄和設定頁有按鈕；第一次用手機登入自動跳一次（`fap.installGuideSeen`），有「有新功能」或瀏覽器提醒要跳時先讓它們。沒有 service worker（不做離線）。
+- **側邊欄自己捲動（v2.11.3）**：`.sidebar` 固定 `100dvh` 高、`overflow-y: auto`、`overscroll-behavior: contain`；手機抽屜打開時 `shell.tsx` 會鎖住 `body` 捲動。側邊欄加東西不用擔心太長。
 - 樣式都在 `web/app/globals.css`；不用 Tailwind、shadcn。舊網站（Streamlit）已退役，`infra/charts/style.py` 不用跟著改。
 - **動畫**：圖表用 `components/anim.tsx` 的 `useTween`，捲到才播用 Motion 的 `useInView(ref, { once: true })`（`Bar`、`Radar` 的寫法）；其他動畫用 Motion（`motion/react`）。整站包在 `app/providers.tsx` 的 `<MotionConfig reducedMotion="user">` 裡，**Motion 只動 transform（x、y、scale、rotate）**，這樣「減少動態效果」才會關掉（`cx`、`cy` 這類屬性動畫不會被關）。CSS 動畫一樣要加進 `@media (prefers-reduced-motion: reduce)`。
 

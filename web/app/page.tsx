@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { homeFor } from "@/lib/nav";
 import { configured } from "@/lib/supabase";
-import { motion } from "motion/react";
+import { BroadcastHero } from "@/components/broadcast-hero";
 import { Footer, Loading, Logo } from "@/components/ui";
 
 export default function Home() {
@@ -51,7 +51,7 @@ export default function Home() {
           )}
         </div>
         <figure style={{ flex: "1.5 1 440px", minWidth: 0, margin: 0 }}>
-          <PassingLoop />
+          <BroadcastHero />
         </figure>
       </section>
 
@@ -97,36 +97,6 @@ export default function Home() {
       </section>
       <Footer />
     </div>
-  );
-}
-
-// v2.11：三個人傳球，最後一腳射中橫桿彈回第一個人，一直循環。
-// 用 Motion 動 transform（x、y）：系統開了「減少動態效果」時 MotionConfig 會關掉，球停在第一個人腳下。
-const FEET = [[90, 296], [230, 296], [370, 296]] as const;
-const BAR: [number, number] = [520, 150];
-const BALL = {
-  x: [0, 70, 140, 210, 280, 355, BAR[0] - FEET[0][0], 230, 0],
-  y: [0, -70, 0, -60, 0, -90, BAR[1] - FEET[0][1], -70, 0],
-};
-
-function PassingLoop() {
-  return (
-    <svg viewBox="0 0 600 360" role="img" aria-label="動畫：三個球員互相傳球，最後一腳射中橫桿，球彈回第一個人" style={{ width: "100%", height: "auto", display: "block" }}>
-      <rect x="4" y="4" width="592" height="352" rx="16" fill="#111A2B" />
-      <path d="M24 306 H576" stroke="#1F2B42" strokeWidth="2" />
-      <path d={`M${BAR[0] - 20} 306 V${BAR[1]} H${BAR[0] + 60} V306`} fill="none" stroke="#E9EDF3" strokeWidth="5" strokeLinejoin="round" />
-      <path d={`M${BAR[0] - 20} ${BAR[1]} L${BAR[0] + 10} 190 M${BAR[0] + 60} ${BAR[1]} L${BAR[0] + 30} 190 M${BAR[0] + 10} 190 H${BAR[0] + 30} V306 M${BAR[0] + 10} 190 V306`} fill="none" stroke="#2E3D5C" strokeWidth="2" />
-      {FEET.map(([x], i) => (
-        <g key={i} fill="#60A5FA">
-          <circle cx={x - 6} cy={232} r={11} />
-          <rect x={x - 17} y={248} width={22} height={34} rx={8} />
-          <rect x={x - 14} y={280} width={7} height={24} rx={3} /><rect x={x - 3} y={280} width={7} height={24} rx={3} />
-          <text x={x - 6} y={270} textAnchor="middle" fontSize="13" fontWeight="700" fill="#0B1220">{[7, 8, 10][i]}</text>
-        </g>
-      ))}
-      <motion.circle cx={FEET[0][0] + 14} cy={FEET[0][1]} r={9} fill="#F59E0B" stroke="#0B1220" strokeWidth="2"
-        animate={BALL} transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", times: [0, .1, .2, .3, .4, .5, .62, .8, 1] }} />
-    </svg>
   );
 }
 

@@ -12,6 +12,7 @@ import { DATA_REGION, POLICY_VERSION } from "@/lib/policies";
 import { RequireLogin } from "@/components/guard";
 import { useLeaveGuard } from "@/components/back-button";
 import { ConfirmButton } from "@/components/confirm-button";
+import { InstallGuideLink } from "@/components/install-guide";
 import { dateLabel, ErrorBox, Footer, RoleBadge, Soon, useToast } from "@/components/ui";
 
 function Settings() {
@@ -93,6 +94,8 @@ function Settings() {
         </div>
         <p className="muted" style={{ margin: "16px 0 8px", fontSize: 14 }}>主題</p>
         <div className="chips"><span className="chip" aria-checked="true" role="radio">深色</span><span className="chip" style={{ opacity: .6 }}>淺色 <Soon /></span></div>
+        <p className="muted" style={{ margin: "16px 0 8px", fontSize: 14 }}>加到手機主畫面，打開就像 App 一樣</p>
+        <InstallGuideLink className="btn btn-line btn-sm" />
       </section>
 
       {auth.profile?.is_admin && <AdminCreateTeam onCreated={() => auth.reload()} />}
